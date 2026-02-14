@@ -1,0 +1,3282 @@
+openapi: 3.0.4
+info:
+  title: API de Agenda de Ajustes Pós-Cirúrgicos
+  description: |
+    Sistema completo para gerenciamento de agenda de ajustes de produtos pós-cirúrgicos.
+
+    ## Características
+    - Autenticação JWT com controle de permissões
+    - Cadastro de pessoas com diferentes papéis
+    - Gestão de agendamentos com regras de negócio
+    - Upload de fotos de ajustes
+    - Sistema de logs para auditoria
+    - Notificações via WhatsApp
+    - Relatórios e dashboard
+
+    ## Tipos de Usuário
+    - **Administrador**: Acesso total ao sistema
+    - **Secretária**: Cadastro de pacientes e agendamentos
+    - **Costureira**: Registro de comparecimento e upload de fotos
+    - **Médico**: Visualização de relatórios
+    - **Paciente**: Recebe notificações (sem acesso ao sistema)
+
+    ## Autenticação
+    A maioria dos endpoints requer autenticação via JWT. 
+    Obtenha um token através do endpoint `/api/auth/login` e inclua-o no header:
+    ```
+    Authorization: Bearer {seu_token}
+    ```
+
+  version: 1.0.0
+  contact:
+    name: Ramon David Souto
+    email: rdssi@hotmail.com
+  license:
+    name: ISC
+    url: https://opensource.org/licenses/ISC
+
+servers:
+  - url: http://localhost:3000
+    description: Servidor de desenvolvimento
+  - url: https://api.sistema.com
+    description: Servidor de produção
+
+tags:
+  - name: Autenticação
+    description: Endpoints de autenticação e gerenciamento de sessão
+  - name: Pessoas
+    description: Gerenciamento de pessoas (usuários, pacientes, etc)
+  - name: Agendamentos
+    description: Gerenciamento de agendamentos de ajustes
+  - name: Produtos
+    description: Gerenciamento de produtos e fotos de ajustes
+  - name: Relatórios
+    description: Relatórios e estatísticas do sistema
+  - name: Sistema
+    description: Endpoints de sistema e health check
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT obtido através do login
+
+  schemas:
+    # Schema de Erro
+    Error:
+      type: object
+      properties:
+        sucesso:
+          type: boolean
+          example: false
+        mensagem:
+          type: string
+          example: Erro na operação
+        erro:
+          type: string
+          example: Detalhes do erro
+
+    # Schema de Sucesso
+    Success:
+      type: object
+      properties:
+        sucesso:
+          type: boolean
+          example: true
+        mensagem:
+          type: string
+          example: Operação realizada com sucesso
+
+    # Schema de Login
+    LoginRequest:
+      type: object
+      required:
+        - num_cpf
+        - des_senha
+      properties:
+        num_cpf:
+          type: string
+          minLength: 11
+          maxLength: 11
+          pattern: '^\d{11}$'
+          description: CPF sem formatação (apenas números)
+          example: "00000000000"
+        des_senha:
+          type: string
+          minLength: 6
+          description: Senha do usuário
+          example: "senha123"
+
+    LoginResponse:
+      type: object
+      properties:
+        sucesso:
+          type: boolean
+          example: true
+        mensagem:
+          type: string
+          example: Login realizado com sucesso
+        dados:
+          type: object
+          properties:
+            token:
+              type: string
+              example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+            usuario:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 1
+                nome:
+                  type: string
+                  example: Administrador do Sistema
+                cpf:
+                  type: string
+                  example: "00000000000"
+                tipo:
+                  type: string
+                  enum:
+                    [administrador, secretaria, costureira, medico, paciente]
+                  example: administrador
+                email:
+                  type: string
+                  example: admin@sistema.com
+
+    # Schema de Pessoa
+    PessoaInput:
+      type: object
+      required:
+        - id_cidade
+        - ind_tipo_pessoa
+        - nom_completo
+        - num_cpf
+        - num_rg
+        - dta_nascimento
+        - des_logradouro
+        - num_endereco
+        - num_cep
+        - nom_bairro
+        - num_celular_1
+        - des_email_1
+      properties:
+        id_cidade:
+          type: integer
+          description: ID da cidade
+          example: 1
+        ind_status:
+          type: string
+          enum: [ativo, inativo]
+          default: ativo
+          example: ativo
+        ind_tipo_pessoa:
+          type: string
+          enum: [medico, secretaria, costureira, paciente, administrador]
+          description: Tipo de pessoa/usuário
+          example: paciente
+        nom_completo:
+          type: string
+          maxLength: 255
+          description: Nome completo
+          example: João da Silva Santos
+        num_cpf:
+          type: string
+          minLength: 11
+          maxLength: 11
+          pattern: '^\d{11}$'
+          description: CPF sem formatação
+          example: "12345678901"
+        num_rg:
+          type: string
+          maxLength: 20
+          description: RG
+          example: "1234567"
+        dta_nascimento:
+          type: string
+          format: date
+          description: Data de nascimento
+          example: "1990-05-15"
+        des_logradouro:
+          type: string
+          maxLength: 255
+          description: Logradouro (rua, avenida, etc)
+          example: Rua das Flores
+        num_endereco:
+          type: string
+          maxLength: 10
+          description: Número do endereço
+          example: "123"
+        des_complemento:
+          type: string
+          maxLength: 100
+          nullable: true
+          description: Complemento do endereço
+          example: Apartamento 201
+        num_cep:
+          type: string
+          minLength: 8
+          maxLength: 8
+          pattern: '^\d{8}$'
+          description: CEP sem formatação
+          example: "74000000"
+        nom_bairro:
+          type: string
+          maxLength: 100
+          description: Nome do bairro/setor
+          example: Centro
+        num_celular_1:
+          type: string
+          maxLength: 15
+          description: Celular principal
+          example: "62999999999"
+        ind_whatsapp_1:
+          type: boolean
+          default: true
+          description: Indica se celular 1 tem WhatsApp
+          example: true
+        num_celular_2:
+          type: string
+          maxLength: 15
+          nullable: true
+          description: Celular secundário
+          example: "62988888888"
+        ind_whatsapp_2:
+          type: boolean
+          default: true
+          description: Indica se celular 2 tem WhatsApp
+          example: false
+        des_email_1:
+          type: string
+          format: email
+          maxLength: 255
+          description: Email principal
+          example: joao@email.com
+        des_email_2:
+          type: string
+          format: email
+          maxLength: 255
+          nullable: true
+          description: Email secundário
+          example: joao2@email.com
+        des_senha:
+          type: string
+          minLength: 6
+          description: Senha (obrigatória para secretaria, costureira, admin e medico)
+          example: senha123
+
+    Pessoa:
+      allOf:
+        - $ref: "#/components/schemas/PessoaInput"
+        - type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            nom_cidade:
+              type: string
+              example: Goiânia
+            nom_estado:
+              type: string
+              example: Goiás
+            sgl_estado:
+              type: string
+              example: GO
+            created_at:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+            updated_at:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+
+    PessoaList:
+      type: object
+      properties:
+        sucesso:
+          type: boolean
+          example: true
+        total:
+          type: integer
+          example: 10
+        dados:
+          type: array
+          items:
+            $ref: "#/components/schemas/Pessoa"
+
+    # Schema de Agendamento
+    AgendamentoInput:
+      type: object
+      required:
+        - id_paciente
+        - id_costureira
+        - id_secretaria
+        - dta_agendamento
+        - produtos
+      properties:
+        id_paciente:
+          type: integer
+          description: ID do paciente
+          example: 5
+        id_costureira:
+          type: integer
+          description: ID da costureira
+          example: 3
+        id_secretaria:
+          type: integer
+          description: ID da secretária que está criando
+          example: 2
+        dta_agendamento:
+          type: string
+          format: date-time
+          description: Data e hora do agendamento (deve ser futura)
+          example: "2024-12-31T14:00:00Z"
+        des_observacoes_geral:
+          type: string
+          nullable: true
+          description: Observações gerais sobre o agendamento
+          example: Paciente necessita de ajuste urgente
+        produtos:
+          type: array
+          minItems: 1
+          description: Lista de produtos para ajuste
+          items:
+            type: object
+            required:
+              - id_produto_grade
+            properties:
+              id_produto_grade:
+                type: integer
+                description: ID do produto na grade
+                example: 10
+              des_ajuste_produto:
+                type: string
+                nullable: true
+                description: Descrição do ajuste necessário
+                example: Ajustar manga esquerda
+
+    Agendamento:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        dta_agendamento:
+          type: string
+          format: date-time
+          example: "2024-12-31T14:00:00Z"
+        ind_status:
+          type: string
+          enum: [agendado, confirmado, concluido, cancelado, falta]
+          example: agendado
+        ind_paciente_compareceu:
+          type: boolean
+          nullable: true
+          example: null
+        des_observacoes_geral:
+          type: string
+          nullable: true
+          example: Paciente necessita de ajuste urgente
+        des_observacoes_costureira:
+          type: string
+          nullable: true
+          example: Ajuste realizado conforme solicitado
+        paciente_id:
+          type: integer
+          example: 5
+        paciente_nome:
+          type: string
+          example: João da Silva Santos
+        paciente_cpf:
+          type: string
+          example: "12345678901"
+        paciente_celular:
+          type: string
+          example: "62999999999"
+        paciente_email:
+          type: string
+          example: joao@email.com
+        costureira_id:
+          type: integer
+          example: 3
+        costureira_nome:
+          type: string
+          example: Ana Costureira Santos
+        secretaria_id:
+          type: integer
+          example: 2
+        secretaria_nome:
+          type: string
+          example: Maria Secretária Silva
+        produtos:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 1
+              id_produto_grade:
+                type: integer
+                example: 10
+              nom_produto:
+                type: string
+                example: Blusa Manga Longa
+              ref_produto:
+                type: string
+                example: BML-001
+              num_sku:
+                type: string
+                example: BML-001-P-AZ
+              cod_tamanho:
+                type: string
+                example: P
+              nom_cor_estampa:
+                type: string
+                example: Azul
+              des_ajuste_produto:
+                type: string
+                example: Ajustar manga esquerda
+              ind_status:
+                type: string
+                enum: [pendente, producao, concluido, cancelado]
+                example: pendente
+              fotos:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Foto"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    AgendamentoList:
+      type: object
+      properties:
+        sucesso:
+          type: boolean
+          example: true
+        total:
+          type: integer
+          example: 15
+        dados:
+          type: array
+          items:
+            $ref: "#/components/schemas/Agendamento"
+
+    # Schema de Comparecimento
+    ComparecimentoInput:
+      type: object
+      required:
+        - ind_paciente_compareceu
+      properties:
+        ind_paciente_compareceu:
+          type: boolean
+          description: Indica se o paciente compareceu
+          example: true
+        des_observacoes_costureira:
+          type: string
+          nullable: true
+          description: Observações da costureira sobre o atendimento
+          example: Paciente compareceu e ajuste foi realizado com sucesso
+
+    # Schema de Foto
+    Foto:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        id_produto_agendamento:
+          type: integer
+          example: 1
+        des_caminho_arquivo:
+          type: string
+          example: uploads/ajustes/foto-1234567890.jpg
+        nom_original:
+          type: string
+          example: foto_ajuste.jpg
+        num_tamanho_bytes:
+          type: integer
+          example: 2048576
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    FotoList:
+      type: object
+      properties:
+        sucesso:
+          type: boolean
+          example: true
+        total:
+          type: integer
+          example: 5
+        dados:
+          type: array
+          items:
+            $ref: "#/components/schemas/Foto"
+
+    # Schema de Log
+    Log:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        id_usuario:
+          type: integer
+          nullable: true
+          example: 1
+        des_acao:
+          type: string
+          example: criar
+        des_tabela:
+          type: string
+          example: tab_agendamentos
+        num_registro_id:
+          type: integer
+          nullable: true
+          example: 10
+        des_detalhes:
+          type: object
+          example: { "paciente": "João da Silva", "data": "2024-12-31" }
+        num_ip_address:
+          type: string
+          nullable: true
+          example: "192.168.1.1"
+        des_user_agent:
+          type: string
+          nullable: true
+          example: "Mozilla/5.0..."
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        usuario_nome:
+          type: string
+          nullable: true
+          example: Administrador do Sistema
+        usuario_tipo:
+          type: string
+          nullable: true
+          example: administrador
+
+    # Schema de Dashboard
+    Dashboard:
+      type: object
+      properties:
+        sucesso:
+          type: boolean
+          example: true
+        dados:
+          type: object
+          properties:
+            mes_atual:
+              type: object
+              properties:
+                total:
+                  type: integer
+                  example: 45
+                concluidos:
+                  type: integer
+                  example: 30
+                cancelados:
+                  type: integer
+                  example: 5
+                ativos:
+                  type: integer
+                  example: 10
+            hoje:
+              type: object
+              properties:
+                total:
+                  type: integer
+                  example: 3
+                agendamentos:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Agendamento"
+            costureiras:
+              type: object
+              properties:
+                total:
+                  type: integer
+                  example: 5
+                disponiveis:
+                  type: integer
+                  example: 3
+                ocupadas:
+                  type: integer
+                  example: 2
+
+    # Schema de Estatísticas
+    Estatisticas:
+      type: object
+      properties:
+        sucesso:
+          type: boolean
+          example: true
+        dados:
+          type: object
+          properties:
+            total:
+              type: integer
+              example: 100
+            por_status:
+              type: object
+              example:
+                agendado: 20
+                confirmado: 15
+                concluido: 50
+                cancelado: 10
+                falta: 5
+            comparecimentos:
+              type: object
+              properties:
+                total:
+                  type: integer
+                  example: 70
+                compareceram:
+                  type: integer
+                  example: 60
+                faltas:
+                  type: integer
+                  example: 10
+                taxa_comparecimento:
+                  type: string
+                  example: "85.71%"
+
+  # Respostas comuns reutilizáveis
+  responses:
+    UnauthorizedError:
+      description: Token de autenticação ausente ou inválido
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            sucesso: false
+            mensagem: Não autorizado
+            erro: Token não fornecido ou inválido
+
+    ForbiddenError:
+      description: Usuário não tem permissão para executar esta ação
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            sucesso: false
+            mensagem: Acesso negado
+            erro: Você não tem permissão para executar esta ação
+paths:
+  # ==================== AUTENTICAÇÃO ====================
+  /api/auth/login:
+    post:
+      tags:
+        - Autenticação
+      summary: Login de usuário
+      description: |
+        Realiza o login no sistema e retorna um token JWT.
+
+        **Tipos de usuário que podem fazer login:**
+        - Administrador
+        - Secretária
+        - Costureira
+        - Médico
+
+        **Nota:** Pacientes não têm acesso ao sistema, apenas recebem notificações.
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            examples:
+              admin:
+                summary: Login como Administrador
+                value:
+                  num_cpf: "00000000000"
+                  des_senha: "senha123"
+              secretaria:
+                summary: Login como Secretária
+                value:
+                  num_cpf: "11111111111"
+                  des_senha: "senha123"
+              costureira:
+                summary: Login como Costureira
+                value:
+                  num_cpf: "22222222222"
+                  des_senha: "senha123"
+      responses:
+        "200":
+          description: Login realizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                sucesso: false
+                mensagem: Erro de validação
+                erro: CPF e senha são obrigatórios
+        "401":
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                sucesso: false
+                mensagem: Credenciais inválidas
+                erro: CPF ou senha incorretos
+        "429":
+          description: Muitas tentativas de login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                sucesso: false
+                mensagem: Muitas tentativas de login
+                erro: Você excedeu o limite de tentativas. Tente novamente em 15 minutos
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Autenticação
+      summary: Logout de usuário
+      description: Registra o logout do usuário no sistema
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Logout realizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                sucesso: true
+                mensagem: Logout realizado com sucesso
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/auth/verificar:
+    get:
+      tags:
+        - Autenticação
+      summary: Verificar token JWT
+      description: Verifica se o token JWT é válido e retorna informações do usuário
+      operationId: verificarToken
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Token válido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  mensagem:
+                    type: string
+                    example: Token válido
+                  dados:
+                    type: object
+                    properties:
+                      usuario:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 1
+                          cpf:
+                            type: string
+                            example: "00000000000"
+                          tipo:
+                            type: string
+                            example: administrador
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/auth/perfil:
+    get:
+      tags:
+        - Autenticação
+      summary: Obter perfil do usuário logado
+      description: Retorna os dados completos do usuário autenticado
+      operationId: obterPerfil
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Perfil do usuário
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  dados:
+                    $ref: "#/components/schemas/Pessoa"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/auth/alterar-senha:
+    put:
+      tags:
+        - Autenticação
+      summary: Alterar senha do próprio usuário
+      description: Permite que o usuário altere sua própria senha
+      operationId: alterarSenha
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - senha_atual
+                - nova_senha
+                - confirmar_senha
+              properties:
+                senha_atual:
+                  type: string
+                  description: Senha atual do usuário
+                  example: senha123
+                nova_senha:
+                  type: string
+                  minLength: 6
+                  description: Nova senha (mínimo 6 caracteres)
+                  example: novaSenha456
+                confirmar_senha:
+                  type: string
+                  description: Confirmação da nova senha
+                  example: novaSenha456
+      responses:
+        "200":
+          description: Senha alterada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                sucesso: true
+                mensagem: Senha alterada com sucesso
+        "400":
+          description: Erro na validação
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                senhasNaoCoincidem:
+                  summary: Senhas não coincidem
+                  value:
+                    sucesso: false
+                    mensagem: Erro de validação
+                    erro: Nova senha e confirmação não coincidem
+                senhaAtualIncorreta:
+                  summary: Senha atual incorreta
+                  value:
+                    sucesso: false
+                    mensagem: Senha atual incorreta
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/auth/resetar-senha:
+    post:
+      tags:
+        - Autenticação
+      summary: Resetar senha de um usuário (apenas admin)
+      description: Permite que um administrador resete a senha de qualquer usuário
+      operationId: resetarSenha
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - num_cpf
+                - nova_senha
+              properties:
+                num_cpf:
+                  type: string
+                  pattern: '^\d{11}$'
+                  description: CPF do usuário que terá a senha resetada
+                  example: "12345678901"
+                nova_senha:
+                  type: string
+                  minLength: 6
+                  description: Nova senha para o usuário
+                  example: novaSenha789
+      responses:
+        "200":
+          description: Senha resetada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                sucesso: true
+                mensagem: Senha resetada com sucesso
+        "400":
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Usuário não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ==================== PESSOAS ====================
+  /api/pessoas:
+    get:
+      tags:
+        - Pessoas
+      summary: Listar pessoas com filtros
+      description: |
+        Lista todas as pessoas cadastradas no sistema com opção de filtros.
+
+        **Permissões:**
+        - Secretária: Pode listar
+        - Administrador: Pode listar
+      operationId: listarPessoas
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tipo
+          in: query
+          description: Filtrar por tipo de pessoa
+          schema:
+            type: string
+            enum: [medico, secretaria, costureira, paciente, administrador]
+        - name: status
+          in: query
+          description: Filtrar por status
+          schema:
+            type: string
+            enum: [ativo, inativo]
+        - name: busca
+          in: query
+          description: Buscar por nome ou CPF
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lista de pessoas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PessoaList"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+    post:
+      tags:
+        - Pessoas
+      summary: Criar nova pessoa
+      description: |
+        Cadastra uma nova pessoa no sistema.
+
+        **Permissões:**
+        - Secretária: Pode criar apenas pacientes
+        - Administrador: Pode criar qualquer tipo
+      operationId: criarPessoa
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PessoaInput"
+            examples:
+              paciente:
+                summary: Criar Paciente
+                value:
+                  id_cidade: 1
+                  ind_tipo_pessoa: paciente
+                  nom_completo: João da Silva Santos
+                  num_cpf: "12345678901"
+                  num_rg: "1234567"
+                  dta_nascimento: "1990-05-15"
+                  des_logradouro: Rua das Flores
+                  num_endereco: "123"
+                  des_complemento: Apartamento 201
+                  num_cep: "74000000"
+                  nom_bairro: Centro
+                  num_celular_1: "62999999999"
+                  ind_whatsapp_1: true
+                  des_email_1: joao@email.com
+              secretaria:
+                summary: Criar Secretária
+                value:
+                  id_cidade: 1
+                  ind_tipo_pessoa: secretaria
+                  nom_completo: Maria Silva
+                  num_cpf: "98765432100"
+                  num_rg: "7654321"
+                  dta_nascimento: "1988-03-20"
+                  des_logradouro: Avenida Principal
+                  num_endereco: "456"
+                  num_cep: "74100000"
+                  nom_bairro: Setor Bueno
+                  num_celular_1: "62988888888"
+                  des_email_1: maria@sistema.com
+                  des_senha: senha123
+      responses:
+        "201":
+          description: Pessoa criada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  mensagem:
+                    type: string
+                    example: Registro criado com sucesso
+                  dados:
+                    $ref: "#/components/schemas/Pessoa"
+        "400":
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                cpfInvalido:
+                  summary: CPF inválido
+                  value:
+                    sucesso: false
+                    mensagem: Erro de validação
+                    erro: CPF inválido
+                cpfExistente:
+                  summary: CPF já cadastrado
+                  value:
+                    sucesso: false
+                    mensagem: CPF já cadastrado
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/pessoas/{id}:
+    get:
+      tags:
+        - Pessoas
+      summary: Buscar pessoa por ID
+      description: Retorna os dados completos de uma pessoa específica
+      operationId: buscarPessoaPorId
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da pessoa
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dados da pessoa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  dados:
+                    $ref: "#/components/schemas/Pessoa"
+        "400":
+          description: ID inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: Pessoa não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    put:
+      tags:
+        - Pessoas
+      summary: Atualizar pessoa
+      description: |
+        Atualiza os dados de uma pessoa.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: atualizarPessoa
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da pessoa
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PessoaInput"
+      responses:
+        "200":
+          description: Pessoa atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  mensagem:
+                    type: string
+                    example: Registro atualizado com sucesso
+                  dados:
+                    $ref: "#/components/schemas/Pessoa"
+        "400":
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Pessoa não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Pessoas
+      summary: Deletar pessoa (soft delete)
+      description: |
+        Remove logicamente uma pessoa do sistema (soft delete).
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: deletarPessoa
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da pessoa
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pessoa deletada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                sucesso: true
+                mensagem: Registro deletado com sucesso
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Pessoa não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/pessoas/cpf/{cpf}:
+    get:
+      tags:
+        - Pessoas
+      summary: Buscar pessoa por CPF
+      description: |
+        Retorna os dados de uma pessoa através do CPF.
+
+        **Permissões:**
+        - Secretária: Pode buscar
+        - Administrador: Pode buscar
+      operationId: buscarPessoaPorCPF
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cpf
+          in: path
+          required: true
+          description: CPF da pessoa (11 dígitos, sem formatação)
+          schema:
+            type: string
+            pattern: '^\d{11}$'
+          example: "12345678901"
+      responses:
+        "200":
+          description: Dados da pessoa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  dados:
+                    $ref: "#/components/schemas/Pessoa"
+        "400":
+          description: CPF inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Pessoa não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/pessoas/tipo/{tipo}:
+    get:
+      tags:
+        - Pessoas
+      summary: Listar pessoas por tipo
+      description: Retorna todas as pessoas de um tipo específico
+      operationId: listarPessoasPorTipo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tipo
+          in: path
+          required: true
+          description: Tipo de pessoa
+          schema:
+            type: string
+            enum: [medico, secretaria, costureira, paciente, administrador]
+      responses:
+        "200":
+          description: Lista de pessoas do tipo especificado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PessoaList"
+        "400":
+          description: Tipo inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/pessoas/{id}/ativar:
+    patch:
+      tags:
+        - Pessoas
+      summary: Ativar pessoa
+      description: |
+        Ativa uma pessoa no sistema.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: ativarPessoa
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da pessoa
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pessoa ativada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                sucesso: true
+                mensagem: Pessoa ativada com sucesso
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Pessoa não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/pessoas/{id}/desativar:
+    patch:
+      tags:
+        - Pessoas
+      summary: Desativar pessoa
+      description: |
+        Desativa uma pessoa no sistema.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: desativarPessoa
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da pessoa
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pessoa desativada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                sucesso: true
+                mensagem: Pessoa desativada com sucesso
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Pessoa não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/pessoas/costureiras/disponiveis:
+    get:
+      tags:
+        - Pessoas
+      summary: Listar costureiras com disponibilidade
+      description: |
+        Lista todas as costureiras indicando quais estão disponíveis para novos agendamentos.
+        Uma costureira está disponível quando não possui agendamentos ativos (status agendado ou confirmado).
+
+        **Permissões:**
+        - Secretária: Pode visualizar
+        - Administrador: Pode visualizar
+      operationId: listarCostureirasDisponiveis
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de costureiras com status de disponibilidade
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  total:
+                    type: integer
+                    description: Total de costureiras
+                    example: 5
+                  disponiveis:
+                    type: integer
+                    description: Número de costureiras disponíveis
+                    example: 3
+                  dados:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/Pessoa"
+                        - type: object
+                          properties:
+                            disponivel:
+                              type: boolean
+                              description: Indica se a costureira está disponível
+                              example: true
+                            agendamento_ativo:
+                              nullable: true
+                              allOf:
+                                - $ref: "#/components/schemas/Agendamento"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/pessoas/pacientes:
+    get:
+      tags:
+        - Pessoas
+      summary: Listar pacientes
+      description: Lista todos os pacientes cadastrados
+      operationId: listarPacientes
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de pacientes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PessoaList"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/pessoas/secretarias:
+    get:
+      tags:
+        - Pessoas
+      summary: Listar secretárias
+      description: |
+        Lista todas as secretárias cadastradas.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: listarSecretarias
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de secretárias
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PessoaList"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/pessoas/costureiras:
+    get:
+      tags:
+        - Pessoas
+      summary: Listar costureiras
+      description: Lista todas as costureiras cadastradas
+      operationId: listarCostureiras
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de costureiras
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PessoaList"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  # ==================== AGENDAMENTOS ====================
+  /api/agendamentos:
+    get:
+      tags:
+        - Agendamentos
+      summary: Listar agendamentos com filtros
+      description: |
+        Lista agendamentos com opção de filtros.
+
+        **Regras:**
+        - Costureiras veem apenas seus próprios agendamentos
+        - Secretárias não veem observações das costureiras
+        - Administradores veem tudo
+      operationId: listarAgendamentos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id_paciente
+          in: query
+          description: Filtrar por paciente
+          schema:
+            type: integer
+        - name: id_costureira
+          in: query
+          description: Filtrar por costureira
+          schema:
+            type: integer
+        - name: id_secretaria
+          in: query
+          description: Filtrar por secretária
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: Filtrar por status
+          schema:
+            type: string
+            enum: [agendado, confirmado, concluido, cancelado, falta]
+        - name: data_inicio
+          in: query
+          description: Data inicial (formato ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: data_fim
+          in: query
+          description: Data final (formato ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: limite
+          in: query
+          description: Limite de resultados
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Lista de agendamentos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgendamentoList"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+    post:
+      tags:
+        - Agendamentos
+      summary: Criar novo agendamento
+      description: |
+        Cria um novo agendamento no sistema.
+
+        **Regras:**
+        - Apenas uma costureira pode ter um agendamento ativo por vez
+        - Data do agendamento deve ser futura
+        - Deve incluir pelo menos um produto
+
+        **Permissões:**
+        - Secretária: Pode criar
+        - Costureira: Pode criar
+        - Administrador: Pode criar
+      operationId: criarAgendamento
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgendamentoInput"
+      responses:
+        "201":
+          description: Agendamento criado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  mensagem:
+                    type: string
+                    example: Registro criado com sucesso
+                  dados:
+                    $ref: "#/components/schemas/Agendamento"
+        "400":
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                costureiraOcupada:
+                  summary: Costureira já possui agendamento ativo
+                  value:
+                    sucesso: false
+                    mensagem: Costureira já possui um agendamento ativo
+                dataPassada:
+                  summary: Data no passado
+                  value:
+                    sucesso: false
+                    mensagem: Data do agendamento deve ser futura
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/agendamentos/{id}:
+    get:
+      tags:
+        - Agendamentos
+      summary: Buscar agendamento por ID
+      description: |
+        Retorna os dados completos de um agendamento, incluindo produtos e fotos.
+
+        **Regras:**
+        - Secretárias não veem observações das costureiras
+      operationId: buscarAgendamentoPorId
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do agendamento
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dados do agendamento
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  dados:
+                    $ref: "#/components/schemas/Agendamento"
+        "400":
+          description: ID inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: Agendamento não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    put:
+      tags:
+        - Agendamentos
+      summary: Atualizar agendamento
+      description: |
+        Atualiza os dados de um agendamento.
+
+        **Regras:**
+        - Secretária pode atualizar apenas seus próprios agendamentos
+        - Costureira pode atualizar apenas seus próprios agendamentos
+        - Administrador pode atualizar qualquer agendamento
+      operationId: atualizarAgendamento
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do agendamento
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgendamentoInput"
+      responses:
+        "200":
+          description: Agendamento atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  mensagem:
+                    type: string
+                    example: Registro atualizado com sucesso
+                  dados:
+                    $ref: "#/components/schemas/Agendamento"
+        "400":
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Agendamento não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Agendamentos
+      summary: Deletar agendamento (soft delete)
+      description: |
+        Remove logicamente um agendamento do sistema.
+
+        **Regras:**
+        - Secretária pode deletar apenas seus próprios agendamentos
+        - Deve respeitar o prazo de 2 horas antes do agendamento
+        - Administrador pode deletar qualquer agendamento
+      operationId: deletarAgendamento
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do agendamento
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Agendamento deletado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                sucesso: true
+                mensagem: Registro deletado com sucesso
+        "400":
+          description: Não é possível deletar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                sucesso: false
+                mensagem: Não é possível cancelar com menos de 2 horas de antecedência
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Agendamento não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/agendamentos/{id}/cancelar:
+    patch:
+      tags:
+        - Agendamentos
+      summary: Cancelar agendamento
+      description: |
+        Cancela um agendamento.
+
+        **Regras:**
+        - Secretária pode cancelar apenas seus próprios agendamentos
+        - Deve respeitar o prazo de 2 horas antes do agendamento
+        - Administrador pode cancelar qualquer agendamento
+      operationId: cancelarAgendamento
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do agendamento
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Agendamento cancelado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                sucesso: true
+                mensagem: Agendamento cancelado com sucesso
+        "400":
+          description: Não é possível cancelar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Agendamento não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/agendamentos/{id}/confirmar:
+    patch:
+      tags:
+        - Agendamentos
+      summary: Confirmar agendamento
+      description: |
+        Confirma um agendamento.
+
+        **Permissões:**
+        - Secretária: Pode confirmar
+        - Administrador: Pode confirmar
+      operationId: confirmarAgendamento
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do agendamento
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Agendamento confirmado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                sucesso: true
+                mensagem: Agendamento confirmado com sucesso
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Agendamento não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/agendamentos/{id}/comparecimento:
+    post:
+      tags:
+        - Agendamentos
+      summary: Registrar comparecimento do paciente
+      description: |
+        Registra se o paciente compareceu ao agendamento e adiciona observações da costureira.
+
+        **Regras:**
+        - Apenas a costureira responsável pelo agendamento pode registrar
+        - Altera o status para 'concluido' ou 'falta'
+
+        **Permissões:**
+        - Costureira: Pode registrar seus próprios agendamentos
+        - Administrador: Pode registrar qualquer agendamento
+      operationId: registrarComparecimento
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do agendamento
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ComparecimentoInput"
+      responses:
+        "200":
+          description: Comparecimento registrado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  mensagem:
+                    type: string
+                    example: Comparecimento registrado com sucesso
+                  dados:
+                    $ref: "#/components/schemas/Agendamento"
+        "400":
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Agendamento não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/agendamentos/costureira/{id_costureira}:
+    get:
+      tags:
+        - Agendamentos
+      summary: Listar agendamentos de uma costureira
+      description: Lista todos os agendamentos de uma costureira específica
+      operationId: listarAgendamentosPorCostureira
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id_costureira
+          in: path
+          required: true
+          description: ID da costureira
+          schema:
+            type: integer
+        - name: apenas_ativos
+          in: query
+          description: Filtrar apenas agendamentos ativos (agendado ou confirmado)
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Lista de agendamentos da costureira
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgendamentoList"
+        "400":
+          description: ID inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/agendamentos/meus:
+    get:
+      tags:
+        - Agendamentos
+      summary: Listar meus agendamentos (costureira)
+      description: |
+        Lista os agendamentos da costureira autenticada.
+
+        **Permissões:**
+        - Apenas Costureira
+      operationId: listarMeusAgendamentos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: apenas_ativos
+          in: query
+          description: Filtrar apenas agendamentos ativos
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Lista dos meus agendamentos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgendamentoList"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/agendamentos/estatisticas:
+    get:
+      tags:
+        - Agendamentos
+      summary: Estatísticas de agendamentos
+      description: Retorna estatísticas sobre agendamentos no período especificado
+      operationId: estatisticasAgendamentos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: data_inicio
+          in: query
+          description: Data inicial (formato ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: data_fim
+          in: query
+          description: Data final (formato ISO 8601)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Estatísticas de agendamentos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Estatisticas"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  # ==================== PRODUTOS ====================
+  /api/produtos/agendamento:
+    post:
+      tags:
+        - Produtos
+      summary: Adicionar produto ao agendamento
+      description: |
+        Adiciona um produto à lista de produtos de um agendamento.
+
+        **Permissões:**
+        - Secretária: Pode adicionar
+        - Costureira: Pode adicionar
+        - Administrador: Pode adicionar
+      operationId: adicionarProdutoAgendamento
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id_agendamento
+                - id_produto_grade
+              properties:
+                id_agendamento:
+                  type: integer
+                  description: ID do agendamento
+                  example: 1
+                id_produto_grade:
+                  type: integer
+                  description: ID do produto na grade
+                  example: 10
+                des_ajuste_produto:
+                  type: string
+                  nullable: true
+                  description: Descrição do ajuste necessário
+                  example: Ajustar manga direita
+                ind_status:
+                  type: string
+                  enum: [pendente, producao, concluido, cancelado]
+                  default: pendente
+                  example: pendente
+      responses:
+        "201":
+          description: Produto adicionado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  mensagem:
+                    type: string
+                    example: Registro criado com sucesso
+                  dados:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+        "400":
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/produtos/agendamento/{id_agendamento}:
+    get:
+      tags:
+        - Produtos
+      summary: Listar produtos de um agendamento
+      description: Lista todos os produtos vinculados a um agendamento, incluindo fotos
+      operationId: listarProdutosAgendamento
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id_agendamento
+          in: path
+          required: true
+          description: ID do agendamento
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lista de produtos do agendamento
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  total:
+                    type: integer
+                    example: 3
+                  dados:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        id_produto_grade:
+                          type: integer
+                          example: 10
+                        nom_produto:
+                          type: string
+                          example: Blusa Manga Longa
+                        ref_produto:
+                          type: string
+                          example: BML-001
+                        num_sku:
+                          type: string
+                          example: BML-001-P-AZ
+                        cod_tamanho:
+                          type: string
+                          example: P
+                        nom_cor_estampa:
+                          type: string
+                          example: Azul
+                        des_ajuste_produto:
+                          type: string
+                          example: Ajustar manga direita
+                        ind_status:
+                          type: string
+                          example: pendente
+                        fotos:
+                          type: array
+                          items:
+                            $ref: "#/components/schemas/Foto"
+        "400":
+          description: ID inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/produtos/{id}/status:
+    patch:
+      tags:
+        - Produtos
+      summary: Atualizar status de produto
+      description: |
+        Atualiza o status de um produto do agendamento.
+
+        **Permissões:**
+        - Costureira: Pode atualizar
+        - Administrador: Pode atualizar
+      operationId: atualizarStatusProduto
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do produto agendamento
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [pendente, producao, concluido, cancelado]
+                  description: Novo status do produto
+                  example: producao
+      responses:
+        "200":
+          description: Status atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                sucesso: true
+                mensagem: Registro atualizado com sucesso
+        "400":
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/produtos/{id_produto_agendamento}/fotos:
+    post:
+      tags:
+        - Produtos
+      summary: Upload de foto de ajuste (única)
+      description: |
+        Faz upload de uma foto do ajuste realizado.
+
+        **Regras:**
+        - Tamanho máximo: 5MB
+        - Formatos aceitos: JPG, JPEG, PNG
+
+        **Permissões:**
+        - Costureira: Pode fazer upload
+        - Administrador: Pode fazer upload
+      operationId: uploadFotoAjuste
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id_produto_agendamento
+          in: path
+          required: true
+          description: ID do produto agendamento
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - foto
+              properties:
+                foto:
+                  type: string
+                  format: binary
+                  description: Arquivo de imagem (JPG, JPEG ou PNG)
+      responses:
+        "201":
+          description: Foto enviada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  mensagem:
+                    type: string
+                    example: Foto enviada com sucesso
+                  dados:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      nome_arquivo:
+                        type: string
+                        example: foto-1234567890.jpg
+                      caminho:
+                        type: string
+                        example: uploads/ajustes/foto-1234567890.jpg
+                      tamanho:
+                        type: string
+                        example: 2.5 MB
+        "400":
+          description: Erro no upload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                arquivoGrande:
+                  summary: Arquivo muito grande
+                  value:
+                    sucesso: false
+                    mensagem: Arquivo muito grande
+                    erro: Tamanho máximo permitido é 5 MB
+                tipoInvalido:
+                  summary: Tipo de arquivo inválido
+                  value:
+                    sucesso: false
+                    mensagem: Arquivo inválido
+                    erro: Tipo de arquivo não permitido. Tipos aceitos JPG, JPEG, PNG
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+    get:
+      tags:
+        - Produtos
+      summary: Listar fotos de ajuste
+      description: Lista todas as fotos de um produto do agendamento
+      operationId: listarFotosAjuste
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id_produto_agendamento
+          in: path
+          required: true
+          description: ID do produto agendamento
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lista de fotos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FotoList"
+        "400":
+          description: ID inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/produtos/{id_produto_agendamento}/fotos/multiplas:
+    post:
+      tags:
+        - Produtos
+      summary: Upload de múltiplas fotos de ajuste
+      description: |
+        Faz upload de múltiplas fotos do ajuste realizado.
+
+        **Regras:**
+        - Máximo: 10 fotos por vez
+        - Tamanho máximo por foto: 5MB
+        - Formatos aceitos: JPG, JPEG, PNG
+
+        **Permissões:**
+        - Costureira: Pode fazer upload
+        - Administrador: Pode fazer upload
+      operationId: uploadFotosMultiplas
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id_produto_agendamento
+          in: path
+          required: true
+          description: ID do produto agendamento
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - fotos
+              properties:
+                fotos:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  maxItems: 10
+                  description: Array de arquivos de imagem (máximo 10)
+      responses:
+        "201":
+          description: Fotos enviadas com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  mensagem:
+                    type: string
+                    example: 3 foto(s) enviada(s) com sucesso
+                  dados:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        nome_arquivo:
+                          type: string
+                          example: foto-1234567890.jpg
+                        tamanho:
+                          type: string
+                          example: 2.5 MB
+        "400":
+          description: Erro no upload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/produtos/fotos/{id}:
+    delete:
+      tags:
+        - Produtos
+      summary: Deletar foto de ajuste
+      description: |
+        Remove uma foto de ajuste.
+
+        **Permissões:**
+        - Costureira: Pode deletar
+        - Administrador: Pode deletar
+      operationId: deletarFotoAjuste
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da foto
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Foto deletada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                sucesso: true
+                mensagem: Registro deletado com sucesso
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Foto não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/produtos/fotos/{id}/download:
+    get:
+      tags:
+        - Produtos
+      summary: Download de foto de ajuste
+      description: Faz download de uma foto de ajuste
+      operationId: downloadFotoAjuste
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da foto
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Arquivo da foto
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: Foto não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/produtos/fotos/{id}/visualizar:
+    get:
+      tags:
+        - Produtos
+      summary: Visualizar foto de ajuste
+      description: Exibe uma foto de ajuste no navegador
+      operationId: visualizarFotoAjuste
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da foto
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Imagem da foto
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: Foto não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ==================== RELATÓRIOS ====================
+  /api/relatorios/dashboard:
+    get:
+      tags:
+        - Relatórios
+      summary: Dashboard geral com resumo
+      description: |
+        Retorna um resumo geral do sistema com estatísticas do mês atual, agendamentos de hoje e status das costureiras.
+
+        **Permissões:**
+        - Todos os usuários autenticados
+      operationId: dashboard
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dados do dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/relatorios/auditoria:
+    get:
+      tags:
+        - Relatórios
+      summary: Relatório de auditoria (logs)
+      description: |
+        Gera relatório completo de auditoria com todos os logs do sistema.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: relatorioAuditoria
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id_usuario
+          in: query
+          description: Filtrar por usuário
+          schema:
+            type: integer
+        - name: acao
+          in: query
+          description: Filtrar por ação
+          schema:
+            type: string
+        - name: tabela
+          in: query
+          description: Filtrar por tabela
+          schema:
+            type: string
+        - name: data_inicio
+          in: query
+          description: Data inicial (formato ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: data_fim
+          in: query
+          description: Data final (formato ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: limite
+          in: query
+          description: Limite de resultados
+          schema:
+            type: integer
+            default: 100
+      responses:
+        "200":
+          description: Relatório de auditoria
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  dados:
+                    type: object
+                    properties:
+                      total_logs:
+                        type: integer
+                        example: 250
+                      periodo:
+                        type: object
+                        properties:
+                          inicio:
+                            type: string
+                            format: date-time
+                          fim:
+                            type: string
+                            format: date-time
+                      por_acao:
+                        type: object
+                        example:
+                          criar: 100
+                          editar: 80
+                          deletar: 20
+                          consultar: 50
+                      por_usuario:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            nome:
+                              type: string
+                              example: Administrador do Sistema
+                            tipo:
+                              type: string
+                              example: administrador
+                            total:
+                              type: integer
+                              example: 150
+                      por_tabela:
+                        type: object
+                        example:
+                          tab_agendamentos: 120
+                          tab_pessoas: 80
+                          tab_produto_agendamento: 50
+                      logs_detalhados:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Log"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/relatorios/logs/usuario/{id_usuario}:
+    get:
+      tags:
+        - Relatórios
+      summary: Relatório de logs por usuário
+      description: |
+        Lista os logs de um usuário específico.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: logsPorUsuario
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id_usuario
+          in: path
+          required: true
+          description: ID do usuário
+          schema:
+            type: integer
+        - name: limite
+          in: query
+          description: Limite de resultados
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Logs do usuário
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  total:
+                    type: integer
+                    example: 45
+                  dados:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Log"
+        "400":
+          description: ID inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/relatorios/logs/tabela/{tabela}:
+    get:
+      tags:
+        - Relatórios
+      summary: Relatório de logs por tabela
+      description: |
+        Lista os logs de uma tabela específica.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: logsPorTabela
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tabela
+          in: path
+          required: true
+          description: Nome da tabela
+          schema:
+            type: string
+        - name: registro_id
+          in: query
+          description: Filtrar por ID do registro
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Logs da tabela
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  total:
+                    type: integer
+                    example: 30
+                  dados:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Log"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/relatorios/estatisticas/acoes:
+    get:
+      tags:
+        - Relatórios
+      summary: Estatísticas de ações
+      description: |
+        Retorna estatísticas sobre as ações realizadas no sistema.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: estatisticasAcoes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: data_inicio
+          in: query
+          description: Data inicial (formato ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: data_fim
+          in: query
+          description: Data final (formato ISO 8601)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Estatísticas de ações
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  periodo:
+                    type: object
+                    properties:
+                      data_inicio:
+                        type: string
+                        format: date-time
+                      data_fim:
+                        type: string
+                        format: date-time
+                  dados:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        des_acao:
+                          type: string
+                          example: criar
+                        total:
+                          type: integer
+                          example: 150
+                        usuarios_unicos:
+                          type: integer
+                          example: 5
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/relatorios/estatisticas/usuarios:
+    get:
+      tags:
+        - Relatórios
+      summary: Estatísticas de usuários
+      description: |
+        Retorna estatísticas sobre a atividade dos usuários.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: estatisticasUsuarios
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: data_inicio
+          in: query
+          description: Data inicial (formato ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: data_fim
+          in: query
+          description: Data final (formato ISO 8601)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Estatísticas de usuários
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  periodo:
+                    type: object
+                    properties:
+                      data_inicio:
+                        type: string
+                        format: date-time
+                      data_fim:
+                        type: string
+                        format: date-time
+                  dados:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        nom_completo:
+                          type: string
+                          example: Administrador do Sistema
+                        ind_tipo_pessoa:
+                          type: string
+                          example: administrador
+                        total_acoes:
+                          type: integer
+                          example: 200
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/relatorios/agendamentos:
+    get:
+      tags:
+        - Relatórios
+      summary: Relatório de agendamentos
+      description: |
+        Gera relatório completo sobre agendamentos com estatísticas.
+
+        **Permissões:**
+        - Secretária: Pode visualizar
+        - Médico: Pode visualizar
+        - Administrador: Pode visualizar
+      operationId: relatorioAgendamentos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id_paciente
+          in: query
+          description: Filtrar por paciente
+          schema:
+            type: integer
+        - name: id_costureira
+          in: query
+          description: Filtrar por costureira
+          schema:
+            type: integer
+        - name: id_secretaria
+          in: query
+          description: Filtrar por secretária
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: Filtrar por status
+          schema:
+            type: string
+            enum: [agendado, confirmado, concluido, cancelado, falta]
+        - name: data_inicio
+          in: query
+          description: Data inicial (formato ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: data_fim
+          in: query
+          description: Data final (formato ISO 8601)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Relatório de agendamentos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  dados:
+                    type: object
+                    properties:
+                      resumo:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                            example: 100
+                          por_status:
+                            type: object
+                            example:
+                              agendado: 20
+                              confirmado: 15
+                              concluido: 50
+                              cancelado: 10
+                              falta: 5
+                          por_costureira:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                nome:
+                                  type: string
+                                  example: Ana Costureira Santos
+                                total:
+                                  type: integer
+                                  example: 45
+                          comparecimentos:
+                            type: object
+                            properties:
+                              total:
+                                type: integer
+                                example: 70
+                              compareceram:
+                                type: integer
+                                example: 60
+                              faltas:
+                                type: integer
+                                example: 10
+                              taxa_comparecimento:
+                                type: string
+                                example: "85.71%"
+                      agendamentos:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Agendamento"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/relatorios/produtividade/costureiras:
+    get:
+      tags:
+        - Relatórios
+      summary: Relatório de produtividade por costureira
+      description: |
+        Gera relatório de produtividade das costureiras.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: produtividadeCostureiras
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: data_inicio
+          in: query
+          description: Data inicial (formato ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: data_fim
+          in: query
+          description: Data final (formato ISO 8601)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Relatório de produtividade
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  periodo:
+                    type: object
+                    properties:
+                      data_inicio:
+                        type: string
+                        format: date-time
+                      data_fim:
+                        type: string
+                        format: date-time
+                  total_costureiras:
+                    type: integer
+                    example: 5
+                  dados:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 3
+                        nome:
+                          type: string
+                          example: Ana Costureira Santos
+                        total_agendamentos:
+                          type: integer
+                          example: 45
+                        concluidos:
+                          type: integer
+                          example: 40
+                        cancelados:
+                          type: integer
+                          example: 2
+                        faltas:
+                          type: integer
+                          example: 3
+                        em_andamento:
+                          type: integer
+                          example: 0
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  # ==================== HEALTH CHECK ====================
+  /api/health:
+    get:
+      tags:
+        - Sistema
+      summary: Health check da API
+      description: Verifica se a API está funcionando corretamente
+      operationId: healthCheck
+      responses:
+        "200":
+          description: API está funcionando
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  mensagem:
+                    type: string
+                    example: API está funcionando
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2024-02-10T18:00:00Z"
+                  uptime:
+                    type: number
+                    description: Tempo de atividade em segundos
+                    example: 3600.5
+                  ambiente:
+                    type: string
+                    example: development
+
+  /:
+    get:
+      tags:
+        - Sistema
+      summary: Informações da API
+      description: Retorna informações básicas sobre a API
+      operationId: infoAPI
+      responses:
+        "200":
+          description: Informações da API
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  mensagem:
+                    type: string
+                    example: API de Agenda de Ajustes Pós-Cirúrgicos
+                  versao:
+                    type: string
+                    example: "1.0.0"
+                  autor:
+                    type: string
+                    example: Ramon
+                  documentacao:
+                    type: string
+                    example: /api
+                  status:
+                    type: string
+                    example: online
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api:
+    get:
+      tags:
+        - Sistema
+      summary: Lista de rotas disponíveis
+      description: Retorna todas as rotas disponíveis na API
+      operationId: listarRotas
+      responses:
+        "200":
+          description: Rotas disponíveis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  mensagem:
+                    type: string
+                    example: Bem-vindo à API de Agenda de Ajustes Pós-Cirúrgicos
+                  versao:
+                    type: string
+                    example: "1.0.0"
+                  documentacao:
+                    type: string
+                    example: /api/docs
+                  rotas_disponiveis:
+                    type: object
+                    properties:
+                      auth:
+                        type: string
+                        example: /api/auth
+                      pessoas:
+                        type: string
+                        example: /api/pessoas
+                      agendamentos:
+                        type: string
+                        example: /api/agendamentos
+                      produtos:
+                        type: string
+                        example: /api/produtos
+                      relatorios:
+                        type: string
+                        example: /api/relatorios

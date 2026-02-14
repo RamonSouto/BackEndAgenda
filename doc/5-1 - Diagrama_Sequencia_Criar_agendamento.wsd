@@ -1,0 +1,278 @@
+@startuml Sequencia_Criar_Agendamento
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title Diagrama de Sequência\nCriação de Agendamento Completo
+
+actor "Secretária" as Usuario
+participant "AgendamentoController" as Controller
+participant "AuthMiddleware" as Auth
+participant "ValidacaoMiddleware" as Validacao
+participant "AgendamentoService" as Service
+participant "PessoaModel" as PessoaModel
+participant "ProdutoModel" as ProdutoModel
+participant "AgendamentoModel" as AgendModel
+participant "Database" as DB
+participant "LogService" as LogSvc
+participant "NotificacaoService" as NotifSvc
+participant "WhatsApp API" as WhatsApp
+participant "Email Service" as Email
+
+== Requisição ==
+
+Usuario -> Controller: POST /api/agendamentos\n{id_paciente, id_costureira,\ndta_agendamento, produtos[]}
+activate Controller
+
+== Autenticação ==
+
+Controller -> Auth: verificarToken(req)
+activate Auth
+
+Auth -> Auth: Extrair e validar JWT
+
+alt Token Inválido
+    Auth --> Controller: 401 Unauthorized
+    Controller --> Usuario: Erro de autenticação
+    deactivate Controller
+else Token Válido
+    Auth --> Controller: next()\nreq.usuario = {id, tipo}
+    deactivate Auth
+    
+    == Validação de Dados ==
+    
+    Controller -> Validacao: validarAgendamento(req)
+    activate Validacao
+    
+    Validacao -> Validacao: Validar campos obrigatórios
+    Validacao -> Validacao: Validar formato de data
+    Validacao -> Validacao: Validar array de produtos
+    
+    alt Validação Falhou
+        Validacao --> Controller: 400 Bad Request
+        Controller --> Usuario: Erros de validação
+        deactivate Controller
+    else Validação OK
+        Validacao --> Controller: next()
+        deactivate Validacao
+        
+        == Processamento do Serviço ==
+        
+        Controller -> Service: criar(dados, id_usuario)
+        activate Service
+        
+        == Validação de Permissões ==
+        
+        Service -> Service: verificarPermissao(tipo_usuario)
+        
+        alt Sem Permissão
+            Service --> Controller: 403 Forbidden
+            Controller --> Usuario: Acesso negado
+            deactivate Service
+            deactivate Controller
+        else Com Permissão
+            
+            == Validação de Paciente ==
+            
+            Service -> PessoaModel: buscarPorId(id_paciente)
+            activate PessoaModel
+            
+            PessoaModel -> DB: SELECT * FROM tab_pessoas WHERE id = ?
+            activate DB
+            DB --> PessoaModel: resultado
+            deactivate DB
+            
+            alt Paciente não existe
+                PessoaModel --> Service: null
+                deactivate PessoaModel
+                Service --> Controller: 404 Not Found
+                Controller --> Usuario: Paciente não encontrado
+                deactivate Service
+                deactivate Controller
+            else Paciente existe
+                PessoaModel --> Service: paciente
+                deactivate PessoaModel
+                
+                == Validação de Costureira ==
+                
+                Service -> PessoaModel: buscarPorId(id_costureira)
+                activate PessoaModel
+                
+                PessoaModel -> DB: SELECT * FROM tab_pessoas WHERE id = ?
+                activate DB
+                DB --> PessoaModel: resultado
+                deactivate DB
+                
+                alt Costureira não existe
+                    PessoaModel --> Service: null
+                    deactivate PessoaModel
+                    Service --> Controller: 404 Not Found
+                    Controller --> Usuario: Costureira não encontrada
+                    deactivate Service
+                    deactivate Controller
+                else Costureira existe
+                    PessoaModel --> Service: costureira
+                    deactivate PessoaModel
+                    
+                    Service -> Service: verificar tipo == 'costureira'
+                    
+                    alt Não é Costureira
+                        Service --> Controller: 400 Bad Request
+                        Controller --> Usuario: ID não é de costureira
+                        deactivate Service
+                        deactivate Controller
+                    else É Costureira
+                        
+                        == Verificar Disponibilidade ==
+                        
+                        Service -> AgendModel: verificarConflito(id_costureira)
+                        activate AgendModel
+                        
+                        AgendModel -> DB: SELECT COUNT(*) FROM tab_agendamentos\nWHERE id_costureira = ?\nAND ind_status IN ('agendado', 'confirmado')
+                        activate DB
+                        DB --> AgendModel: count
+                        deactivate DB
+                        
+                        alt Costureira Ocupada
+                            AgendModel --> Service: true (tem conflito)
+                            deactivate AgendModel
+                            Service --> Controller: 400 Bad Request
+                            Controller --> Usuario: Costureira já possui agendamento ativo
+                            deactivate Service
+                            deactivate Controller
+                        else Costureira Disponível
+                            AgendModel --> Service: false (sem conflito)
+                            deactivate AgendModel
+                            
+                            == Validar Data ==
+                            
+                            Service -> Service: validarDataFutura(dta_agendamento)
+                            
+                            alt Data no Passado
+                                Service --> Controller: 400 Bad Request
+                                Controller --> Usuario: Data deve ser futura
+                                deactivate Service
+                                deactivate Controller
+                            else Data Válida
+                                
+                                == Validar Produtos ==
+                                
+                                loop Para cada produto
+                                    Service -> ProdutoModel: buscarGradePorId(id_produto_grade)
+                                    activate ProdutoModel
+                                    
+                                    ProdutoModel -> DB: SELECT * FROM tab_produto_grade WHERE id = ?
+                                    activate DB
+                                    DB --> ProdutoModel: grade
+                                    deactivate DB
+                                    
+                                    alt Produto não existe
+                                        ProdutoModel --> Service: null
+                                        deactivate ProdutoModel
+                                        Service --> Controller: 404 Not Found
+                                        Controller --> Usuario: Produto não encontrado
+                                        deactivate Service
+                                        deactivate Controller
+                                    else Produto existe
+                                        ProdutoModel --> Service: grade
+                                        deactivate ProdutoModel
+                                    end
+                                end
+                                
+                                == Transação de Criação ==
+                                
+                                Service -> DB: beginTransaction()
+                                activate DB
+                                
+                                note over Service, DB: Início da Transação ACID
+                                
+                                Service -> AgendModel: criar(dados_agendamento)
+                                activate AgendModel
+                                
+                                AgendModel -> DB: INSERT INTO tab_agendamentos
+                                DB --> AgendModel: id_agendamento
+                                
+                                AgendModel --> Service: id_agendamento
+                                deactivate AgendModel
+                                
+                                loop Para cada produto
+                                    Service -> AgendModel: criarProdutoAgendamento
+                                    activate AgendModel
+                                    
+                                    AgendModel -> DB: INSERT INTO tab_produto_agendamento
+                                    DB --> AgendModel: id_produto_agendamento
+                                    
+                                    AgendModel --> Service: id_produto_agendamento
+                                    deactivate AgendModel
+                                end
+                                
+                                == Registro de Log ==
+                                
+                                Service -> LogSvc: registrar(id_usuario, 'criar', id_agendamento)
+                                activate LogSvc
+                                
+                                LogSvc -> DB: INSERT INTO tab_logs
+                                DB --> LogSvc: id_log
+                                
+                                LogSvc --> Service: id_log
+                                deactivate LogSvc
+                                
+                                Service -> DB: commit()
+                                
+                                note over Service, DB: Fim da Transação - Commit
+                                
+                                deactivate DB
+                                
+                                == Buscar Dados Completos ==
+                                
+                                Service -> AgendModel: buscarPorId(id_agendamento)
+                                activate AgendModel
+                                
+                                AgendModel -> DB: SELECT agendamento.*, paciente.nom_completo,\ncostureira.nom_completo, produtos...\nFROM tab_agendamentos JOIN...
+                                activate DB
+                                DB --> AgendModel: agendamento_completo
+                                deactivate DB
+                                
+                                AgendModel --> Service: agendamento_completo
+                                deactivate AgendModel
+                                
+                                == Envio de Notificações ==
+                                
+                                Service -> NotifSvc: enviarWhatsApp(paciente.num_celular_1, mensagem)
+                                activate NotifSvc
+                                
+                                NotifSvc -> WhatsApp: POST /send-message
+                                activate WhatsApp
+                                WhatsApp --> NotifSvc: {sucesso: true}
+                                deactivate WhatsApp
+                                
+                                NotifSvc --> Service: true
+                                deactivate NotifSvc
+                                
+                                Service -> NotifSvc: enviarEmail(paciente.des_email_1, assunto, corpo)
+                                activate NotifSvc
+                                
+                                NotifSvc -> Email: sendMail(config)
+                                activate Email
+                                Email --> NotifSvc: {messageId}
+                                deactivate Email
+                                
+                                NotifSvc --> Service: true
+                                deactivate NotifSvc
+                                
+                                == Resposta de Sucesso ==
+                                
+                                Service --> Controller: agendamento_completo
+                                deactivate Service
+                                
+                                Controller --> Usuario: 201 Created\n{sucesso: true, mensagem: 'Agendamento criado',\ndados: agendamento}
+                                deactivate Controller
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+@enduml

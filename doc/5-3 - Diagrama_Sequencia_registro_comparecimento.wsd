@@ -1,0 +1,162 @@
+@startuml Sequencia_Registrar_Comparecimento
+!pragma teoz true
+
+title Diagrama de Sequência\nRegistro de Comparecimento pela Costureira
+
+actor "Costureira" as Usuario
+participant "AgendamentoController" as Controller
+participant "AuthMiddleware" as Auth
+participant "AgendamentoService" as Service
+participant "AgendamentoModel" as Model
+participant "Database" as DB
+participant "LogService" as LogSvc
+participant "NotificacaoService" as NotifSvc
+
+Usuario -> Controller: POST /api/agendamentos/:id/comparecimento\n{\n  ind_paciente_compareceu: true,\n  des_observacoes_costureira\n}
+activate Controller
+
+== Autenticação e Autorização ==
+
+Controller -> Auth: verificarToken(req)
+activate Auth
+Auth -> Auth: Validar JWT
+Auth --> Controller: req.usuario = {id, tipo: 'costureira'}
+deactivate Auth
+
+Controller -> Auth: verificarPermissao(['costureira', 'admin'])
+activate Auth
+Auth -> Auth: Verificar tipo de usuário
+
+alt Não é Costureira nem Admin
+    Auth --> Controller: 403 Forbidden
+    Controller --> Usuario: Acesso negado
+else É Costureira ou Admin
+    Auth --> Controller: next()
+    deactivate Auth
+    
+    == Processamento ==
+    
+    Controller -> Service: registrarComparecimento(\n  id_agendamento,\n  dados,\n  id_usuario\n)
+    activate Service
+    
+    == Buscar Agendamento ==
+    
+    Service -> Model: buscarPorId(id_agendamento)
+    activate Model
+    
+    Model -> DB: SELECT * FROM tab_agendamentos\nWHERE id = ?
+    activate DB
+    DB --> Model: agendamento
+    deactivate DB
+    
+    alt Agendamento não encontrado
+        Model --> Service: null
+        deactivate Model
+        Service --> Controller: 404 Not Found
+        Controller --> Usuario: Agendamento não encontrado
+    else Agendamento encontrado
+        Model --> Service: agendamento
+        deactivate Model
+        
+        == Validar Propriedade ==
+        
+        Service -> Service: verificar se\nagendamento.id_costureira == id_usuario\nOU usuario é admin
+        
+        alt Não é proprietário e não é admin
+            Service --> Controller: 403 Forbidden
+            Controller --> Usuario: Sem permissão
+        else É proprietário ou admin
+            
+            == Validar Status ==
+            
+            Service -> Service: verificar status == 'confirmado'\nou 'agendado'
+            
+            alt Status inválido
+                Service --> Controller: 400 Bad Request
+                Controller --> Usuario: Status do agendamento não permite registro
+            else Status válido
+                
+                == Atualizar Agendamento ==
+                
+                Service -> DB: beginTransaction()
+                activate DB
+                
+                alt Paciente Compareceu
+                    
+                    Service -> Model: registrarComparecimento(\n  id,\n  {\n    ind_paciente_compareceu: true,\n    ind_status: 'concluido',\n    des_observacoes_costureira\n  }\n)
+                    activate Model
+                    
+                    Model -> DB: UPDATE tab_agendamentos\nSET ind_paciente_compareceu = true,\n    ind_status = 'concluido',\n    des_observacoes_costureira = ?\nWHERE id = ?
+                    DB --> Model: affected_rows
+                    
+                    Model --> Service: true
+                    deactivate Model
+                    
+                else Paciente Faltou
+                    
+                    Service -> Model: registrarComparecimento(\n  id,\n  {\n    ind_paciente_compareceu: false,\n    ind_status: 'falta',\n    des_observacoes_costureira\n  }\n)
+                    activate Model
+                    
+                    Model -> DB: UPDATE tab_agendamentos\nSET ind_paciente_compareceu = false,\n    ind_status = 'falta',\n    des_observacoes_costureira = ?\nWHERE id = ?
+                    DB --> Model: affected_rows
+                    
+                    Model --> Service: true
+                    deactivate Model
+                    
+                end
+                
+                == Registrar Log ==
+                
+                Service -> LogSvc: registrar({\n  id_usuario,\n  acao: 'registrar_comparecimento',\n  tabela: 'tab_agendamentos',\n  registro_id\n})
+                activate LogSvc
+                
+                LogSvc -> DB: INSERT INTO tab_logs
+                DB --> LogSvc: id_log
+                
+                LogSvc --> Service: id_log
+                deactivate LogSvc
+                
+                Service -> DB: commit()
+                deactivate DB
+                
+                == Enviar Notificações ==
+                
+                alt Paciente Compareceu
+                    Service -> NotifSvc: enviarEmail(\n  paciente.email,\n  'Atendimento Concluído',\n  template_conclusao\n)
+                    activate NotifSvc
+                    NotifSvc --> Service: true
+                    deactivate NotifSvc
+                else Paciente Faltou
+                    Service -> NotifSvc: enviarEmail(\n  paciente.email,\n  'Remarcação de Consulta',\n  template_falta\n)
+                    activate NotifSvc
+                    NotifSvc --> Service: true
+                    deactivate NotifSvc
+                end
+                
+                == Buscar Dados Atualizados ==
+                
+                Service -> Model: buscarPorId(id_agendamento)
+                activate Model
+                
+                Model -> DB: SELECT agendamento completo
+                activate DB
+                DB --> Model: agendamento_atualizado
+                deactivate DB
+                
+                Model --> Service: agendamento_atualizado
+                deactivate Model
+                
+                == Resposta ==
+                
+                Service --> Controller: agendamento_atualizado
+                deactivate Service
+                
+                Controller --> Usuario: 200 OK\n{\n  sucesso: true,\n  mensagem: 'Comparecimento registrado',\n  dados: agendamento\n}
+            end
+        end
+    end
+end
+
+deactivate Controller
+
+@enduml

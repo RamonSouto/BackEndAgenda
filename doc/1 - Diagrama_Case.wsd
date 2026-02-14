@@ -1,0 +1,197 @@
+@startuml Casos_de_Uso
+!define RECTANGLE
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+
+title Sistema de Agenda de Ajustes Pós-Cirúrgicos\nDiagrama de Casos de Uso
+
+left to right direction
+
+' Definição de Atores
+actor "Administrador" as Admin #lightblue
+actor "Secretária" as Secretaria #lightgreen
+actor "Costureira" as Costureira #lightyellow
+actor "Médico" as Medico #lightcoral
+actor "Paciente" as Paciente #lavender
+
+' Sistema
+rectangle "Sistema de Agendamentos" {
+  
+  ' Casos de Uso - Autenticação
+  package "Autenticação e Segurança" #DDDDDD {
+    usecase "UC01: Fazer Login" as UC01
+    usecase "UC02: Alterar Senha" as UC02
+    usecase "UC03: Resetar Senha" as UC03
+    usecase "UC04: Fazer Logout" as UC04
+    usecase "UC05: Verificar Token" as UC05
+  }
+  
+  ' Casos de Uso - Gestão de Pessoas
+  package "Gestão de Pessoas" #E8F4F8 {
+    usecase "UC06: Cadastrar Pessoa" as UC06
+    usecase "UC07: Listar Pessoas" as UC07
+    usecase "UC08: Buscar Pessoa" as UC08
+    usecase "UC09: Atualizar Pessoa" as UC09
+    usecase "UC10: Desativar/Ativar Pessoa" as UC10
+    usecase "UC11: Deletar Pessoa" as UC11
+    usecase "UC12: Buscar por CPF" as UC12
+  }
+  
+  ' Casos de Uso - Gestão de Agendamentos
+  package "Gestão de Agendamentos" #F0F8E8 {
+    usecase "UC13: Criar Agendamento" as UC13
+    usecase "UC14: Listar Agendamentos" as UC14
+    usecase "UC15: Visualizar Detalhes" as UC15
+    usecase "UC16: Confirmar Agendamento" as UC16
+    usecase "UC17: Cancelar Agendamento" as UC17
+    usecase "UC18: Atualizar Agendamento" as UC18
+    usecase "UC19: Registrar Comparecimento" as UC19
+    usecase "UC20: Ver Meus Agendamentos" as UC20
+  }
+  
+  ' Casos de Uso - Gestão de Produtos
+  package "Gestão de Produtos e Ajustes" #FFF0E8 {
+    usecase "UC21: Upload de Fotos" as UC21
+    usecase "UC22: Visualizar Fotos" as UC22
+    usecase "UC23: Atualizar Status Produto" as UC23
+    usecase "UC24: Deletar Foto" as UC24
+  }
+  
+  ' Casos de Uso - Relatórios
+  package "Relatórios e Dashboard" #F0E8FF {
+    usecase "UC25: Visualizar Dashboard" as UC25
+    usecase "UC26: Relatório de Agendamentos" as UC26
+    usecase "UC27: Estatísticas" as UC27
+    usecase "UC28: Relatório de Auditoria" as UC28
+    usecase "UC29: Produtividade Costureiras" as UC29
+  }
+  
+  ' Casos de Uso - Notificações
+  package "Notificações" #E8FFE8 {
+    usecase "UC30: Enviar Notificação WhatsApp" as UC30
+    usecase "UC31: Enviar Email" as UC31
+  }
+}
+
+' Relacionamentos - Administrador
+Admin --> UC01
+Admin --> UC02
+Admin --> UC03
+Admin --> UC04
+Admin --> UC06
+Admin --> UC07
+Admin --> UC08
+Admin --> UC09
+Admin --> UC10
+Admin --> UC11
+Admin --> UC12
+Admin --> UC13
+Admin --> UC14
+Admin --> UC15
+Admin --> UC16
+Admin --> UC17
+Admin --> UC18
+Admin --> UC21
+Admin --> UC22
+Admin --> UC23
+Admin --> UC24
+Admin --> UC25
+Admin --> UC26
+Admin --> UC27
+Admin --> UC28
+Admin --> UC29
+
+' Relacionamentos - Secretária
+Secretaria --> UC01
+Secretaria --> UC02
+Secretaria --> UC04
+Secretaria --> UC06 : <<apenas pacientes>>
+Secretaria --> UC07
+Secretaria --> UC08
+Secretaria --> UC12
+Secretaria --> UC13
+Secretaria --> UC14
+Secretaria --> UC15
+Secretaria --> UC16
+Secretaria --> UC17
+Secretaria --> UC18 : <<próprios>>
+Secretaria --> UC22
+Secretaria --> UC25
+Secretaria --> UC26
+
+' Relacionamentos - Costureira
+Costureira --> UC01
+Costureira --> UC02
+Costureira --> UC04
+Costureira --> UC15
+Costureira --> UC19
+Costureira --> UC20
+Costureira --> UC21
+Costureira --> UC22
+Costureira --> UC23
+Costureira --> UC25
+
+' Relacionamentos - Médico
+Medico --> UC01
+Medico --> UC02
+Medico --> UC04
+Medico --> UC14
+Medico --> UC15
+Medico --> UC22
+Medico --> UC25
+Medico --> UC26
+Medico --> UC27
+
+' Relacionamentos de Inclusão e Extensão
+UC13 .> UC30 : <<include>>
+UC16 .> UC30 : <<include>>
+UC17 .> UC30 : <<include>>
+UC19 .> UC31 : <<include>>
+
+UC01 .> UC05 : <<extend>>
+
+' Notificações para Paciente
+UC30 ..> Paciente : notifica
+UC31 ..> Paciente : notifica
+
+note right of Admin
+  **Permissões Totais**
+  - Acesso irrestrito ao sistema
+  - Gestão de todos os usuários
+  - Acesso a todos os relatórios
+  - Reset de senhas
+end note
+
+note right of Secretaria
+  **Permissões Intermediárias**
+  - Cadastro de pacientes
+  - Gestão de agendamentos
+  - Visualização de relatórios
+  - Não pode criar usuários do sistema
+end note
+
+note right of Costureira
+  **Permissões Operacionais**
+  - Visualiza apenas seus agendamentos
+  - Registra comparecimentos
+  - Upload de fotos de ajustes
+  - Atualiza status de produtos
+end note
+
+note right of Medico
+  **Permissões de Visualização**
+  - Acesso somente leitura
+  - Visualiza agendamentos
+  - Acessa relatórios e dashboard
+  - Não pode modificar dados
+end note
+
+note bottom of Paciente
+  **Receptor de Notificações**
+  - Não tem acesso ao sistema
+  - Recebe notificações via WhatsApp/Email
+  - Notificado sobre agendamentos
+  - Confirmações e lembretes
+end note
+
+@enduml

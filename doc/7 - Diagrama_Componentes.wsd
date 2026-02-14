@@ -1,0 +1,366 @@
+@startuml Diagrama_Componentes
+!define RECTANGLE
+
+title Diagrama de Componentes\nArquitetura Modular do Sistema
+
+skinparam componentStyle rectangle
+skinparam packageBackgroundColor #F8F8F8
+skinparam componentBackgroundColor #E8F4F8
+skinparam interfaceBackgroundColor #FFE8E8
+
+' Camada de Apresentação
+package "Camada de Apresentação (API REST)" #DDDDDD {
+  
+  component "API Gateway" as Gateway {
+    portin "HTTP/HTTPS" as HttpIn
+  }
+  
+  package "Rotas (Routes)" {
+    component "authRoutes" as AuthRoutes
+    component "pessoaRoutes" as PessoaRoutes
+    component "agendamentoRoutes" as AgendRoutes
+    component "produtoRoutes" as ProdutoRoutes
+    component "relatorioRoutes" as RelatorioRoutes
+  }
+  
+  package "Middlewares" {
+    component "authMiddleware" as AuthMW {
+      interface "verificarToken()" as IAuth
+      interface "verificarPermissao()" as IPermissao
+    }
+    
+    component "validacaoMiddleware" as ValidacaoMW {
+      interface "validarPessoa()" as IValidPessoa
+      interface "validarAgendamento()" as IValidAgend
+    }
+    
+    component "errorMiddleware" as ErrorMW {
+      interface "tratarErro()" as IError
+    }
+    
+    component "rateLimitMiddleware" as RateMW {
+      interface "limitarRequisicoes()" as IRate
+    }
+    
+    component "uploadMiddleware" as UploadMW {
+      interface "configurarUpload()" as IUpload
+    }
+  }
+  
+  note right of Middlewares
+    **Padrão Chain of Responsibility**
+    Middlewares são executados
+    sequencialmente antes dos controllers
+  end note
+}
+
+' Camada de Controle
+package "Camada de Controle (Controllers)" #E8F4F8 {
+  
+  component "AuthController" as AuthCtrl {
+    interface "login()" as ILogin
+    interface "logout()" as ILogout
+    interface "alterarSenha()" as IAlterarSenha
+  }
+  
+  component "PessoaController" as PessoaCtrl {
+    interface "criar()" as ICriarPessoa
+    interface "listar()" as IListarPessoa
+    interface "atualizar()" as IAtualizarPessoa
+  }
+  
+  component "AgendamentoController" as AgendCtrl {
+    interface "criar()" as ICriarAgend
+    interface "listar()" as IListarAgend
+    interface "confirmar()" as IConfirmar
+    interface "registrarComparecimento()" as IComparec
+  }
+  
+  component "ProdutoController" as ProdutoCtrl {
+    interface "uploadFotos()" as IUploadFotos
+    interface "listarFotos()" as IListarFotos
+  }
+  
+  component "RelatorioController" as RelatorioCtrl {
+    interface "dashboard()" as IDashboard
+    interface "auditoria()" as IAuditoria
+  }
+  
+  note right of "Camada de Controle (Controllers)"
+    **Responsabilidades:**
+    - Receber requisições HTTP
+    - Validar entrada inicial
+    - Delegar para Services
+    - Formatar respostas
+    - Tratamento de erros HTTP
+  end note
+}
+
+' Camada de Serviço
+package "Camada de Serviço (Business Logic)" #F0F8E8 {
+  
+  component "AuthService" as AuthSvc {
+    interface "login()" as ISvcLogin
+    interface "gerarToken()" as IGerarToken
+    interface "validarCredenciais()" as IValidCred
+  }
+  
+  component "PessoaService" as PessoaSvc {
+    interface "criar()" as ISvcCriarPessoa
+    interface "listar()" as ISvcListarPessoa
+    interface "validarDados()" as IValidDados
+    interface "validarCPF()" as IValidCPF
+  }
+  
+  component "AgendamentoService" as AgendSvc {
+    interface "criar()" as ISvcCriarAgend
+    interface "listar()" as ISvcListarAgend
+    interface "validarDisponibilidade()" as IValidDisp
+    interface "validarDataAgendamento()" as IValidData
+  }
+  
+  component "ProdutoService" as ProdutoSvc {
+    interface "uploadFotos()" as ISvcUpload
+    interface "validarArquivo()" as IValidArq
+    interface "salvarArquivo()" as ISalvarArq
+  }
+  
+  component "LogService" as LogSvc {
+    interface "registrar()" as IRegistrarLog
+    interface "listar()" as IListarLog
+  }
+  
+  component "NotificacaoService" as NotifSvc {
+    interface "enviarWhatsApp()" as IEnviarWpp
+    interface "enviarEmail()" as IEnviarEmail
+  }
+  
+  component "RelatorioService" as RelatorioSvc {
+    interface "gerarDashboard()" as IGerarDash
+    interface "calcularEstatisticas()" as ICalcStats
+  }
+  
+  note right of "Camada de Serviço (Business Logic)"
+    **Padrão Service Layer**
+    - Lógica de negócio centralizada
+    - Validações de regras
+    - Transações complexas
+    - Orquestração de Models
+  end note
+}
+
+' Camada de Persistência
+package "Camada de Persistência (Data Access)" #FFF0E8 {
+  
+  component "PessoaModel" as PessoaModel {
+    interface "criar()" as IModelCriarPessoa
+    interface "buscarPorId()" as IBuscarId
+    interface "buscarPorCPF()" as IBuscarCPF
+    interface "atualizar()" as IModelAtualizar
+  }
+  
+  component "AgendamentoModel" as AgendModel {
+    interface "criar()" as IModelCriarAgend
+    interface "buscarPorId()" as IModelBuscarId
+    interface "listar()" as IModelListar
+    interface "verificarConflito()" as IVerifConflito
+  }
+  
+  component "ProdutoModel" as ProdutoModel {
+    interface "buscarGradePorId()" as IBuscarGrade
+    interface "listarGrade()" as IListarGrade
+  }
+  
+  component "ProdutoAgendamentoModel" as ProdAgendModel {
+    interface "criar()" as IModelCriarProdAgend
+    interface "atualizarStatus()" as IModelAtualizarStatus
+  }
+  
+  component "FotoModel" as FotoModel {
+    interface "criar()" as IModelCriarFoto
+    interface "listarPorProduto()" as IModelListarFotos
+    interface "deletar()" as IModelDeletarFoto
+  }
+  
+  component "LogModel" as LogModel {
+    interface "criar()" as IModelCriarLog
+    interface "listar()" as IModelListarLog
+  }
+  
+  note right of "Camada de Persistência (Data Access)"
+    **Padrão Repository**
+    - Abstração do banco de dados
+    - Queries SQL otimizadas
+    - Prepared Statements
+    - Transações ACID
+  end note
+}
+
+' Camada de Infraestrutura
+package "Camada de Infraestrutura" #F0E8FF {
+  
+  component "Database" as DB {
+    interface "connect()" as IConnect
+    interface "query()" as IQuery
+    interface "beginTransaction()" as IBeginTx
+    interface "commit()" as ICommit
+    interface "rollback()" as IRollback
+  }
+  
+  component "FileStorage" as Storage {
+    interface "save()" as ISave
+    interface "delete()" as IDelete
+    interface "getUrl()" as IGetUrl
+  }
+  
+  component "Cache (Redis)" as Cache {
+    interface "get()" as IGet
+    interface "set()" as ISet
+    interface "del()" as IDel
+  }
+  
+  component "Logger (Winston)" as Logger {
+    interface "info()" as IInfo
+    interface "error()" as IErrorLog
+    interface "warn()" as IWarn
+  }
+  
+  note right of "Camada de Infraestrutura"
+    **Serviços de Suporte**
+    - Configurações externas
+    - Integrações de terceiros
+    - Gerenciamento de recursos
+  end note
+}
+
+' Utilitários
+package "Utilitários" #E8FFE8 {
+  
+  component "Validators" as Validators {
+    interface "validarCPF()" as IUtilValidCPF
+    interface "validarEmail()" as IUtilValidEmail
+    interface "validarData()" as IUtilValidData
+  }
+  
+  component "ResponseFormatter" as Formatter {
+    interface "sucesso()" as IFormatSucesso
+    interface "erro()" as IFormatErro
+  }
+  
+  component "DateHelper" as DateHelper {
+    interface "formatarData()" as IFormatData
+    interface "calcularIdade()" as ICalcIdade
+  }
+  
+  component "Encryption" as Crypto {
+    interface "hash()" as IHash
+    interface "compare()" as ICompare
+  }
+}
+
+' Serviços Externos
+cloud "Serviços Externos" {
+  component "WhatsApp Business API" as WhatsAppExt
+  component "SMTP Service" as EmailExt
+  component "S3 / Object Storage" as S3Ext
+}
+
+' ======= RELACIONAMENTOS =======
+
+' Gateway -> Rotas
+HttpIn --> Gateway
+Gateway --> AuthRoutes
+Gateway --> PessoaRoutes
+Gateway --> AgendRoutes
+Gateway --> ProdutoRoutes
+Gateway --> RelatorioRoutes
+
+' Rotas -> Middlewares
+AuthRoutes ..> AuthMW : <<usa>>
+PessoaRoutes ..> AuthMW : <<usa>>
+PessoaRoutes ..> ValidacaoMW : <<usa>>
+AgendRoutes ..> AuthMW : <<usa>>
+AgendRoutes ..> ValidacaoMW : <<usa>>
+ProdutoRoutes ..> UploadMW : <<usa>>
+Gateway ..> RateMW : <<usa>>
+Gateway ..> ErrorMW : <<usa>>
+
+' Rotas -> Controllers
+AuthRoutes --> AuthCtrl
+PessoaRoutes --> PessoaCtrl
+AgendRoutes --> AgendCtrl
+ProdutoRoutes --> ProdutoCtrl
+RelatorioRoutes --> RelatorioCtrl
+
+' Controllers -> Services
+AuthCtrl --> AuthSvc
+PessoaCtrl --> PessoaSvc
+AgendCtrl --> AgendSvc
+ProdutoCtrl --> ProdutoSvc
+RelatorioCtrl --> RelatorioSvc
+
+' Services -> Services (dependências)
+AuthSvc --> LogSvc
+PessoaSvc --> LogSvc
+AgendSvc --> LogSvc
+AgendSvc --> NotifSvc
+ProdutoSvc --> LogSvc
+
+' Services -> Models
+AuthSvc --> PessoaModel
+PessoaSvc --> PessoaModel
+AgendSvc --> AgendModel
+AgendSvc --> PessoaModel
+AgendSvc --> ProdutoModel
+AgendSvc --> ProdAgendModel
+ProdutoSvc --> ProdutoModel
+ProdutoSvc --> FotoModel
+LogSvc --> LogModel
+RelatorioSvc --> AgendModel
+RelatorioSvc --> PessoaModel
+RelatorioSvc --> LogModel
+
+' Models -> Database
+PessoaModel --> DB
+AgendModel --> DB
+ProdutoModel --> DB
+ProdAgendModel --> DB
+FotoModel --> DB
+LogModel --> DB
+
+' Services -> Infraestrutura
+ProdutoSvc --> Storage
+AgendSvc --> Cache
+AuthSvc --> Logger
+PessoaSvc --> Logger
+
+' Services -> Utilitários
+AuthSvc --> Crypto
+PessoaSvc --> Validators
+AgendSvc --> DateHelper
+AuthCtrl --> Formatter
+PessoaCtrl --> Formatter
+
+' Services -> Externos
+NotifSvc --> WhatsAppExt
+NotifSvc --> EmailExt
+ProdutoSvc --> S3Ext
+
+' Notas de Dependências
+note bottom of AgendSvc
+  **Dependências:**
+  - PessoaModel (validar participantes)
+  - ProdutoModel (validar produtos)
+  - AgendamentoModel (CRUD)
+  - NotificacaoService (envio de alertas)
+  - LogService (auditoria)
+  - Cache (performance)
+end note
+
+note bottom of DB
+  **Padrão Singleton**
+  Pool de conexões único
+  compartilhado por toda aplicação
+end note
+
+@enduml

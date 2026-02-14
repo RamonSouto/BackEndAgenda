@@ -1,0 +1,244 @@
+@startuml Diagrama_Implantacao
+!define ICONURL https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v2.4.0
+!include ICONURL/common.puml
+!include ICONURL/font-awesome-5/server.puml
+!include ICONURL/font-awesome-5/database.puml
+!include ICONURL/font-awesome-5/cloud.puml
+!include ICONURL/font-awesome-5/mobile.puml
+!include ICONURL/font-awesome-5/desktop.puml
+
+title Diagrama de Implantação\nArquitetura de Infraestrutura do Sistema
+
+skinparam nodeBackgroundColor #F0F0F0
+skinparam componentBackgroundColor #E8F4F8
+
+' Zona do Cliente
+package "Zona do Cliente" #DDDDDD {
+  
+  node "Desktop / Laptop" <<device>> #lightblue {
+    component "Navegador Web\n(Chrome, Firefox, Edge)" as Browser
+    note right of Browser
+      **Requisitos:**
+      - JavaScript habilitado
+      - Cookies habilitados
+      - HTTPS suportado
+    end note
+  }
+  
+  node "Tablet" <<device>> #lightblue {
+    component "Navegador Mobile" as TabletBrowser
+  }
+  
+  node "Smartphone" <<device>> #lightblue {
+    component "Navegador Mobile\n+ WhatsApp" as MobileBrowser
+  }
+}
+
+' Zona DMZ (Demilitarized Zone)
+package "DMZ (Rede Pública)" #E8FFE8 {
+  
+  node "Servidor Web\n(Nginx / Apache)" <<web server>> #lightgreen {
+    component "Reverse Proxy" as Proxy
+    component "Load Balancer" as LoadBalancer
+    component "SSL/TLS\nTermination" as SSL
+    
+    note right of Proxy
+      **Configuração:**
+      - Porta: 80 (HTTP) → 443 (HTTPS)
+      - Rate Limiting
+      - CORS habilitado
+      - Compressão Gzip
+    end note
+  }
+  
+  node "Firewall / WAF" <<firewall>> #orange {
+    component "Web Application\nFirewall" as WAF
+    
+    note right of WAF
+      **Proteções:**
+      - SQL Injection
+      - XSS
+      - CSRF
+      - DDoS mitigation
+      - Blacklist/Whitelist IPs
+    end note
+  }
+}
+
+' Zona de Aplicação
+package "Zona de Aplicação (Rede Privada)" #FFF0E8 {
+  
+  node "Servidor de Aplicação 1\n(Ubuntu 22.04 LTS)" <<application server>> #lightyellow {
+    component "Node.js Runtime\n(v18.x)" as Node1
+    component "PM2 Process Manager" as PM2_1
+    component "Express.js\nApplication" as App1
+    
+    note bottom of App1
+      **Especificações:**
+      - CPU: 4 vCPUs
+      - RAM: 8GB
+      - Disk: 50GB SSD
+      - Node.js v18.17.0
+      - Express v4.18.2
+    end note
+  }
+  
+  node "Servidor de Aplicação 2\n(Ubuntu 22.04 LTS)" <<application server>> #lightyellow {
+    component "Node.js Runtime\n(v18.x)" as Node2
+    component "PM2 Process Manager" as PM2_2
+    component "Express.js\nApplication" as App2
+  }
+  
+  node "Servidor de Cache\n(Redis)" <<cache server>> #FFE8E8 {
+    component "Redis Server\n(v7.x)" as Redis
+    database "Cache Storage" as CacheDB
+    
+    note right of Redis
+      **Uso:**
+      - Session storage
+      - Rate limiting
+      - Cache de queries
+      - TTL: 1h padrão
+    end note
+  }
+}
+
+' Zona de Dados
+package "Zona de Dados (Rede Isolada)" #E8F4FF {
+  
+  node "Servidor de Banco de Dados\nPrimário (MySQL)" <<database server>> #lightcyan {
+    component "MySQL Server 8.0" as MySQL_Primary
+    database "Banco de Dados\nagenda_ajustes" as MainDB {
+      component "tab_pessoas"
+      component "tab_agendamentos"
+      component "tab_produto_agendamento"
+      component "tab_fotos_ajustes"
+      component "tab_logs"
+    }
+    
+    note bottom of MySQL_Primary
+      **Especificações:**
+      - CPU: 8 vCPUs
+      - RAM: 16GB
+      - Disk: 200GB SSD
+      - MySQL 8.0.35
+      - InnoDB Engine
+      - Charset: utf8mb4
+    end note
+  }
+  
+  node "Servidor de Banco de Dados\nRéplica (MySQL)" <<database server>> #lightcyan {
+    component "MySQL Server 8.0" as MySQL_Replica
+    database "Banco de Dados\n(Read Only)" as ReplicaDB
+    
+    note bottom of MySQL_Replica
+      **Configuração:**
+      - Replicação Master-Slave
+      - Read-only queries
+      - Backup automático diário
+    end note
+  }
+  
+  node "Servidor de Backup" <<backup server>> #lavender {
+    component "Backup Service\n(Automated)" as BackupSvc
+    storage "Backup Storage\n(Incremental + Full)" as BackupStorage
+    
+    note right of BackupSvc
+      **Política de Backup:**
+      - Incremental: Diário 00:00
+      - Full: Semanal (Domingo)
+      - Retenção: 30 dias
+      - Compressão: Gzip
+    end note
+  }
+}
+
+' Zona de Serviços Externos
+cloud "Serviços Externos (Cloud)" #E8E8FF {
+  
+  node "API WhatsApp Business" <<external service>> #90EE90 {
+    component "WhatsApp\nBusiness API" as WhatsAppAPI
+  }
+  
+  node "Serviço de Email\n(SMTP)" <<external service>> #FFB6C1 {
+    component "SMTP Server\n(SendGrid / AWS SES)" as EmailSvc
+  }
+  
+  node "Storage de Arquivos\n(S3 / Minio)" <<storage service>> #ADD8E6 {
+    storage "Object Storage\n(Fotos de Ajustes)" as ObjectStorage
+  }
+  
+  node "Monitoramento\n(New Relic / Datadog)" <<monitoring>> #FFD700 {
+    component "APM\nMonitoring" as APM
+    component "Log\nAggregation" as LogAgg
+  }
+}
+
+' Conexões - Cliente -> DMZ
+Browser -down-> SSL : HTTPS (443)
+TabletBrowser -down-> SSL : HTTPS (443)
+MobileBrowser -down-> SSL : HTTPS (443)
+
+' Conexões - DMZ
+SSL -down-> Proxy : HTTP (interno)
+Proxy -down-> WAF : Filtro de Segurança
+WAF -down-> LoadBalancer : Distribuição de Carga
+
+' Conexões - DMZ -> Aplicação
+LoadBalancer -down-> App1 : HTTP (3000)
+LoadBalancer -down-> App2 : HTTP (3000)
+
+' Conexões - Aplicação Interna
+App1 -right-> Redis : TCP (6379)
+App2 -right-> Redis : TCP (6379)
+
+Redis -down-> CacheDB : Armazenamento
+
+' Conexões - Aplicação -> Banco de Dados
+App1 -down-> MySQL_Primary : TCP (3306)\nRead/Write
+App2 -down-> MySQL_Primary : TCP (3306)\nRead/Write
+App1 -down-> MySQL_Replica : TCP (3306)\nRead Only
+App2 -down-> MySQL_Replica : TCP (3306)\nRead Only
+
+MySQL_Primary -down-> MainDB : Persistência
+MySQL_Replica -down-> ReplicaDB : Replicação
+MySQL_Primary -right-> MySQL_Replica : Replicação\nBinlog
+
+' Conexões - Backup
+MySQL_Primary -down-> BackupSvc : mysqldump\n(Diário 00:00)
+BackupSvc -down-> BackupStorage : Armazenamento
+
+' Conexões - Serviços Externos
+App1 -up-> WhatsAppAPI : HTTPS\nNotificações
+App2 -up-> WhatsAppAPI : HTTPS\nNotificações
+App1 -up-> EmailSvc : SMTP (587/465)\nEmails
+App2 -up-> EmailSvc : SMTP (587/465)\nEmails
+App1 -up-> ObjectStorage : HTTPS\nUpload de Fotos
+App2 -up-> ObjectStorage : HTTPS\nUpload de Fotos
+
+' Conexões - Monitoramento
+App1 -up-> APM : Métricas
+App2 -up-> APM : Métricas
+App1 -up-> LogAgg : Logs
+App2 -up-> LogAgg : Logs
+MySQL_Primary -up-> APM : Métricas DB
+
+' Notas de Segurança
+note right of "Zona de Dados (Rede Isolada)"
+  **Segurança da Rede:**
+  - Isolamento total da internet
+  - Acesso apenas via VPN
+  - Firewall interno restritivo
+  - Criptografia TDE habilitada
+  - Auditoria de acesso
+end note
+
+note left of "Zona de Aplicação (Rede Privada)"
+  **Escalabilidade:**
+  - Auto-scaling configurado
+  - Health checks (30s)
+  - Failover automático
+  - Session sticky habilitado
+end note
+
+@enduml

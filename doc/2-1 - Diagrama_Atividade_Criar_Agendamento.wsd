@@ -1,0 +1,99 @@
+@startuml Atividade_Criar_Agendamento
+!define RECTANGLE
+skinparam activityBackgroundColor #E8F4F8
+skinparam activityBorderColor #0066CC
+skinparam activityStartColor #00CC66
+skinparam activityEndColor #CC0000
+
+title Diagrama de Atividades\nFluxo de Criação de Agendamento
+
+|Secretária|
+start
+:Acessa tela de agendamentos;
+:Clica em "Novo Agendamento";
+
+|Sistema|
+:Exibe formulário;
+:Lista pacientes ativos;
+:Lista costureiras disponíveis;
+:Lista produtos disponíveis;
+
+|Secretária|
+:Seleciona paciente;
+:Seleciona costureira;
+
+|Sistema|
+:Verifica disponibilidade\nda costureira;
+
+if (Costureira disponível?) then (sim)
+  
+  |Secretária|
+  :Define data e hora;
+  :Adiciona produtos;
+  :Insere observações (opcional);
+  :Confirma criação;
+  
+  |Sistema|
+  :Valida dados do formulário;
+  
+  if (Dados válidos?) then (sim)
+    
+    :Valida regras de negócio;
+    
+    if (Data é futura?) then (sim)
+      
+      if (Possui produtos?) then (sim)
+        
+        |Sistema|
+        partition "Transação Banco de Dados" {
+          :Inicia transação;
+          :Insere agendamento;
+          :Insere produtos do agendamento;
+          :Atualiza status da costureira;
+          :Registra log de auditoria;
+          :Commit da transação;
+        }
+        
+        fork
+          :Envia notificação WhatsApp\npara paciente;
+        fork again
+          :Envia email de confirmação\npara paciente;
+        end fork
+        
+        |Secretária|
+        :Exibe mensagem de sucesso;
+        :Exibe detalhes do agendamento;
+        
+        stop
+        
+      else (não)
+        |Sistema|
+        :Retorna erro:\n"Adicione pelo menos 1 produto";
+        |Secretária|
+        stop
+      endif
+      
+    else (não)
+      |Sistema|
+      :Retorna erro:\n"Data deve ser futura";
+      |Secretária|
+      stop
+    endif
+    
+  else (não)
+    |Sistema|
+    :Retorna erros de validação;
+    |Secretária|
+    :Corrige dados;
+    stop
+  endif
+  
+else (não)
+  |Sistema|
+  :Exibe alerta:\n"Costureira já possui\nagendamento ativo";
+  |Secretária|
+  :Seleciona outra costureira;
+  stop
+endif
+
+@enduml

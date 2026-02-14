@@ -1,0 +1,485 @@
+@startuml Diagrama_Classes
+!define RECTANGLE
+skinparam classBackgroundColor #F8F8F8
+skinparam classBorderColor #333333
+skinparam packageBackgroundColor #E8E8E8
+
+title Diagrama de Classes\nSistema de Agenda de Ajustes Pós-Cirúrgicos
+
+package "Controllers" #DDDDDD {
+  
+  class AuthController {
+    - authService: AuthService
+    - logService: LogService
+    + login(req, res): Promise<Response>
+    + logout(req, res): Promise<Response>
+    + verificarToken(req, res): Promise<Response>
+    + obterPerfil(req, res): Promise<Response>
+    + alterarSenha(req, res): Promise<Response>
+    + resetarSenha(req, res): Promise<Response>
+  }
+  
+  class PessoaController {
+    - pessoaService: PessoaService
+    + criar(req, res): Promise<Response>
+    + listar(req, res): Promise<Response>
+    + buscarPorId(req, res): Promise<Response>
+    + buscarPorCPF(req, res): Promise<Response>
+    + buscarPorTipo(req, res): Promise<Response>
+    + atualizar(req, res): Promise<Response>
+    + ativar(req, res): Promise<Response>
+    + desativar(req, res): Promise<Response>
+    + deletar(req, res): Promise<Response>
+    + listarCostureirasDisponiveis(req, res): Promise<Response>
+  }
+  
+  class AgendamentoController {
+    - agendamentoService: AgendamentoService
+    + criar(req, res): Promise<Response>
+    + listar(req, res): Promise<Response>
+    + buscarPorId(req, res): Promise<Response>
+    + atualizar(req, res): Promise<Response>
+    + confirmar(req, res): Promise<Response>
+    + cancelar(req, res): Promise<Response>
+    + registrarComparecimento(req, res): Promise<Response>
+    + listarMeusAgendamentos(req, res): Promise<Response>
+    + obterEstatisticas(req, res): Promise<Response>
+    + deletar(req, res): Promise<Response>
+  }
+  
+  class ProdutoController {
+    - produtoService: ProdutoService
+    + uploadFotos(req, res): Promise<Response>
+    + listarFotos(req, res): Promise<Response>
+    + deletarFoto(req, res): Promise<Response>
+    + atualizarStatus(req, res): Promise<Response>
+    + listarPorAgendamento(req, res): Promise<Response>
+  }
+  
+  class RelatorioController {
+    - relatorioService: RelatorioService
+    + dashboard(req, res): Promise<Response>
+    + relatorioAgendamentos(req, res): Promise<Response>
+    + auditoria(req, res): Promise<Response>
+    + produtividadeCostureiras(req, res): Promise<Response>
+  }
+}
+
+package "Services" #E8F4F8 {
+  
+  class AuthService {
+    - pessoaModel: PessoaModel
+    - logService: LogService
+    + login(cpf, senha, ip, userAgent): Promise<Object>
+    + alterarSenha(idUsuario, senhaAtual, novaSenha): Promise<void>
+    + resetarSenha(cpf, novaSenha, idAdmin): Promise<void>
+    + gerarToken(payload): string
+    - validarCredenciais(pessoa, senha): Promise<boolean>
+    - hashSenha(senha): Promise<string>
+  }
+  
+  class PessoaService {
+    - pessoaModel: PessoaModel
+    - logService: LogService
+    + criar(dados, idUsuario): Promise<Pessoa>
+    + listar(filtros, idUsuario): Promise<Pessoa[]>
+    + buscarPorId(id, idUsuario): Promise<Pessoa>
+    + buscarPorCPF(cpf, idUsuario): Promise<Pessoa>
+    + atualizar(id, dados, idUsuario): Promise<Pessoa>
+    + deletar(id, idUsuario): Promise<void>
+    + ativar(id, idUsuario): Promise<void>
+    + desativar(id, idUsuario): Promise<void>
+    - validarDados(dados): ValidationResult
+    - validarCPF(cpf): boolean
+    - validarIdade(dataNascimento): boolean
+  }
+  
+  class AgendamentoService {
+    - agendamentoModel: AgendamentoModel
+    - pessoaModel: PessoaModel
+    - produtoModel: ProdutoModel
+    - logService: LogService
+    - notificacaoService: NotificacaoService
+    + criar(dados, idUsuario): Promise<Agendamento>
+    + listar(filtros, idUsuario, tipoUsuario): Promise<Agendamento[]>
+    + buscarPorId(id, idUsuario): Promise<Agendamento>
+    + atualizar(id, dados, idUsuario): Promise<Agendamento>
+    + confirmar(id, idUsuario): Promise<void>
+    + cancelar(id, idUsuario): Promise<void>
+    + registrarComparecimento(id, dados, idUsuario): Promise<Agendamento>
+    + obterEstatisticas(filtros): Promise<Object>
+    + deletar(id, idUsuario): Promise<void>
+    - validarDisponibilidadeCostureira(idCostureira): Promise<boolean>
+    - validarDataAgendamento(data): boolean
+    - validarPermissao(idUsuario, idAgendamento): Promise<boolean>
+  }
+  
+  class ProdutoService {
+    - produtoModel: ProdutoModel
+    - agendamentoModel: AgendamentoModel
+    - logService: LogService
+    + uploadFotos(idProduto, arquivos, idUsuario): Promise<Foto[]>
+    + listarFotos(idProduto): Promise<Foto[]>
+    + deletarFoto(idFoto, idUsuario): Promise<void>
+    + atualizarStatus(idProduto, status, idUsuario): Promise<void>
+    - validarArquivo(arquivo): boolean
+    - salvarArquivo(arquivo): Promise<string>
+  }
+  
+  class LogService {
+    - logModel: LogModel
+    + registrar(dados): Promise<number>
+    + listar(filtros): Promise<Log[]>
+    + buscarPorUsuario(idUsuario): Promise<Log[]>
+    + buscarPorAcao(acao): Promise<Log[]>
+  }
+  
+  class NotificacaoService {
+    + enviarWhatsApp(telefone, mensagem): Promise<boolean>
+    + enviarEmail(destinatario, assunto, corpo): Promise<boolean>
+    - formatarMensagemAgendamento(agendamento): string
+  }
+  
+  class RelatorioService {
+    - agendamentoModel: AgendamentoModel
+    - pessoaModel: PessoaModel
+    - logModel: LogModel
+    + gerarDashboard(): Promise<Object>
+    + relatorioAgendamentos(filtros): Promise<Object>
+    + auditoria(filtros): Promise<Object>
+    + produtividadeCostureiras(filtros): Promise<Object>
+    - calcularTaxaComparecimento(agendamentos): number
+    - calcularMediaPorCostureira(agendamentos): Object
+  }
+}
+
+package "Models" #F0F8E8 {
+  
+  class PessoaModel {
+    - database: Database
+    + criar(dados): Promise<number>
+    + buscarPorId(id): Promise<Pessoa>
+    + buscarPorCPF(cpf): Promise<Pessoa>
+    + listar(filtros): Promise<Pessoa[]>
+    + atualizar(id, dados): Promise<boolean>
+    + deletar(id): Promise<boolean>
+    + ativar(id): Promise<boolean>
+    + desativar(id): Promise<boolean>
+    + verificarDisponibilidade(id): Promise<boolean>
+  }
+  
+  class AgendamentoModel {
+    - database: Database
+    + criar(dados): Promise<number>
+    + buscarPorId(id): Promise<Agendamento>
+    + listar(filtros): Promise<Agendamento[]>
+    + atualizar(id, dados): Promise<boolean>
+    + deletar(id): Promise<boolean>
+    + confirmar(id): Promise<boolean>
+    + cancelar(id): Promise<boolean>
+    + registrarComparecimento(id, dados): Promise<boolean>
+    + buscarPorCostureira(idCostureira, status): Promise<Agendamento[]>
+    + buscarPorPaciente(idPaciente): Promise<Agendamento[]>
+    + verificarConflito(idCostureira, data): Promise<boolean>
+  }
+  
+  class ProdutoModel {
+    - database: Database
+    + criar(dados): Promise<number>
+    + buscarPorId(id): Promise<Produto>
+    + listar(): Promise<Produto[]>
+    + criarGrade(dados): Promise<number>
+    + buscarGradePorId(id): Promise<ProdutoGrade>
+    + listarGrade(idProduto): Promise<ProdutoGrade[]>
+  }
+  
+  class ProdutoAgendamentoModel {
+    - database: Database
+    + criar(dados): Promise<number>
+    + buscarPorId(id): Promise<ProdutoAgendamento>
+    + buscarPorAgendamento(idAgendamento): Promise<ProdutoAgendamento[]>
+    + atualizarStatus(id, status): Promise<boolean>
+  }
+  
+  class FotoModel {
+    - database: Database
+    + criar(dados): Promise<number>
+    + buscarPorId(id): Promise<Foto>
+    + listarPorProduto(idProduto): Promise<Foto[]>
+    + deletar(id): Promise<boolean>
+  }
+  
+  class LogModel {
+    - database: Database
+    + criar(dados): Promise<number>
+    + listar(filtros): Promise<Log[]>
+    + buscarPorUsuario(idUsuario): Promise<Log[]>
+    + buscarPorAcao(acao): Promise<Log[]>
+    + buscarPorPeriodo(dataInicio, dataFim): Promise<Log[]>
+  }
+}
+
+package "Middlewares" #FFF0E8 {
+  
+  class AuthMiddleware {
+    + verificarToken(req, res, next): void
+    + verificarPermissao(permitidos): Function
+    - extrairToken(req): string
+    - validarToken(token): Object
+  }
+  
+  class ValidacaoMiddleware {
+    + validarPessoa(req, res, next): void
+    + validarAgendamento(req, res, next): void
+    + validarComparecimento(req, res, next): void
+    + validarLogin(req, res, next): void
+    - validarCamposObrigatorios(dados, campos): boolean
+  }
+  
+  class ErrorMiddleware {
+    + tratarErro(err, req, res, next): void
+    - formatarErro(err): Object
+    - registrarErro(err): void
+  }
+  
+  class RateLimitMiddleware {
+    + limitarRequisicoes(req, res, next): void
+    - verificarLimite(ip): boolean
+  }
+  
+  class UploadMiddleware {
+    + configurarUpload(): Multer
+    + validarArquivo(req, file, cb): void
+    - verificarTipoArquivo(mimetype): boolean
+    - verificarTamanho(size): boolean
+  }
+}
+
+package "Entities" #F0E8FF {
+  
+  class Pessoa {
+    + id: number
+    + id_cidade: number
+    + ind_status: string
+    + ind_tipo_pessoa: string
+    + nom_completo: string
+    + num_cpf: string
+    + num_rg: string
+    + dta_nascimento: Date
+    + des_logradouro: string
+    + num_endereco: string
+    + des_complemento: string
+    + num_cep: string
+    + nom_bairro: string
+    + num_celular_1: string
+    + ind_whatsapp_1: boolean
+    + num_celular_2: string
+    + ind_whatsapp_2: boolean
+    + des_email_1: string
+    + des_email_2: string
+    + des_senha: string
+    + created_at: Date
+    + updated_at: Date
+  }
+  
+  class Agendamento {
+    + id: number
+    + id_paciente: number
+    + id_costureira: number
+    + id_secretaria: number
+    + dta_agendamento: Date
+    + ind_status: string
+    + ind_paciente_compareceu: boolean
+    + des_observacoes_geral: string
+    + des_observacoes_costureira: string
+    + created_at: Date
+    + updated_at: Date
+  }
+  
+  class Produto {
+    + id: number
+    + nom_produto: string
+    + ref_produto: string
+    + ind_status: string
+    + created_at: Date
+    + updated_at: Date
+  }
+  
+  class ProdutoGrade {
+    + id: number
+    + id_produto: number
+    + cod_tamanho: string
+    + nom_cor_estampa: string
+    + num_sku: string
+    + ind_status: string
+    + created_at: Date
+    + updated_at: Date
+  }
+  
+  class ProdutoAgendamento {
+    + id: number
+    + id_agendamento: number
+    + id_produto_grade: number
+    + des_ajuste_produto: string
+    + ind_status: string
+    + created_at: Date
+    + updated_at: Date
+  }
+  
+  class Foto {
+    + id: number
+    + id_produto_agendamento: number
+    + des_caminho_arquivo: string
+    + nom_original: string
+    + num_tamanho_bytes: number
+    + created_at: Date
+  }
+  
+  class Log {
+    + id: number
+    + id_usuario: number
+    + des_acao: string
+    + des_tabela: string
+    + num_registro_id: number
+    + des_detalhes: Object
+    + num_ip_address: string
+    + des_user_agent: string
+    + created_at: Date
+  }
+}
+
+package "Utils" #E8FFE8 {
+  
+  class Validators {
+    + {static} validarCPF(cpf): boolean
+    + {static} validarEmail(email): boolean
+    + {static} validarData(data): boolean
+    + {static} validarCEP(cep): boolean
+    + {static} validarTelefone(telefone): boolean
+  }
+  
+  class ResponseFormatter {
+    + {static} sucesso(dados, mensagem): Object
+    + {static} erro(mensagem, erro): Object
+    + {static} validacao(erros): Object
+  }
+  
+  class DateHelper {
+    + {static} formatarData(data): string
+    + {static} calcularIdade(dataNascimento): number
+    + {static} validarDataFutura(data): boolean
+    + {static} diferencaEmHoras(data1, data2): number
+  }
+}
+
+package "Config" #FFFFE8 {
+  
+  class Database {
+    - connection: Connection
+    + connect(): Promise<void>
+    + query(sql, params): Promise<any>
+    + beginTransaction(): Promise<void>
+    + commit(): Promise<void>
+    + rollback(): Promise<void>
+    + close(): Promise<void>
+  }
+  
+  class EnvConfig {
+    + {static} PORT: number
+    + {static} DB_HOST: string
+    + {static} DB_PORT: number
+    + {static} DB_USER: string
+    + {static} DB_PASSWORD: string
+    + {static} DB_NAME: string
+    + {static} JWT_SECRET: string
+    + {static} JWT_EXPIRES_IN: string
+  }
+}
+
+' Relacionamentos Controllers -> Services
+AuthController --> AuthService
+AuthController --> LogService
+PessoaController --> PessoaService
+AgendamentoController --> AgendamentoService
+ProdutoController --> ProdutoService
+RelatorioController --> RelatorioService
+
+' Relacionamentos Services -> Models
+AuthService --> PessoaModel
+AuthService --> LogService
+PessoaService --> PessoaModel
+PessoaService --> LogService
+AgendamentoService --> AgendamentoModel
+AgendamentoService --> PessoaModel
+AgendamentoService --> ProdutoModel
+AgendamentoService --> LogService
+AgendamentoService --> NotificacaoService
+ProdutoService --> ProdutoModel
+ProdutoService --> AgendamentoModel
+ProdutoService --> LogService
+LogService --> LogModel
+RelatorioService --> AgendamentoModel
+RelatorioService --> PessoaModel
+RelatorioService --> LogModel
+
+' Relacionamentos Models -> Database
+PessoaModel --> Database
+AgendamentoModel --> Database
+ProdutoModel --> Database
+ProdutoAgendamentoModel --> Database
+FotoModel --> Database
+LogModel --> Database
+
+' Relacionamentos Models -> Entities
+PessoaModel ..> Pessoa : <<cria>>
+AgendamentoModel ..> Agendamento : <<cria>>
+ProdutoModel ..> Produto : <<cria>>
+ProdutoModel ..> ProdutoGrade : <<cria>>
+ProdutoAgendamentoModel ..> ProdutoAgendamento : <<cria>>
+FotoModel ..> Foto : <<cria>>
+LogModel ..> Log : <<cria>>
+
+' Relacionamentos entre Entities
+Agendamento "1" --> "1" Pessoa : paciente
+Agendamento "1" --> "1" Pessoa : costureira
+Agendamento "1" --> "1" Pessoa : secretaria
+Agendamento "1" --> "*" ProdutoAgendamento
+ProdutoAgendamento "*" --> "1" ProdutoGrade
+ProdutoGrade "*" --> "1" Produto
+ProdutoAgendamento "1" --> "*" Foto
+Log "*" --> "0..1" Pessoa : usuario
+
+' Relacionamentos Middlewares
+AuthMiddleware --> AuthService
+ValidacaoMiddleware --> Validators
+
+' Relacionamentos Utils
+PessoaService --> Validators
+AgendamentoService --> DateHelper
+PessoaController --> ResponseFormatter
+AgendamentoController --> ResponseFormatter
+
+' Notas
+note right of AuthService
+  **Responsabilidades:**
+  - Autenticação JWT
+  - Gestão de senhas (hash bcrypt)
+  - Validação de credenciais
+  - Geração de tokens
+end note
+
+note right of AgendamentoService
+  **Regras de Negócio:**
+  - Validar disponibilidade
+  - Verificar conflitos
+  - Aplicar permissões
+  - Notificações automáticas
+end note
+
+note bottom of Database
+  **Padrão Singleton**
+  Única instância compartilhada
+  para toda a aplicação
+end note
+
+@enduml

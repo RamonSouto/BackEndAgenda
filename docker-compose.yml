@@ -1,0 +1,47 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: agenda-ajuste
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      #MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secret_2026}
+      MYSQL_DATABASE: ${DB_DATABASE:-agenda-ajuste}
+      MYSQL_USER: ${DB_USERNAME:-sge_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-sge_password_2026}
+      TZ: America/Sao_Paulo
+    volumes:
+      # Volume de dados persistentes
+      - ./docker/mysql/data:/var/lib/mysql
+      
+      # Scripts de inicialização (executados em ordem alfabética)
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+      
+      # Diretório de backups (acessível pelo container)
+      - ./docker/mysql/backup:/backup
+      
+      # Configurações customizadas do MySQL
+      - ./docker/mysql/conf.d:/etc/mysql/conf.d
+    networks:
+      - sge_network
+    command: 
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --max_connections=200
+      - --innodb_buffer_pool_size=512M
+      - --bind-address=0.0.0.0
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${DB_ROOT_PASSWORD:-root_secret_2026}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  sge_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16

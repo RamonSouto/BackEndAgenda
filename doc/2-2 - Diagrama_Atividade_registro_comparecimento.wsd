@@ -1,0 +1,75 @@
+@startuml Atividade_Registrar_Comparecimento
+skinparam activityBackgroundColor #FFF0E8
+skinparam activityBorderColor #FF6600
+
+title Diagrama de Atividades\nFluxo de Registro de Comparecimento
+
+|Costureira|
+start
+:Acessa "Meus Agendamentos";
+
+|Sistema|
+:Lista agendamentos da costureira;
+:Filtra agendamentos confirmados\ncom data <= hoje;
+
+|Costureira|
+:Seleciona agendamento;
+:Acessa detalhes;
+
+if (Paciente compareceu?) then (sim)
+  |Costureira|
+  :Marca "Paciente Compareceu";
+  :Insere observações sobre ajuste;
+  
+  partition "Processo de Atendimento" {
+    :Realiza ajustes nos produtos;
+    
+    fork
+      :Tira fotos do ajuste;
+      :Faz upload das fotos;
+    fork again
+      :Atualiza status dos produtos\npara "Em Produção";
+    end fork
+  }
+  
+  :Confirma comparecimento;
+  
+  |Sistema|
+  :Valida dados;
+  :Atualiza agendamento:\n- ind_paciente_compareceu = true\n- ind_status = 'concluido';
+  :Libera costureira\npara novos agendamentos;
+  :Registra log;
+  
+  fork
+    :Envia email de conclusão\npara paciente;
+  fork again
+    :Notifica secretária;
+  end fork
+  
+else (não)
+  |Costureira|
+  :Marca "Paciente Faltou";
+  :Insere motivo da falta (opcional);
+  :Confirma falta;
+  
+  |Sistema|
+  :Atualiza agendamento:\n- ind_paciente_compareceu = false\n- ind_status = 'falta';
+  :Libera costureira;
+  :Registra log;
+  
+  fork
+    :Envia notificação de falta\npara secretária;
+  fork again
+    :Envia email para paciente\nsobre remarcação;
+  end fork
+endif
+
+|Sistema|
+:Atualiza dashboard;
+:Atualiza estatísticas;
+
+|Costureira|
+:Exibe confirmação;
+stop
+
+@enduml

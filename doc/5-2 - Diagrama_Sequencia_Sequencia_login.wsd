@@ -1,0 +1,124 @@
+@startuml Sequencia_Login
+!pragma teoz true
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title Diagrama de Sequência\nFluxo de Autenticação e Login
+
+actor "Usuário\n(Secretária)" as Usuario
+participant "AuthController" as Controller
+participant "ValidacaoMiddleware" as Validacao
+participant "AuthService" as Service
+participant "PessoaModel" as Model
+participant "Database" as DB
+participant "LogService" as LogSvc
+participant "JWT" as JWT
+participant "bcrypt" as Bcrypt
+
+== Requisição de Login ==
+
+Usuario -> Controller: POST /api/auth/login\n{cpf, senha}
+activate Controller
+
+Controller -> Validacao: validarLogin(req, res, next)
+activate Validacao
+
+Validacao -> Validacao: Validar campos obrigatórios\n(cpf, senha)
+
+alt Validação Falhou
+    Validacao --> Controller: 400 Bad Request\n{erro: "Campos obrigatórios"}
+    Controller --> Usuario: Erro de validação
+else Validação OK
+    Validacao --> Controller: next()
+    deactivate Validacao
+    
+    == Processamento da Autenticação ==
+    
+    Controller -> Service: login(cpf, senha, ip, userAgent)
+    activate Service
+    
+    Service -> Model: buscarPorCPF(cpf)
+    activate Model
+    
+    Model -> DB: SELECT * FROM tab_pessoas\nWHERE num_cpf = ?
+    activate DB
+    
+    DB --> Model: Resultado da query
+    deactivate DB
+    
+    alt Usuário não encontrado
+        Model --> Service: null
+        deactivate Model
+        Service --> Controller: throw Error("Credenciais inválidas")
+        Controller --> Usuario: 401 Unauthorized
+    else Usuário encontrado
+        Model --> Service: {id, nome, cpf, senha_hash, tipo, status}
+        deactivate Model
+        
+        == Validação de Status ==
+        
+        Service -> Service: Verificar ind_status == 'ativo'
+        
+        alt Usuário Inativo
+            Service --> Controller: throw Error("Usuário inativo")
+            Controller --> Usuario: 401 Unauthorized
+        else Status Ativo
+            
+            == Validação de Tipo ==
+            
+            Service -> Service: Verificar ind_tipo_pessoa != 'paciente'
+            
+            alt É Paciente
+                Service --> Controller: throw Error("Pacientes não têm acesso")
+                Controller --> Usuario: 401 Unauthorized
+            else Não é Paciente
+                
+                == Validação de Senha ==
+                
+                Service -> Bcrypt: compare(senha, senha_hash)
+                activate Bcrypt
+                
+                Bcrypt --> Service: resultado (true/false)
+                deactivate Bcrypt
+                
+                alt Senha Incorreta
+                    Service --> Controller: throw Error("Credenciais inválidas")
+                    Controller --> Usuario: 401 Unauthorized
+                else Senha Correta
+                    
+                    == Geração de Token ==
+                    
+                    Service -> JWT: sign({id, cpf, tipo}, secret, {expiresIn})
+                    activate JWT
+                    
+                    JWT --> Service: token_jwt
+                    deactivate JWT
+                    
+                    == Registro de Log ==
+                    
+                    Service -> LogSvc: registrar({\n  id_usuario,\n  acao: 'login',\n  ip,\n  user_agent\n})
+                    activate LogSvc
+                    
+                    LogSvc -> DB: INSERT INTO tab_logs
+                    activate DB
+                    DB --> LogSvc: id_log
+                    deactivate DB
+                    
+                    LogSvc --> Service: log_id
+                    deactivate LogSvc
+                    
+                    == Resposta de Sucesso ==
+                    
+                    Service --> Controller: {\n  token,\n  usuario: {id, nome, tipo}\n}
+                    deactivate Service
+                    
+                    Controller --> Usuario: 200 OK\n{\n  sucesso: true,\n  token,\n  usuario\n}
+                end
+            end
+        end
+    end
+end
+
+deactivate Controller
+
+@enduml

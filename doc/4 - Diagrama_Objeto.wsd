@@ -1,0 +1,165 @@
+@startuml Diagrama_Objetos
+skinparam objectBackgroundColor #F0F8E8
+skinparam objectBorderColor #339933
+
+title Diagrama de Objetos\nInstância de Agendamento Completo
+
+object ":Pessoa (Admin)" as admin {
+  id = 1
+  nom_completo = "Dr. Admin Sistema"
+  num_cpf = "00000000000"
+  ind_tipo_pessoa = "administrador"
+  des_email_1 = "admin@sistema.com"
+  ind_status = "ativo"
+}
+
+object ":Pessoa (Secretária)" as secretaria {
+  id = 2
+  nom_completo = "Maria Santos Silva"
+  num_cpf = "11111111111"
+  ind_tipo_pessoa = "secretaria"
+  des_email_1 = "maria@sistema.com"
+  ind_status = "ativo"
+}
+
+object ":Pessoa (Costureira)" as costureira {
+  id = 3
+  nom_completo = "Ana Costa Oliveira"
+  num_cpf = "22222222222"
+  ind_tipo_pessoa = "costureira"
+  des_email_1 = "ana@sistema.com"
+  num_celular_1 = "62999999999"
+  ind_status = "ativo"
+}
+
+object ":Pessoa (Paciente)" as paciente {
+  id = 5
+  nom_completo = "João Silva Santos"
+  num_cpf = "44444444444"
+  ind_tipo_pessoa = "paciente"
+  des_email_1 = "joao@email.com"
+  num_celular_1 = "62988888888"
+  ind_whatsapp_1 = true
+  ind_status = "ativo"
+  dta_nascimento = "1990-05-15"
+}
+
+object ":Agendamento" as agendamento {
+  id = 101
+  dta_agendamento = "2024-12-31 14:00:00"
+  ind_status = "confirmado"
+  ind_paciente_compareceu = null
+  des_observacoes_geral = "Primeira consulta pós-cirúrgica"
+  des_observacoes_costureira = null
+  created_at = "2024-12-10 10:30:00"
+}
+
+object ":Produto" as produtoBlusa {
+  id = 1
+  nom_produto = "Blusa Cirúrgica"
+  ref_produto = "BLS-001"
+  ind_status = "ativo"
+}
+
+object ":ProdutoGrade" as gradeBlusaP {
+  id = 10
+  cod_tamanho = "P"
+  nom_cor_estampa = "Branco"
+  num_sku = "BLS-001-P-BR"
+  ind_status = "ativo"
+}
+
+object ":Produto" as produtoCalca {
+  id = 2
+  nom_produto = "Calça Cirúrgica"
+  ref_produto = "CLC-001"
+  ind_status = "ativo"
+}
+
+object ":ProdutoGrade" as gradeCalcaM {
+  id = 11
+  cod_tamanho = "M"
+  nom_cor_estampa = "Azul"
+  num_sku = "CLC-001-M-AZ"
+  ind_status = "ativo"
+}
+
+object ":ProdutoAgendamento" as prodAgend1 {
+  id = 201
+  des_ajuste_produto = "Ajustar manga direita - 2cm"
+  ind_status = "pendente"
+  created_at = "2024-12-10 10:30:00"
+}
+
+object ":ProdutoAgendamento" as prodAgend2 {
+  id = 202
+  des_ajuste_produto = "Barra da calça - 3cm"
+  ind_status = "pendente"
+  created_at = "2024-12-10 10:30:00"
+}
+
+object ":Log (Criação)" as logCriacao {
+  id = 1001
+  des_acao = "criar"
+  des_tabela = "tab_agendamentos"
+  num_registro_id = 101
+  num_ip_address = "192.168.1.100"
+  des_user_agent = "Mozilla/5.0..."
+  created_at = "2024-12-10 10:30:00"
+}
+
+object ":Log (Confirmação)" as logConfirmacao {
+  id = 1002
+  des_acao = "editar"
+  des_tabela = "tab_agendamentos"
+  num_registro_id = 101
+  des_detalhes = "{'status': 'confirmado'}"
+  num_ip_address = "192.168.1.100"
+  created_at = "2024-12-10 11:00:00"
+}
+
+' Relacionamentos do Agendamento
+agendamento --> paciente : id_paciente = 5
+agendamento --> costureira : id_costureira = 3
+agendamento --> secretaria : id_secretaria = 2
+
+' Relacionamentos dos Produtos
+agendamento --> prodAgend1 : produtos[0]
+agendamento --> prodAgend2 : produtos[1]
+
+prodAgend1 --> gradeBlusaP : id_produto_grade = 10
+prodAgend2 --> gradeCalcaM : id_produto_grade = 11
+
+gradeBlusaP --> produtoBlusa : id_produto = 1
+gradeCalcaM --> produtoCalca : id_produto = 2
+
+' Relacionamentos dos Logs
+logCriacao --> secretaria : id_usuario = 2
+logConfirmacao --> secretaria : id_usuario = 2
+
+note right of agendamento
+  **Estado Atual:**
+  Agendamento confirmado
+  aguardando data de atendimento
+  
+  **Próximas ações:**
+  - Costureira realizar atendimento
+  - Registrar comparecimento
+  - Upload de fotos
+end note
+
+note bottom of paciente
+  **Notificações Enviadas:**
+  - WhatsApp: Confirmação de agendamento
+  - Email: Detalhes do agendamento
+  - Lembrete 24h antes
+end note
+
+note right of costureira
+  **Status:**
+  Ocupada com este agendamento
+  Não pode receber novos até
+  registrar comparecimento
+end note
+
+@enduml
