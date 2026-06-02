@@ -34,6 +34,7 @@ module.exports = {
         EDITAR: 'editar',
         DELETAR: 'deletar',
         CONSULTAR: 'consultar',
+        LISTAR: 'listar',
         UPLOAD: 'upload',
         AGENDAMENTO_CRIAR: 'agendamento_criar',
         AGENDAMENTO_EDITAR: 'agendamento_editar',
@@ -77,7 +78,8 @@ module.exports = {
             CREDENCIAIS_INVALIDAS: 'Credenciais inválidas',
             CONTA_BLOQUEADA: 'Conta bloqueada por excesso de tentativas',
             COSTUREIRA_OCUPADA: 'Costureira já possui um agendamento ativo',
-            PRAZO_CANCELAMENTO: 'Não é possível cancelar com menos de 2 horas de antecedência'
+            PRAZO_CANCELAMENTO: 'Não é possível cancelar com menos de 2 horas de antecedência',
+            CATEGORIA_PAI: 'Categoria pai não encontrado'
         },
         SUCESSO: {
             CRIADO: 'Registro criado com sucesso',

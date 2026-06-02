@@ -8,6 +8,7 @@ const { limparCPF, limparCEP, limparTelefone, ocultarDadosSensiveis } = require(
 class PessoaService {
     async criar(dados, usuarioLogadoId) {
         try {
+
             // Validar dados
             const { error, value } = validators.pessoaSchema.validate(dados);
 
@@ -18,6 +19,7 @@ class PessoaService {
             // Limpar dados
             value.num_cpf = limparCPF(value.num_cpf);
             value.num_cep = limparCEP(value.num_cep);
+
             value.num_celular_1 = limparTelefone(value.num_celular_1);
             if (value.num_celular_2) {
                 value.num_celular_2 = limparTelefone(value.num_celular_2);
@@ -25,6 +27,7 @@ class PessoaService {
 
             // Verificar se CPF já existe
             const cpfExistente = await PessoaModel.buscarPorCPF(value.num_cpf);
+
             if (cpfExistente) {
                 throw new Error(MENSAGENS.ERRO.CPF_EXISTENTE);
             }
@@ -33,6 +36,8 @@ class PessoaService {
             if (value.des_senha) {
                 value.des_senha = await bcrypt.hash(value.des_senha, 10);
             }
+
+            // console.log(value);
 
             // Criar pessoa
             const pessoaId = await PessoaModel.criar(value);
@@ -51,6 +56,7 @@ class PessoaService {
             });
 
             const pessoa = await PessoaModel.buscarPorId(pessoaId);
+
             return ocultarDadosSensiveis(pessoa);
 
         } catch (error) {
@@ -324,6 +330,184 @@ class PessoaService {
             });
 
             return costureirasComStatus;
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async listarCidades(usuarioLogadoId) {
+        try {
+            const cidades = await PessoaModel.listarCidades();
+
+            // Registrar log
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.LISTAR,
+                des_tabela: 'tab_cidades',
+                des_detalhes: {
+                    tipo_consulta: 'listar_cidades',
+                    total_registros: cidades.length,
+                }
+            });
+
+            return cidades;
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async buscarCidadeId(id, usuarioLogadoId) {
+        try {
+            const cidade = await PessoaModel.buscarCidadeId(id);
+
+            // Registrar log
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.CONSULTAR,
+                des_tabela: 'tab_cidades',
+                des_detalhes: {
+                    tipo_consulta: 'buscar_cidade_id',
+                    total_registros: cidade.length,
+                }
+            });
+
+            return cidade;
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async buscarCidadeNome(nome, usuarioLogadoId) {
+        try {
+            const cidades = await PessoaModel.buscarCidadeNome(nome);
+
+            // Registrar log
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.CONSULTAR,
+                des_tabela: 'tab_cidades',
+                des_detalhes: {
+                    tipo_consulta: 'buscar_cidade_nome',
+                    total_registros: cidades.length,
+                }
+            });
+
+            return cidades;
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async buscarCidadeEstadoId(id, req) {
+        try {
+            const cidades = await PessoaModel.buscarCidadeEstadoId(id);
+            const usuarioLogadoId = req.usuario.id
+
+            // Registrar log
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.CONSULTAR,
+                des_tabela: 'tab_cidades',
+                num_registro_id: id,
+                des_detalhes: {
+                    tipo_consulta: 'buscar_cidades_estado_id',
+                    total_registros: cidades.length,
+                }
+            });
+
+            return cidades;
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async listarEstados(usuarioLogadoId) {
+        try {
+            const estados = await PessoaModel.listarEstados();
+
+            // Registrar log
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.LISTAR,
+                des_tabela: 'tab_estados',
+                des_detalhes: {
+                    tipo_consulta: 'listar_estados',
+                    total_registros: estados.length,
+                }
+            });
+
+            return estados;
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async buscarEstadoId(id, usuarioLogadoId) {
+        try {
+            const estado = await PessoaModel.buscarEstadoId(id);
+
+            // Registrar log
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.CONSULTAR,
+                des_tabela: 'tab_estados',
+                des_detalhes: {
+                    tipo_consulta: 'buscar_estado_id',
+                    total_registros: estado.length,
+                }
+            });
+
+            return estado;
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async buscarEstadoNome(nome, usuarioLogadoId) {
+        try {
+            const estados = await PessoaModel.buscarEstadoNome(nome);
+
+            // Registrar log
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.CONSULTAR,
+                des_tabela: 'tab_estados',
+                des_detalhes: {
+                    tipo_consulta: 'buscar_estado_nome',
+                    total_registros: estados.length,
+                }
+            });
+
+            return estados;
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async buscarEstadoSgl(sgl, usuarioLogadoId) {
+        try {
+            const estados = await PessoaModel.buscarEstadoSgl(sgl);
+
+            // Registrar log
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.CONSULTAR,
+                des_tabela: 'tab_estados',
+                des_detalhes: {
+                    tipo_consulta: 'buscar_estado_sigla',
+                    total_registros: estados.length,
+                }
+            });
+
+            return estados;
 
         } catch (error) {
             throw error;

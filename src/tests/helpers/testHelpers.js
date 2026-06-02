@@ -71,9 +71,9 @@ class TestHelpers {
      */
     static generatePessoaData(tipo = 'paciente') {
         const pessoa = {
-            id_cidad: 1,
+            id_cidad: 5418,
             ind_tipo_pessoa: tipo,
-            nom_completo: faker.person.fullName,
+            nom_completo: faker.person.fullName(),
             num_cpf: this.generateCPF(),
             num_rg: faker.string.numeric(7),
             dta_nascimento: faker.date.birthdate({ min: 18, max: 80, mode: 'age' }).toISOString().split('T')[0],

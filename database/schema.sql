@@ -1,30 +1,35 @@
 CREATE DATABASE IF NOT EXISTS agenda_ajustes CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 USE agenda_ajustes;
 
-CREATE TABLE IF NOT EXISTS tab_estado(
+CREATE TABLE IF NOT EXISTS tab_estado (
     id INT PRIMARY KEY AUTO_INCREMENT,
     nom_estado VARCHAR(100) NOT NULL,
     sgl_estado VARCHAR(2) NOT NULL,
-    INDEX idx_sigla(sgl_estado)
-)ENGINE=InnoDB;
+    INDEX idx_sigla (sgl_estado)
+) ENGINE = InnoDB;
 
-
-CREATE TABLE IF NOT EXISTS tab_cidade(
+CREATE TABLE IF NOT EXISTS tab_cidade (
     id INT PRIMARY KEY AUTO_INCREMENT,
     id_estado INT NOT NULL,
     nom_cidade VARCHAR(100) NOT NULL,
     cod_municipio_ibge VARCHAR(7),
-    FOREIGN KEY (id_estado) REFERENCES tab_estado(id),
+    FOREIGN KEY (id_estado) REFERENCES tab_estado (id),
     INDEX idx_estado (id_estado),
     INDEX idx_ibge (cod_municipio_ibge)
-)ENGINE=InnoDB;
-
+) ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS tab_pessoas (
     id INT PRIMARY KEY AUTO_INCREMENT,
     id_cidade INT NOT NULL,
     ind_status ENUM('ativo', 'inativo') NOT NULL DEFAULT 'ativo',
-    ind_tipo_pessoa ENUM('medico', 'secretaria', 'costureira', 'paciente', 'administrador') NOT NULL,
+    ind_tipo_pessoa ENUM(
+        'medico',
+        'secretaria',
+        'costureira',
+        'paciente',
+        'administrador'
+    ) NOT NULL,
     nom_completo VARCHAR(255) NOT NULL,
     num_cpf VARCHAR(11) UNIQUE NOT NULL,
     num_rg VARCHAR(20) NOT NULL,
@@ -47,14 +52,13 @@ CREATE TABLE IF NOT EXISTS tab_pessoas (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME,
-    FOREIGN KEY (id_cidade) REFERENCES tab_cidade(id),
+    FOREIGN KEY (id_cidade) REFERENCES tab_cidade (id),
     INDEX idx_cpf (num_cpf),
     INDEX idx_tipo_pessoa (ind_tipo_pessoa),
     INDEX idx_status (ind_status),
-    CONSTRAINT chk_cpf_length CHECK (LENGTH(num_cpf)=11),
-    CONSTRAINT chk_cep_length CHECK (LENGTH(num_cep)=8)
-) ENGINE=InnoDB;
-
+    CONSTRAINT chk_cpf_length CHECK (LENGTH(num_cpf) = 11),
+    CONSTRAINT chk_cep_length CHECK (LENGTH(num_cep) = 8)
+) ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS tab_agendamentos (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -64,7 +68,13 @@ CREATE TABLE IF NOT EXISTS tab_agendamentos (
     dta_agendamento DATETIME NOT NULL,
     des_observacoes_geral TEXT,
     des_observacoes_costureira TEXT,
-    ind_status ENUM('agendado', 'confirmado', 'concluido', 'cancelado', 'falta') NOT NULL DEFAULT 'agendado',
+    ind_status ENUM(
+        'agendado',
+        'confirmado',
+        'concluido',
+        'cancelado',
+        'falta'
+    ) NOT NULL DEFAULT 'agendado',
     ind_paciente_compareceu BOOLEAN DEFAULT NULL,
     dta_confirmacao DATETIME,
     dta_conclusao DATETIME,
@@ -77,13 +87,16 @@ CREATE TABLE IF NOT EXISTS tab_agendamentos (
     INDEX idx_secretaria (id_secretaria),
     INDEX idx_data (dta_agendamento),
     INDEX idx_status (ind_status),
-    INDEX idx_costureira_ativa (id_costureira, ind_status, deleted_at),
-    FOREIGN KEY (id_paciente) REFERENCES tab_pessoas(id),
-    FOREIGN KEY (id_costureira) REFERENCES tab_pessoas(id),
-    FOREIGN KEY (id_secretaria) REFERENCES tab_pessoas(id),
+    INDEX idx_costureira_ativa (
+        id_costureira,
+        ind_status,
+        deleted_at
+    ),
+    FOREIGN KEY (id_paciente) REFERENCES tab_pessoas (id),
+    FOREIGN KEY (id_costureira) REFERENCES tab_pessoas (id),
+    FOREIGN KEY (id_secretaria) REFERENCES tab_pessoas (id),
     CONSTRAINT chk_data_futura CHECK (dta_agendamento > created_at)
-) ENGINE=InnoDB;
-
+) ENGINE = InnoDB;
 
 CREATE TRIGGER before_insert_agendamento_validar_costureira_ativa
 BEFORE INSERT ON tab_agendamentos
@@ -102,7 +115,6 @@ FOR EACH ROW BEGIN
         SET MESSAGE_TEXT = 'Costureira já possui um agendamento ativo. Conclua o agendamento anterior antes de criar um novo.';
     END IF;
 END;
-
 
 CREATE TRIGGER before_update_agendamento_validar_costureira_ativa
 BEFORE UPDATE ON tab_agendamentos
@@ -127,7 +139,6 @@ FOR EACH ROW BEGIN
     END IF;
 END;
 
-
 CREATE TABLE IF NOT EXISTS tab_logs (
     id INT PRIMARY KEY AUTO_INCREMENT,
     id_usuario INT,
@@ -143,9 +154,8 @@ CREATE TABLE IF NOT EXISTS tab_logs (
     INDEX idx_tabela (des_tabela),
     INDEX idx_criado (created_at),
     INDEX idx_tabela_registro (des_tabela, num_registro_id),
-    FOREIGN KEY (id_usuario) REFERENCES tab_pessoas(id)
-) ENGINE=InnoDB;
-
+    FOREIGN KEY (id_usuario) REFERENCES tab_pessoas (id)
+) ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS tab_categorias_produtos (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -155,9 +165,8 @@ CREATE TABLE IF NOT EXISTS tab_categorias_produtos (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME,
     INDEX idx_pai (id_pai),
-    FOREIGN KEY (id_pai) REFERENCES tab_categorias_produtos(id)
-) ENGINE=InnoDB;
-
+    FOREIGN KEY (id_pai) REFERENCES tab_categorias_produtos (id)
+) ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS tab_produtos (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -166,7 +175,7 @@ CREATE TABLE IF NOT EXISTS tab_produtos (
     num_sku VARCHAR(50),
     des_produto TEXT,
     ref_produto VARCHAR(50) UNIQUE,
-    val_preco_base DECIMAL(10,2),
+    val_preco_base DECIMAL(10, 2),
     ind_ativo BOOLEAN DEFAULT TRUE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -174,9 +183,8 @@ CREATE TABLE IF NOT EXISTS tab_produtos (
     INDEX idx_categoria (id_categoria),
     INDEX idx_sku (num_sku),
     INDEX idx_ref (ref_produto),
-    FOREIGN KEY (id_categoria) REFERENCES tab_categorias_produtos(id)
-) ENGINE=InnoDB;
-
+    FOREIGN KEY (id_categoria) REFERENCES tab_categorias_produtos (id)
+) ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS tab_variacoes_cor_estampa (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -190,22 +198,25 @@ CREATE TABLE IF NOT EXISTS tab_variacoes_cor_estampa (
     deleted_at DATETIME,
     INDEX idx_tipo (ind_tipo),
     INDEX idx_ordem (num_ordem_exibicao)
-) ENGINE=InnoDB;
-
+) ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS tab_tamanhos (
     id INT PRIMARY KEY AUTO_INCREMENT,
     cod_tamanho VARCHAR(10) NOT NULL, -- Ex: P, M, G, GG, 36, 38, etc.
     des_tamanho VARCHAR(50),
-    des_categoria_tamanho ENUM('vestuario', 'calcados', 'acessorios', 'outros'),
+    des_categoria_tamanho ENUM(
+        'vestuario',
+        'calcados',
+        'acessorios',
+        'outros'
+    ),
     num_ordem_exibicao INT DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME,
     INDEX idx_categoria (des_categoria_tamanho),
     INDEX idx_ordem (num_ordem_exibicao)
-) ENGINE=InnoDB;
-
+) ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS tab_produto_grade (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -213,7 +224,7 @@ CREATE TABLE IF NOT EXISTS tab_produto_grade (
     id_variacao_cor_estampa INT,
     id_tamanho INT NOT NULL,
     num_sku VARCHAR(50) UNIQUE,
-    val_preco_variacao DECIMAL(10,2),
+    val_preco_variacao DECIMAL(10, 2),
     ind_ativo BOOLEAN DEFAULT TRUE,
     num_codigo_barras VARCHAR(100),
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -221,18 +232,23 @@ CREATE TABLE IF NOT EXISTS tab_produto_grade (
     deleted_at DATETIME,
     INDEX idx_produto (id_produto),
     INDEX idx_sku (num_sku),
-    FOREIGN KEY (id_produto) REFERENCES tab_produtos(id) ON DELETE CASCADE,
-    FOREIGN KEY (id_variacao_cor_estampa) REFERENCES tab_variacoes_cor_estampa(id),
-    FOREIGN KEY (id_tamanho) REFERENCES tab_tamanhos(id),
-    UNIQUE KEY uniq_combinacao (id_produto, id_variacao_cor_estampa, id_tamanho)
-) ENGINE=InnoDB;
-
+    FOREIGN KEY (id_produto) REFERENCES tab_produtos (id) ON DELETE CASCADE,
+    FOREIGN KEY (id_variacao_cor_estampa) REFERENCES tab_variacoes_cor_estampa (id),
+    FOREIGN KEY (id_tamanho) REFERENCES tab_tamanhos (id),
+    UNIQUE KEY uniq_combinacao (
+        id_produto,
+        id_variacao_cor_estampa,
+        id_tamanho
+    )
+) ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS tab_produto_imagens (
     id INT PRIMARY KEY AUTO_INCREMENT,
     id_produto_grade INT,
     id_produto INT, -- Para imagens gerais do produto
-    des_url_imagem VARCHAR(500) NOT NULL,
+    des_titulo_imagem VARCHAR(50),
+    des_imagem VARCHAR(255),
+    end_url_imagem VARCHAR(500) NOT NULL,
     num_ordem INT DEFAULT 0,
     ind_principal BOOLEAN DEFAULT FALSE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -241,13 +257,19 @@ CREATE TABLE IF NOT EXISTS tab_produto_imagens (
     INDEX idx_produto (id_produto),
     INDEX idx_grade (id_produto_grade),
     INDEX idx_ordem (num_ordem),
-    FOREIGN KEY (id_produto_grade) REFERENCES tab_produto_grade(id) ON DELETE CASCADE,
-    FOREIGN KEY (id_produto) REFERENCES tab_produtos(id) ON DELETE CASCADE,
-    CONSTRAINT chk_produto_ou_grade CHECK(
-        (id_produto IS NOT NULL AND id_produto_grade IS NULL) OR
-        (id_produto IS NULL AND id_produto_grade IS NOT NULL)
+    FOREIGN KEY (id_produto_grade) REFERENCES tab_produto_grade (id) ON DELETE CASCADE,
+    FOREIGN KEY (id_produto) REFERENCES tab_produtos (id) ON DELETE CASCADE,
+    CONSTRAINT chk_produto_ou_grade CHECK (
+        (
+            id_produto IS NOT NULL
+            AND id_produto_grade IS NULL
+        )
+        OR (
+            id_produto IS NULL
+            AND id_produto_grade IS NOT NULL
+        )
     )
-) ENGINE=InnoDB;
+) ENGINE = InnoDB;
 
 CREATE TRIGGER before_insert_produto_imagem_principal
 BEFORE INSERT ON tab_produto_imagens
@@ -293,23 +315,26 @@ FOR EACH ROW BEGIN
     END IF;
 END;
 
-
 CREATE TABLE IF NOT EXISTS tab_produto_agendamento (
     id INT PRIMARY KEY AUTO_INCREMENT,
     id_agendamento INT,
     id_produto_grade INT,
     des_ajuste_produto TEXT,
-    ind_status ENUM('pendente', 'producao', 'concluido', 'cancelado') NOT NULL DEFAULT 'pendente',
+    ind_status ENUM(
+        'pendente',
+        'producao',
+        'concluido',
+        'cancelado'
+    ) NOT NULL DEFAULT 'pendente',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME,
     INDEX idx_agendamento (id_agendamento),
     INDEX idx_produto_grade (id_produto_grade),
     INDEX idx_status (ind_status),
-    FOREIGN KEY (id_agendamento) REFERENCES tab_agendamentos(id),
-    FOREIGN KEY (id_produto_grade) REFERENCES tab_produto_grade(id)
-) ENGINE=InnoDB;
-
+    FOREIGN KEY (id_agendamento) REFERENCES tab_agendamentos (id),
+    FOREIGN KEY (id_produto_grade) REFERENCES tab_produto_grade (id)
+) ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS tab_fotos_ajustes (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -320,9 +345,8 @@ CREATE TABLE IF NOT EXISTS tab_fotos_ajustes (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at DATETIME,
     INDEX idx_produto_agendamento (id_produto_agendamento),
-    FOREIGN KEY (id_produto_agendamento) REFERENCES tab_produto_agendamento(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
+    FOREIGN KEY (id_produto_agendamento) REFERENCES tab_produto_agendamento (id) ON DELETE CASCADE
+) ENGINE = InnoDB;
 
 -- ====================
 -- TRIGGERS DE VALIDAÇÃO
@@ -375,7 +399,6 @@ FOR EACH ROW BEGIN
     END IF;
 END;
 
-
 CREATE TRIGGER before_update_agendamento_validar_costureira
 BEFORE UPDATE ON tab_agendamentos
 FOR EACH ROW BEGIN
@@ -399,14 +422,13 @@ FOR EACH ROW BEGIN
     END IF;
 END;
 
-
 -- ====================
 -- VIEWS ÚTEIS
 -- ====================
 
 -- View de agendamentos com informações completas
 CREATE OR REPLACE VIEW vw_agendamentos_completos AS
-SELECT 
+SELECT
     a.id,
     a.dta_agendamento,
     a.ind_status,
@@ -427,44 +449,56 @@ SELECT
     s.nom_completo AS secretaria_nome,
     a.created_at,
     a.updated_at
-FROM tab_agendamentos a
-INNER JOIN tab_pessoas p ON a.id_paciente = p.id
-INNER JOIN tab_pessoas c ON a.id_costureira = c.id
-INNER JOIN tab_pessoas s ON a.id_secretaria = s.id
-WHERE a.deleted_at IS NULL;
-
+FROM
+    tab_agendamentos a
+    INNER JOIN tab_pessoas p ON a.id_paciente = p.id
+    INNER JOIN tab_pessoas c ON a.id_costureira = c.id
+    INNER JOIN tab_pessoas s ON a.id_secretaria = s.id
+WHERE
+    a.deleted_at IS NULL;
 
 -- View de pessoas com endereços
 CREATE OR REPLACE VIEW vw_pessoas_enderecos AS
-SELECT 
-    p.id,
-    p.nom_completo,
-    p.num_cpf,
-    p.ind_tipo_pessoa,
-    p.ind_status,
-    p.num_endereco,
-    p.des_complemento,
-    p.des_logradouro,
-    p.num_cep,
-    p.nom_bairro,
-    c.nom_cidade,
-    e.nom_estado,
-    e.sgl_estado
-FROM tab_pessoas p
-LEFT JOIN tab_cidade c ON c.id = p.id_cidade
-LEFT JOIN tab_estado e ON e.id = c.id_estado
-WHERE p.deleted_at IS NULL;
+SELECT p.id, p.nom_completo, p.num_cpf, p.ind_tipo_pessoa, p.ind_status, p.num_endereco, p.des_complemento, p.des_logradouro, p.num_cep, p.nom_bairro, c.nom_cidade, e.nom_estado, e.sgl_estado
+FROM
+    tab_pessoas p
+    LEFT JOIN tab_cidade c ON c.id = p.id_cidade
+    LEFT JOIN tab_estado e ON e.id = c.id_estado
+WHERE
+    p.deleted_at IS NULL;
 
-
-
+USE agenda_ajustes_test;
 -- Criar usuário administrador padrão (senha: admin123)
-INSERT INTO tab_pessoas (
-    status, tipo_pessoa, nome_completo, cpf, rg, data_nascimento,
-    logradouro, numero, cep, bairro, cidade, estado,
-    celular1, email1, senha_hash
-) VALUES (
-    'ativo', 'administrador', 'Administrador do Sistema', '00000000000', '0000000',
-    '1980-01-01', 'Rua Principal', '1', '00000000', 'Centro', 'Goiânia', 'GO',
-    '62999999999', 'admin@sistema.com',
-    '$2a$10$YourHashedPasswordHere'
-);
+INSERT INTO
+    tab_pessoas (
+        ind_status,
+        ind_tipo_pessoa,
+        nom_completo,
+        num_cpf,
+        num_rg,
+        dta_nascimento,
+        des_logradouro,
+        num_endereco,
+        num_cep,
+        nom_bairro,
+        id_cidade,
+        num_celular_1,
+        des_email_1,
+        des_senha
+    )
+VALUES (
+        'ativo',
+        'administrador',
+        'Administrador do Sistema',
+        '00000000000',
+        '0000000',
+        '1980-01-01',
+        'Rua Principal',
+        '1',
+        '00000000',
+        'Centro',
+        5418,
+        '62999999999',
+        'admin@sistema.com',
+        '$2a$10$YourHashedPasswordHere'
+    );

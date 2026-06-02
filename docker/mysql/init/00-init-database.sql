@@ -9,28 +9,28 @@ CREATE DATABASE IF NOT EXISTS `agenda-ajuste` CHARACTER SET utf8mb4 COLLATE utf8
 USE `agenda-ajuste`;
 
 -- Remover usuário antigo se existir (para recriação)
-DROP USER IF EXISTS 'sge_user' @'%';
+DROP USER IF EXISTS 'sga_user' @'%';
 
-DROP USER IF EXISTS 'sge_user' @'localhost';
+DROP USER IF EXISTS 'sga_user' @'localhost';
 
 -- Criar novo usuário com privilégios
-CREATE USER 'sge_user' @'%' IDENTIFIED
+CREATE USER 'sga_user' @'%' IDENTIFIED
 WITH
-    mysql_native_password BY 'sge_password_2026';
+    mysql_native_password BY 'sga_password_2026';
 
-CREATE USER 'sge_user' @'localhost' IDENTIFIED
+CREATE USER 'sga_user' @'localhost' IDENTIFIED
 WITH
-    mysql_native_password BY 'sge_password_2026';
+    mysql_native_password BY 'sga_password_2026';
 
 -- Conceder todos os privilégios
-GRANT ALL PRIVILEGES ON `agenda-ajuste`.* TO 'sge_user' @'%';
+GRANT ALL PRIVILEGES ON `agenda-ajuste`.* TO 'sga_user' @'%';
 
-GRANT ALL PRIVILEGES ON `agenda-ajuste`.* TO 'sge_user' @'localhost';
+GRANT ALL PRIVILEGES ON `agenda-ajuste`.* TO 'sga_user' @'localhost';
 
 -- Privilégios extras
-GRANT PROCESS ON *.* TO 'sge_user' @'%';
+GRANT PROCESS ON *.* TO 'sga_user' @'%';
 
-GRANT PROCESS ON *.* TO 'sge_user' @'localhost';
+GRANT PROCESS ON *.* TO 'sga_user' @'localhost';
 
 -- Aplicar mudanças
 FLUSH PRIVILEGES;

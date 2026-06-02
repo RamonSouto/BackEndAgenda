@@ -190,7 +190,7 @@ class Server {
 ║                                                               ║
 ║   📝 Desenvolvedor: Ramon                                     ║
 ║   📅 Versão: 1.0.0                                            ║
-║   🏗️  Arquitetura: Node.js + Express + MySQL                  ║
+║   🏗️  Arquitetura: Node.js + Express + MySQL                   ║
 ║   🎨 Padrões: SOLID, MVC, RESTful                             ║
 ║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝

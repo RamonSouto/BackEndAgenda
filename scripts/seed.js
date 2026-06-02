@@ -46,7 +46,7 @@ async function seed() {
           ON DUPLICATE KEY UPDATE nom_completo = nom_completo`,
             [
                 cidadeId, 'ativo', 'secretaria', 'Maria Secretária Silva',
-                '11111111111', '1111111', '1990-05-15', 'Rua das Flores', '200',
+                '25863990139', '1111111', '1990-05-15', 'Rua das Flores', '200',
                 '74100000', 'Setor Bueno', '62988888888', 'secretaria@sistema.com', senhaHash
             ]
         );
@@ -54,8 +54,8 @@ async function seed() {
         // Inserir Costureiras
         console.log('✂️  Inserindo costureiras...');
         const costureiras = [
-            ['Ana Costureira Santos', '22222222222', '2222222', '62977777777', 'costureira1@sistema.com'],
-            ['Julia Costureira Oliveira', '33333333333', '3333333', '62966666666', 'costureira2@sistema.com']
+            ['Ana Costureira Santos', '45557511164', '2222222', '62977777777', 'costureira1@sistema.com'],
+            ['Julia Costureira Oliveira', '95954557179', '3333333', '62966666666', 'costureira2@sistema.com']
         ];
 
         for (const [nome, cpf, rg, celular, email] of costureiras) {
@@ -77,9 +77,9 @@ async function seed() {
         // Inserir Pacientes
         console.log('👤 Inserindo pacientes...');
         const pacientes = [
-            ['João Paciente Silva', '44444444444', '4444444', '62955555555', 'paciente1@email.com'],
-            ['Maria Paciente Santos', '55555555555', '5555555', '62944444444', 'paciente2@email.com'],
-            ['Pedro Paciente Oliveira', '66666666666', '6666666', '62933333333', 'paciente3@email.com']
+            ['João Paciente Silva', '21930468164', '4444444', '62955555555', 'paciente1@email.com'],
+            ['Maria Paciente Santos', '14098164191', '5555555', '62944444444', 'paciente2@email.com'],
+            ['Pedro Paciente Oliveira', '96348700151', '6666666', '62933333333', 'paciente3@email.com']
         ];
 
         for (const [nome, cpf, rg, celular, email] of pacientes) {

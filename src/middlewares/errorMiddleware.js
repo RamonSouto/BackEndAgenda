@@ -15,6 +15,7 @@ const notFoundMiddleware = (req, res, next) => {
  * Middleware para tratamento global de erros
  */
 const errorMiddleware = (err, req, res, next) => {
+    console.log(err.statusCode);
     console.error('❌ Erro capturado:', err);
 
     // Erro de validação do Joi

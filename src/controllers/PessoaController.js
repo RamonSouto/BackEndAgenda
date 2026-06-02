@@ -50,6 +50,7 @@ class PessoaController {
      * GET /api/pessoas
      */
     listar = asyncHandler(async (req, res) => {
+
         const filtros = {
             ind_tipo_pessoa: req.query.tipo,
             ind_status: req.query.status,
@@ -204,6 +205,134 @@ class PessoaController {
             dados: costureiras
         });
     });
+
+    /**
+     * Listar cidades
+     * GET /api/pessoas/cidades
+     */
+    listarCidades = async (req, res) => {
+
+
+        const cidades = await PessoaService.listarCidades(req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            cidades: cidades.length,
+            dados: cidades
+        });
+    };
+
+    /**
+     * Buscar cidade por ID
+     * GET /api/pessoas/cidade/:id
+     */
+    buscarCidadeId = async (req, res) => {
+
+        const { id } = req.params;
+        const cidade = await PessoaService.buscarCidadeId(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            dados: cidade
+        });
+    };
+
+    /**
+     * Buscar cidade por Nome
+     * GET /api/pessoas/cidade/:nome
+     */
+    buscarCidadeNome = async (req, res) => {
+
+        const { nome } = req.params;
+
+        const cidades = await PessoaService.buscarCidadeNome(nome, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            dados: cidades
+        });
+    };
+
+    /**
+     * Buscar cidade por ID estado
+     * GET /api/pessoas/cidades/estado/:id
+     */
+    buscarCidadeEstadoId = async (req, res) => {
+
+        const { id } = req.params;
+
+        const cidades = await PessoaService.buscarCidadeEstadoId(id, req);
+
+        return res.status(200).json({
+            sucesso: true,
+            dados: cidades
+        });
+    };
+
+    /**
+     * Listar estados
+     * GET /api/pessoas/estados
+     */
+    listarEstados = async (req, res) => {
+
+
+        const estados = await PessoaService.listarEstados(req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            estados: estados.length,
+            dados: estados
+        });
+    };
+
+    /**
+     * Buscar estado
+     * GET /api/pessoas/estado/id/:id
+     */
+    buscarEstadoId = async (req, res) => {
+
+        const { id } = req.params;
+
+        const estado = await PessoaService.buscarEstadoId(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            dados: estado
+        });
+    };
+
+    /**
+     * Buscar estado
+     * GET /api/pessoas/estado/nome/:nome
+     */
+    buscarEstadoNome = async (req, res) => {
+
+        const { nome } = req.params;
+
+        const estados = await PessoaService.buscarEstadoNome(nome, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            dados: estados
+        });
+    };
+
+    /**
+     * Buscar estado
+     * GET /api/pessoas/estado/sgl/:sgl
+     */
+    buscarEstadoSgl = async (req, res) => {
+
+        const { sgl } = req.params;
+
+        const estados = await PessoaService.buscarEstadoSgl(sgl, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            dados: estados
+        });
+    };
+
 }
 
 module.exports = new PessoaController();

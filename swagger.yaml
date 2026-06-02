@@ -50,6 +50,14 @@ tags:
     description: Gerenciamento de agendamentos de ajustes
   - name: Produtos
     description: Gerenciamento de produtos e fotos de ajustes
+  - name: Categoria
+    description: Gerenciamento da categorias de produtos
+  - name: Tamanho
+    description: Gerenciamento dos tamanhos de produtos
+  - name: Cor e Estampa
+    description: Gerenciamento das cores e estampas
+  - name: Grade de Produto
+    description: Gerenciamento das grades dos produtos
   - name: Relatórios
     description: Relatórios e estatísticas do sistema
   - name: Sistema
@@ -144,6 +152,220 @@ components:
                 email:
                   type: string
                   example: admin@sistema.com
+
+    # Schema de Cor e Estampa
+    CorEstampaInput:
+      type: object
+      required:
+        - nom_cor_estampa
+        - ind_tipo
+      properties:
+        nom_cor_estampa:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Descrição da cor ou estampa
+          example: Estampa bege lisa
+        ind_tipo:
+          type: string
+          enum: [cor, estampa]
+          description: Descrição do tipo
+          example: cor
+        val_codigo_hex:
+          type: string
+          description: Descrição da cor
+          example: #FFFFFF
+        des_imagem_url:
+          type: string
+          minLength: 3
+          maxLength: 500
+          description: Descrição do caminho da imagem
+          example: \pasta_cor_estampa
+        num_ordem_exibicao:
+          type: integer
+          description: Numero da ordem de exibição
+          example: 1
+
+    CorEstampa:
+      allOf:
+        - $ref: "#/components/schemas/CorEstampaInput"
+        - type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            created_at:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+            updated_at:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+            deleted_at:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+
+    # Schema de Grade de Produto
+    GradeProdutoInput:
+      type: object
+      required:
+        - id_produto
+        - id_tamanho
+      properties:
+        id_produto:
+          type: integer
+          description: Descrição ID do produto
+          example: 1
+        id_tamanho:
+          type: integer
+          description: Descrição ID do tamanho
+          example: 1
+        id_variacao_cor_estampa:
+          type: integer
+          description: Descrição ID da variação de cor e estampa
+          example: 1
+        num_sku:
+          type: string
+          minLength: 3
+          maxLength: 50
+          description: Número de SKU do Produto
+          example: 653412-KS
+        val_preco_variacao:
+          type: number
+          format: double
+          description: Valor de venda grade produto
+          example: 10,99
+        ind_ativo:
+          type: boolean
+          description: Indicação se grade de produto e ativo ou não
+          example: true
+        num_codigo_barras:
+          type: string
+          minLength: 13
+          maxLength: 100
+          description: Número do código de barras da grade de produto
+          example: 1234567890123
+    GradeProduto:
+      allOf:
+        - $ref: "#/components/schemas/GradeProdutoInput"
+        - type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            created_at:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+            updated_at:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+            deleted_at:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+
+    # Schema de Tamanho
+    TamanhoInput:
+      type: object
+      required:
+        - cod_tamanho
+        - des_tamanho
+        - des_categoria_tamanho
+        - num_ordem_exibicao
+      properties:
+        cod_tamanho:
+          type: string
+          minLength: 1
+          maxLength: 10
+          description: Código do tamanho
+          example: P
+        des_tamanho:
+          type: string
+          minLength: 3
+          maxLength: 50
+          description: Descrição do tamanho
+          example: Pequeno
+        des_categoria_tamanho:
+          type: string
+          enum: [vestuario, calcados, acessorios, outros]
+          description: Descrição da categoria
+          example: Vestuario
+
+    Tamanho:
+      allOf:
+        - $ref: "#/components/schemas/TamanhoInput"
+        - type: object
+          properties:
+            cod_tamanho:
+              type: string
+              minLength: 1
+              maxLength: 10
+              description: Código do tamanho
+              example: P
+            des_tamanho:
+              type: string
+              minLength: 3
+              maxLength: 50
+              description: Descrição do tamanho
+              example: Pequeno
+            des_categoria_tamanho:
+              type: string
+              enum: [vestuario, calcados, acessorios, outros]
+              description: Descrição da categoria
+              example: Vestuario
+            created_at:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+            updated_at:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+
+    # Schema de Categoria
+    CategoriaInput:
+      type: object
+      required:
+        - nom_categoria
+        - id_pai
+      properties:
+        nom_categoria:
+          type: string
+          minLength: 3
+          maxLength: 50
+          description: Nome da Categoria
+          example: Bermudas
+        id_pai:
+          type: integer
+          description: ID da categoria pai
+          example: 1
+
+    Categoria:
+      allOf:
+        - $ref: "#/components/schemas/CategoriaInput"
+        - type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            nom_categoria:
+              type: string
+              example: Bermudas
+            id_pai:
+              type: integer
+              example: 1
+            created_at:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+            updated_at:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
 
     # Schema de Pessoa
     PessoaInput:
@@ -705,8 +927,8 @@ paths:
               admin:
                 summary: Login como Administrador
                 value:
-                  num_cpf: "00000000000"
-                  des_senha: "senha123"
+                  num_cpf: "12345678909"
+                  des_senha: "admin123"
               secretaria:
                 summary: Login como Secretária
                 value:
@@ -1007,7 +1229,6 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "403":
           $ref: "#/components/responses/ForbiddenError"
-
     post:
       tags:
         - Pessoas
@@ -1143,7 +1364,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-
     put:
       tags:
         - Pessoas
@@ -1201,7 +1421,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-
     delete:
       tags:
         - Pessoas
@@ -1598,7 +1817,6 @@ paths:
                 $ref: "#/components/schemas/AgendamentoList"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
-
     post:
       tags:
         - Agendamentos
@@ -1709,7 +1927,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-
     put:
       tags:
         - Agendamentos
@@ -1769,7 +1986,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-
     delete:
       tags:
         - Agendamentos
@@ -2078,7 +2294,7 @@ paths:
         "401":
           $ref: "#/components/responses/UnauthorizedError"
 
-  # ==================== PRODUTOS ====================
+  # ==================== PRODUTOS AGENDAMENTO ====================
   /api/produtos/agendamento:
     post:
       tags:
@@ -2374,7 +2590,6 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "403":
           $ref: "#/components/responses/ForbiddenError"
-
     get:
       tags:
         - Produtos
@@ -2598,6 +2813,730 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "404":
           description: Foto não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ==================== CATEGORIAS ====================
+  /api/produtos/categoria:
+    get:
+      tags:
+        - Categoria
+      summary: Listar categoria
+      description: |
+        Lista todas as categorias cadastradas no sistema.
+
+        **Permissões:**
+        - Administrador: Pode listar
+      operationId: categoria
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dados da categoria
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Categoria"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: Categoria não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Categoria
+      summary: Criar nova categoria
+      description: |
+        Cadastra uma nova Categoria no sistema.
+
+        **Permissões:**
+        - Administrador: Pode listar
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dados do dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoriaInput"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/produtos/categoria/{id}:
+    get:
+      tags:
+        - Categoria
+      summary: Listar categoria
+      description: |
+        Lista uma categoria.
+
+        **Permissões:**
+        - Administrador: Pode listar
+      operationId: ListarCategoria
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dados da categoria
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Categoria"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: Categoria não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags:
+        - Categoria
+      summary: Atualizar categoria
+      description: |
+        Atualiza os dados de uma categoria.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: atualizarCategoria
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da Categoria
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoriaInput"
+      responses:
+        "200":
+          description: Categoria atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  mensagem:
+                    type: string
+                    example: Registro atualizado com sucesso
+                  dados:
+                    $ref: "#/components/schemas/Categoria"
+        "400":
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Pessoa não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Categoria
+      summary: Deletar categoria (soft delete)
+      description: |
+        Remove fisicamente uma categoria.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: deletarCategoria
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da Categoria
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Categoria deletada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                sucesso: true
+                mensagem: Registro deletado com sucesso
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Categoria não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ==================== TAMANHO ====================
+  /api/produtos/tamanho:
+    get:
+      tags:
+        - Tamanho
+      summary: Listar Tamanhos
+      description: |
+        Lista todos os tamanhos cadastradas no sistema.
+
+        **Permissões:**
+        - Administrador: Pode listar
+      operationId: tamanho
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dados de tamanho
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tamanho"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: Tamanho não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Tamanho
+      summary: Criar novo tamanho
+      description: |
+        Cadastra uma novo tamanho no sistema.
+
+        **Permissões:**
+        - Administrador: Pode listar
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dados do dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TamanhoInput"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/produtos/tamanho/{id}:
+    get:
+      tags:
+        - Tamanho
+      summary: Listar tamanho
+      description: |
+        Lista um tamanho.
+
+        **Permissões:**
+        - Administrador: Pode listar
+      operationId: ListarTamanho
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dados do tamanho
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tamanho"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: Tamanho não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags:
+        - Tamanho
+      summary: Atualizar tamanho
+      description: |
+        Atualiza os dados de um tamanho.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: atualizarTamanho
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do Tamanho
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TamanhoInput"
+      responses:
+        "200":
+          description: Tamanho atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  mensagem:
+                    type: string
+                    example: Registro atualizado com sucesso
+                  dados:
+                    $ref: "#/components/schemas/Tamanho"
+        "400":
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Tamanho não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Tamanho
+      summary: Deletar Tamanho (soft delete)
+      description: |
+        Remove fisicamente um tamanho.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: deletarTamanho
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da Tamanho
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tamanho deletado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                sucesso: true
+                mensagem: Registro deletado com sucesso
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Tamanho não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ==================== COR E ESTAMPA ====================
+  /api/produtos/cor_estampa:
+    get:
+      tags:
+        - Cor e Estampa
+      summary: Listar Cores e Estampas
+      description: |
+        Lista todos as cores e estampas cadastradas no sistema.
+
+        **Permissões:**
+        - Administrador: Pode listar
+      operationId: corEstampa
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dados de cores e estampa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorEstampa"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: Cor e Estamapa não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Cor e Estampa
+      summary: Criar nova cor e estampa
+      description: |
+        Cadastra uma nova cor e estampa no sistema.
+
+        **Permissões:**
+        - Administrador: Pode cadastrar
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dados do dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorEstampaInput"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/produtos/cor_estampa/{id}:
+    get:
+      tags:
+        - Cor e Estampa
+      summary: Listar Cor e Estamapa
+      description: |
+        Lista uma cor e estampa.
+
+        **Permissões:**
+        - Administrador: Pode listar
+      operationId: ListarCorEstampa
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dados da cor e estampa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorEstampa"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: Cor e Estamapa não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags:
+        - Cor e Estampa
+      summary: Atualizar Cor e Estampa
+      description: |
+        Atualiza os dados de um Cor e Estampa.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: atualizarCorEstampa
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da Cor e Estampa
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CorEstampaInput"
+      responses:
+        "200":
+          description: Cor e Estampa atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  mensagem:
+                    type: string
+                    example: Registro atualizado com sucesso
+                  dados:
+                    $ref: "#/components/schemas/CorEstampa"
+        "400":
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Cor e Estampa não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Cor e Estampa
+      summary: Deletar Cor e Estampa (soft delete)
+      description: |
+        Remove fisicamente um cor e estampa.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: deletarCorEstampa
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da Cor e Estampa
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Cor e Estampa deletado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                sucesso: true
+                mensagem: Registro deletado com sucesso
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Cor e Estampa não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ==================== GRADE PRODUTO ====================
+  /api/produtos/grade_produto:
+    get:
+      tags:
+        - Grade de Produto
+      summary: Listar Grades de Produtos
+      description: |
+        Lista todos as grades dos produtos cadastrados no sistema.
+
+        **Permissões:**
+        - Administrador: Pode listar
+      operationId: gradeProduto
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dados de grades de produtos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GradeProduto"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: Grade de Produto não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Grade de Produto
+      summary: Criar nova Grade de Produto
+      description: |
+        Cadastra uma nova grade de produto no sistema.
+
+        **Permissões:**
+        - Administrador: Pode cadastrar
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dados do dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GradeProdutoInput"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /api/produtos/grade_produto/{id}:
+    get:
+      tags:
+        - Grade de Produto
+      summary: Listar Grade de Produto
+      description: |
+        Lista uma grade de produto.
+
+        **Permissões:**
+        - Administrador: Pode listar
+      operationId: ListarGradeProduto
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dados da grade de produto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GradeProduto"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: Grade de Produto não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags:
+        - Grade de Produto
+      summary: Atualizar Grade de Produto
+      description: |
+        Atualiza os dados de um Grade de Produto.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: atualizarGradeProduto
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da Grade de Produto
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GradeProdutoInput"
+      responses:
+        "200":
+          description: Grade de Produto atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucesso:
+                    type: boolean
+                    example: true
+                  mensagem:
+                    type: string
+                    example: Registro atualizado com sucesso
+                  dados:
+                    $ref: "#/components/schemas/GradeProduto"
+        "400":
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Grade de Produto não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Grade de Produto
+      summary: Deletar Grade de Produto (soft delete)
+      description: |
+        Remove fisicamente um grade de produto.
+
+        **Permissões:**
+        - Apenas Administrador
+      operationId: deletarGradeProduto
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da Grade de Produto
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Grade de Produto deletado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                sucesso: true
+                mensagem: Registro deletado com sucesso
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          description: Grade de Produto não encontrada
           content:
             application/json:
               schema:

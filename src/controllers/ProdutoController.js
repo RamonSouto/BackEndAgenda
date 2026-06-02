@@ -223,6 +223,528 @@ class ProdutoController {
 
         return res.sendFile(caminhoCompleto);
     });
+
+    /** CATEGORIA DE PRODUTOS */
+    /**
+     * Adicionar categoria
+     * POST /api/produtos/categoria
+     */
+    adicionarCategoria = asyncHandler(async (req, res) => {
+        const categoriaId = await ProdutoService.adicionarCategoria(
+            req.body,
+            req.usuario.id
+        );
+
+        return res.status(201).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.CRIADO,
+            dados: { id: categoriaId }
+        })
+    });
+
+
+    /**
+     * Listar categorias
+     * GET /api/produtos/categoria
+     */
+    listarCategorias = asyncHandler(async (req, res) => {
+
+        const categorias = await ProdutoService.listarCategorias(req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            total: categorias.length,
+            dados: categorias
+        });
+    });
+
+    /**
+     * Listar categoria
+     * GET /api/produtos/categoria/:id
+     */
+    listarCategoria = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const categoria = await ProdutoService.listarCategoria(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            dados: categoria
+        });
+    });
+
+    /**
+     * Atualizar categoriaa
+     * PUT /api/produtos/categoria/:id
+     */
+    atualizarCategoria = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const categoria = await ProdutoService.atualizarCategoria(id, req.body, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
+            dados: categoria
+        });
+    });
+
+    /**
+     * Deletar categoriaa(soft delete)
+     * DELETE /api/produtos/categoria/:id
+     */
+    deletarCategoria = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        await ProdutoService.deletarCategoria(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.DELETADO,
+        });
+    });
+
+
+
+
+
+    /**
+     * Adicionar tamanho
+     * POST /api/produtos/tamanho
+     */
+    adicionarTamanho = asyncHandler(async (req, res) => {
+        const categoriaId = await ProdutoService.adicionarTamanho(
+            req.body,
+            req.usuario.id
+        );
+
+        return res.status(201).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.CRIADO,
+            dados: { id: categoriaId }
+        })
+    });
+
+
+    /**
+     * Listar categorias
+     * GET /api/produtos/categoria
+     */
+    listarTamanhos = asyncHandler(async (req, res) => {
+
+        const categorias = await ProdutoService.listarTamanhos(req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            total: categorias.length,
+            dados: categorias
+        });
+    });
+
+    /**
+     * Listar categoria
+     * GET /api/produtos/categoria/:id
+     */
+    listarTamanho = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const tamanho = await ProdutoService.listarTamanho(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            dados: tamanho
+        });
+    });
+
+    /**
+     * Atualizar categoriaa
+     * PUT /api/produtos/categoria/:id
+     */
+    atualizarTamanhos = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const tamanho = await ProdutoService.atualizarTamanhos(id, req.body, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
+            dados: tamanho
+        });
+    });
+
+    /**
+     * Deletar categoriaa(soft delete)
+     * DELETE /api/produtos/categoria/:id
+     */
+    deletarTamanhos = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        await ProdutoService.deletarTamanhos(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.DELETADO,
+        });
+    });
+
+
+
+
+
+    /**
+     * Adicionar cor e estampa
+     * POST /api/produtos/cor_estampa
+     */
+    adicionarCorEstampa = asyncHandler(async (req, res) => {
+        const corEstampaId = await ProdutoService.adicionarCorEstampa(
+            req.body,
+            req.usuario.id
+        );
+
+        return res.status(201).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.CRIADO,
+            dados: { id: corEstampaId }
+        })
+    });
+
+
+    /**
+     * Listar Cores e Estampas
+     * GET /api/produtos/cor_estampa
+     */
+    listarCoresEstampas = asyncHandler(async (req, res) => {
+
+        const corEstampa = await ProdutoService.listarCoresEstampas(req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            total: corEstampa.length,
+            dados: corEstampa
+        });
+    });
+
+    /**
+     * Listar Cor e Estampa
+     * GET /api/produtos/cor_estampa/:id
+     */
+    listarCorEstampa = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const tamanho = await ProdutoService.listarCorEstampa(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            dados: tamanho
+        });
+    });
+
+    /**
+     * Atualizar Cor e Estampa
+     * PUT /api/produtos/cor_estampa/:id
+     */
+    atualizarCorEstampa = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const corEstampa = await ProdutoService.atualizarCorEstampa(id, req.body, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
+            dados: corEstampa
+        });
+    });
+
+    /**
+     * Deletar Cor e Estampa(soft delete)
+     * DELETE /api/produtos/cor_estampa/:id
+     */
+    deletarCorEstampa = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        await ProdutoService.deletarCorEstampa(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.DELETADO,
+        });
+    });
+
+
+
+
+
+    /**
+     * Adicionar Grade de Produto
+     * POST /api/produtos/grade_produto
+     */
+    adicionarGradeProduto = asyncHandler(async (req, res) => {
+        const gradeProdutoId = await ProdutoService.adicionarGradeProduto(
+            req.body,
+            req.usuario.id
+        );
+
+        return res.status(201).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.CRIADO,
+            dados: { id: gradeProdutoId }
+        })
+    });
+
+
+    /**
+     * Listar Grades de Produtos
+     * GET /api/produtos/grade_produto
+     */
+    listarGradesProdutos = asyncHandler(async (req, res) => {
+
+        const gradesProdutos = await ProdutoService.listarGradesProdutos(req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            total: gradesProdutos.length,
+            dados: gradesProdutos
+        });
+    });
+
+    /**
+     * Listar Grade de Produto
+     * GET /api/produtos/grade_produto/:id
+     */
+    listarGradeProduto = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const gradeProduto = await ProdutoService.listarGradeProduto(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            dados: gradeProduto
+        });
+    });
+
+    /**
+     * Atualizar Grade de Produto
+     * PUT /api/produtos/grade_produto/:id
+     */
+    atualizarGradeProduto = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const gradeProduto = await ProdutoService.atualizarGradeProduto(id, req.body, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
+            dados: gradeProduto
+        });
+    });
+
+    /**
+     * Deletar Grade de Produto(soft delete)
+     * DELETE /api/produtos/grade_produto/:id
+     */
+    deletarGradeProduto = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        await ProdutoService.deletarGradeProduto(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.DELETADO,
+        });
+    });
+
+
+
+
+
+    /**
+     * Adicionar Produto
+     * POST /api/produtos/produto
+     */
+    adicionarProduto = asyncHandler(async (req, res) => {
+
+        const produtoId = await ProdutoService.adicionarProduto(
+            req.body,
+            req.usuario.id
+        );
+
+        return res.status(201).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.CRIADO,
+            dados: { id: produtoId }
+        })
+    });
+
+
+    /**
+     * Listar Produtos
+     * GET /api/produtos/produto
+     */
+    listarProdutos = asyncHandler(async (req, res) => {
+
+        const produtos = await ProdutoService.listarProdutos(req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            total: produtos.length,
+            dados: produtos
+        });
+    });
+
+    /**
+     * Listar Produto
+     * GET /api/produtos/produto/:id
+     */
+    listarProduto = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const produto = await ProdutoService.listarProduto(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            dados: produto
+        });
+    });
+
+    /**
+     * Atualizar Produto
+     * PUT /api/produtos/produto/:id
+     */
+    atualizarProduto = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const produto = await ProdutoService.atualizarProduto(id, req.body, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
+            dados: produto
+        });
+    });
+
+    /**
+     * Deletar Produto(soft delete)
+     * DELETE /api/produtos/produto/:id
+     */
+    deletarProduto = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        await ProdutoService.deletarProduto(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.DELETADO,
+        });
+    });
+
+
+
+
+
+    /**
+     * Adicionar Imagem Produto
+     * POST /api/produtos/imagem_produto
+     */
+    adicionarImagemProduto = asyncHandler(async (req, res) => {
+
+        if (!req.file) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: 'Nenhum arquivo foi enviado'
+            });
+        }
+
+        const produtoId = await ProdutoService.adicionarImagemProduto(
+            req.body,
+            req.usuario.id
+        );
+
+        return res.status(201).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.CRIADO,
+            dados: { id: produtoId }
+        })
+    });
+
+
+    // /**
+    //  * Listar Imagens Produtos
+    //  * GET /api/produtos/imagem_produto
+    //  */
+    // listarImagemProdutos = asyncHandler(async (req, res) => {
+
+    //     const produtos = await ProdutoService.listarImagemProdutos(req.usuario.id);
+
+    //     return res.status(200).json({
+    //         sucesso: true,
+    //         total: produtos.length,
+    //         dados: produtos
+    //     });
+    // });
+
+    // /**
+    //  * Listar Imagem Produto
+    //  * GET /api/produtos/imagem_produto/:id
+    //  */
+    // listarImagemProduto = asyncHandler(async (req, res) => {
+
+    //     const { id } = req.params;
+
+    //     const produto = await ProdutoService.listarImagemProduto(id, req.usuario.id);
+
+    //     return res.status(200).json({
+    //         sucesso: true,
+    //         dados: produto
+    //     });
+    // });
+
+    // /**
+    //  * Atualizar Imagem Produto
+    //  * PUT /api/produtos/imagem_produto/:id
+    //  */
+    // atualizarImagemProduto = asyncHandler(async (req, res) => {
+
+    //     const { id } = req.params;
+
+    //     const produto = await ProdutoService.atualizarImagemProduto(id, req.body, req.usuario.id);
+
+    //     return res.status(200).json({
+    //         sucesso: true,
+    //         mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
+    //         dados: produto
+    //     });
+    // });
+
+    // /**
+    //  * Deletar Imagem Produto(soft delete)
+    //  * DELETE /api/produtos/imagem_produto/:id
+    //  */
+    // deletarImagemProduto = asyncHandler(async (req, res) => {
+
+    //     const { id } = req.params;
+
+    //     await ProdutoService.deletarImagemProduto(id, req.usuario.id);
+
+    //     return res.status(200).json({
+    //         sucesso: true,
+    //         mensagem: MENSAGENS.SUCESSO.DELETADO,
+    //     });
+    // });
 }
 
 module.exports = new ProdutoController();
