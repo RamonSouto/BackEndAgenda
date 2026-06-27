@@ -29,5 +29,5 @@ Sistema completo para gerenciamento de agenda de ajustes de produtos pós-cirúr
 
 ### 1. Clone o repositório
 ```bash
-git clone <url-do-repositorio>
+git clone https://github.com/RamonSouto/BackEndAgenda.git
 cd agenda-ajustes

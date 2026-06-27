@@ -658,7 +658,7 @@ class ProdutoController {
 
     /**
      * Adicionar Imagem Produto
-     * POST /api/produtos/imagem_produto
+     * POST /api/produtos/imagemProduto
      */
     adicionarImagemProduto = asyncHandler(async (req, res) => {
 
@@ -667,6 +667,28 @@ class ProdutoController {
                 sucesso: false,
                 mensagem: 'Nenhum arquivo foi enviado'
             });
+        }
+
+        req.body.des_url_imagem = req.file.path;
+
+        const temGrade = req.body.id_produto_grade !== undefined && req.body.id_produto_grade !== null && req.body.id_produto_grade !== '';
+
+        const temProduto = req.body.id_produto !== undefined && req.body.id_produto !== null && req.body.id_produto !== '';
+
+        if (!temGrade && !temProduto) {
+            return res.status(500).json({
+                sucesso: false,
+                mensagem: `${MENSAGENS.ERRO.VALIDACAO} É necessário informar ID produto Grade ou ID produto (pelo menos um).`,
+                dados: { body: req.body }
+            })
+        }
+
+        if (temGrade && temProduto) {
+            return res.status(500).json({
+                sucesso: false,
+                mensagem: `${MENSAGENS.ERRO.VALIDACAO} Informe apenas um dos campos: ID produto Grade ou ID produto.`,
+                dados: { body: req.body }
+            })
         }
 
         const produtoId = await ProdutoService.adicionarImagemProduto(
@@ -681,70 +703,84 @@ class ProdutoController {
         })
     });
 
+    /**
+     * Listar Imagens Produtos
+     * GET /api/produtos/imagemProduto
+     */
+    listarImagemProdutos = asyncHandler(async (req, res) => {
 
-    // /**
-    //  * Listar Imagens Produtos
-    //  * GET /api/produtos/imagem_produto
-    //  */
-    // listarImagemProdutos = asyncHandler(async (req, res) => {
+        const produtos = await ProdutoService.listarImagemProdutos(req.usuario.id);
 
-    //     const produtos = await ProdutoService.listarImagemProdutos(req.usuario.id);
+        return res.status(200).json({
+            sucesso: true,
+            total: produtos.length,
+            dados: produtos
+        });
+    });
 
-    //     return res.status(200).json({
-    //         sucesso: true,
-    //         total: produtos.length,
-    //         dados: produtos
-    //     });
-    // });
+    /**
+     * Buscar Imagem Produto ID
+     * GET /api/produtos/imagemProduto/:id
+     */
+    buscarImagemProdutoId = asyncHandler(async (req, res) => {
 
-    // /**
-    //  * Listar Imagem Produto
-    //  * GET /api/produtos/imagem_produto/:id
-    //  */
-    // listarImagemProduto = asyncHandler(async (req, res) => {
+        const { id } = req.params;
 
-    //     const { id } = req.params;
+        const produto = await ProdutoService.buscarImagemProdutoID(id, req.usuario.id);
 
-    //     const produto = await ProdutoService.listarImagemProduto(id, req.usuario.id);
+        return res.status(200).json({
+            sucesso: true,
+            dados: produto
+        });
+    });
 
-    //     return res.status(200).json({
-    //         sucesso: true,
-    //         dados: produto
-    //     });
-    // });
+    /**
+     * Buscar Imagem Produto Grade ID
+     * GET /api/produtos/imagemProdutoGrade/:id
+     */
+    buscarImagemProdutoGradeId = asyncHandler(async (req, res) => {
 
-    // /**
-    //  * Atualizar Imagem Produto
-    //  * PUT /api/produtos/imagem_produto/:id
-    //  */
-    // atualizarImagemProduto = asyncHandler(async (req, res) => {
+        const { id } = req.params;
 
-    //     const { id } = req.params;
+        const produto = await ProdutoService.buscarImagemProdutoGradeID(id, req.usuario.id);
 
-    //     const produto = await ProdutoService.atualizarImagemProduto(id, req.body, req.usuario.id);
+        return res.status(200).json({
+            sucesso: true,
+            dados: produto
+        });
+    });
 
-    //     return res.status(200).json({
-    //         sucesso: true,
-    //         mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
-    //         dados: produto
-    //     });
-    // });
+    /**
+     * Atualizar Imagem Produto
+     * PUT /api/produtos/imagemProduto/:id
+     */
+    atualizarImagemProduto = asyncHandler(async (req, res) => {
 
-    // /**
-    //  * Deletar Imagem Produto(soft delete)
-    //  * DELETE /api/produtos/imagem_produto/:id
-    //  */
-    // deletarImagemProduto = asyncHandler(async (req, res) => {
+        const { id } = req.params;
+        const produto = await ProdutoService.atualizarImagemProduto(id, req.body, req.usuario.id);
 
-    //     const { id } = req.params;
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
+            dados: produto
+        });
+    });
 
-    //     await ProdutoService.deletarImagemProduto(id, req.usuario.id);
+    /**
+     * Deletar Imagem Produto(soft delete)
+     * DELETE /api/produtos/imagemProduto/:id
+     */
+    deletarImagemProduto = asyncHandler(async (req, res) => {
 
-    //     return res.status(200).json({
-    //         sucesso: true,
-    //         mensagem: MENSAGENS.SUCESSO.DELETADO,
-    //     });
-    // });
+        const { id } = req.params;
+
+        await ProdutoService.deletarImagemProduto(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.DELETADO,
+        });
+    });
 }
 
 module.exports = new ProdutoController();

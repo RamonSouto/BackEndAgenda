@@ -24,18 +24,61 @@ class UploadService {
     getStorage() {
         return multer.diskStorage({
             destination: async (req, file, cb) => {
-                const subDir = path.join(this.uploadDir, 'ajustes');
-                await fs.mkdir(subDir, { recursive: true });
-                cb(null, subDir);
+                try {
+                    const pasta = req.uploadSubDir || 'imagem_ajuste'
+                    const subDir = path.join(this.uploadDir, pasta);
+
+                    await fs.mkdir(subDir, { recursive: true });
+                    cb(null, subDir);
+                } catch (error) {
+                    cb(error);
+                }
             },
             filename: (req, file, cb) => {
+                let prefix = 'img';
+
+                const subDir = req.uploadSubDir || '';
+                const idProduto = req.body && req.body.id_produto;
+                const idProdutoGrade = req.body && req.body.id_produto_grade;
+
+                if (subDir === 'imagem_produto') {
+                    if (idProduto && !idProdutoGrade) {
+                        prefix = 'img-prod';
+                    } else if (idProdutoGrade && !idProduto) {
+                        prefix = 'img-grad';
+                    } else {
+                        // Caso ambos sejam enviados ou nenhum (fallback)
+                        prefix = 'img-prod'; // ou outro padrão
+                    }
+                } else if (subDir === 'avatar_usuario') {
+                    prefix = 'img-avat';
+                } else if (subDir === 'imagem_ajuste') {
+                    prefix = 'img-ajus';
+                }
+
                 const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
                 const ext = path.extname(file.originalname);
-                const name = path.basename(file.originalname, ext);
-                cb(null, `${name}-${uniqueSuffix}${ext}`);
+                const name = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9-]/g, '').replace(/\s+/g, '-');
+
+                cb(null, `${prefix}-${name}-${uniqueSuffix}${ext}`);
             }
         });
     }
+    // getStorage() {
+    //     return multer.diskStorage({
+    //         destination: async (req, file, cb) => {
+    //             const subDir = path.join(this.uploadDir, 'ajustes');
+    //             await fs.mkdir(subDir, { recursive: true });
+    //             cb(null, subDir);
+    //         },
+    //         filename: (req, file, cb) => {
+    //             const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    //             const ext = path.extname(file.originalname);
+    //             const name = path.basename(file.originalname, ext);
+    //             cb(null, `${name}-${uniqueSuffix}${ext}`);
+    //         }
+    //     });
+    // }
 
     getFileFilter() {
         return (req, file, cb) => {

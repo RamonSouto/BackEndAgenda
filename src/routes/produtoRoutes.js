@@ -470,63 +470,74 @@ router.delete(
  */
 
 /**
- * @route   POST /api/produtos/imagem_produto
+ * @route   POST /api/produtos/imagemProduto
  * @desc    Adicionar imagem de produtos
  * @access  Privado - Admin
  */
 router.post(
-    '/imagem_produto',
+    '/imagemProduto',
     apenasAdminMiddleware,
-    validarBodyMiddleware,
+    // validarBodyMiddleware,
     tipoUsuarioMiddleware([TIPO_PESSOA.ADMINISTRADOR]),
+    limiterUpload,
+    uploadSingle('foto', 'imagem_produto'),
     ProdutoController.adicionarImagemProduto
 );
 
-// /**
-//  * @route   GET /api/produtos/imagem_produto
-//  * @desc    Listar imagens de produtos
-//  * @access  Privado - Admin
-//  */
-// router.get(
-//     '/imagem_produto',
-//     apenasAdminMiddleware,
-//     ProdutoController.listarImagemProdutos
-// );
+/**
+ * @route   GET /api/produtos/imagemProduto
+ * @desc    Listar imagens de produtos
+ * @access  Privado - Admin
+ */
+router.get(
+    '/imagemProduto',
+    apenasAdminMiddleware,
+    ProdutoController.listarImagemProdutos
+);
 
+/**
+ * @route   GET /api/produtos/imagemProduto/:id
+ * @desc    Buscar imagem de produtos
+ * @access  Privado - Admin
+ */
+router.get(
+    '/imagemProduto/:id',
+    apenasAdminMiddleware,
+    ProdutoController.buscarImagemProdutoId
+);
 
+/**
+ * @route   GET /api/produtos/imagemProdutoGrade/:id
+ * @desc    Busca imagem de produtos grade
+ * @access  Privado - Admin
+ */
+router.get(
+    '/imagemProdutoGrade/:id',
+    apenasAdminMiddleware,
+    ProdutoController.buscarImagemProdutoGradeId
+);
 
-// /**
-//  * @route   GET /api/produtos/imagem_produto/:id
-//  * @desc    Listar imagem de produtos
-//  * @access  Privado - Admin
-//  */
-// router.get(
-//     '/imagem_produto/:id',
-//     apenasAdminMiddleware,
-//     ProdutoController.listarImagemProduto
-// );
+/**
+ * @route   PUT /api/produtos/imagemProduto/:id
+ * @desc    Atualizar imagem de produtos
+ * @access  Privado - Admin
+ */
+router.put(
+    '/imagemProduto/:id',
+    apenasAdminMiddleware,
+    ProdutoController.atualizarImagemProduto
+);
 
-// /**
-//  * @route   PUT /api/produtos/imagem_produto/:id
-//  * @desc    Atualizar imagem de produtos
-//  * @access  Privado - Admin
-//  */
-// router.put(
-//     '/imagem_produto/:id',
-//     apenasAdminMiddleware,
-//     ProdutoController.atualizarImagemProduto
-// );
-
-// /**
-//  * @route   DELETE /api/produtos/imagem_produto/:id
-//  * @desc    Deletar imagem de produtos
-//  * @access  Privado - Admin
-//  */
-// router.delete(
-//     '/imagem_produto/:id',
-//     apenasAdminMiddleware,
-//     ProdutoController.deletarImagemProduto
-// );
+/**
+ * @route   DELETE /api/produtos/imagemProduto/:id
+ * @desc    Deletar imagem de produtos
+ * @access  Privado - Admin
+ */
+router.delete(
+    '/imagemProduto/:id',
+    apenasAdminMiddleware,
+    ProdutoController.deletarImagemProduto
+);
 
 
 module.exports = router;

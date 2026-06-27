@@ -1005,11 +1005,24 @@ class ProdutoService {
     async adicionarImagemProduto(dados, usuarioLogadoId) {
         try {
 
-            //Validar dados
+            dados.id_produto = (dados.id_produto && dados.id_produto !== '' && dados.id_produto !== 'null') ? parseInt(dados.id_produto) : null;
+
+            dados.id_produto_grade = (dados.id_produto_grade && dados.id_produto_grade !== '' && dados.id_produto_grade !== 'null') ? parseInt(dados.id_produto_grade) : null;
+
             const { error, value } = validators.imagemProdutoSchema.validate(dados);
 
             if (error) {
                 throw new Error(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
+            }
+
+            const isPrincipal = value.ind_principal == true || value.ind_principal === 'true' || value.ind_principal === 1;
+
+            if (isPrincipal) {
+                if (value.id_produto) {
+                    await ProdutoModel.desmarcarImagemPrincipalPorProduto(value.id_produto)
+                } else if (value.id_produto_grade) {
+                    await ProdutoModel.desmarcarImagemPrincipalPorGrade(value.id_produto_grade)
+                }
             }
 
             const imagemProdutoId = await ProdutoModel.criarImagemProduto(value);
@@ -1020,16 +1033,15 @@ class ProdutoService {
                 des_tabela: 'tab_produto_imagens',
                 num_registro_id: imagemProdutoId,
                 des_detalhes: {
-                    tipo_consulta: 'busca_por_id',
-                    id_produto_grade: imagemProduto.id_produto_grade,
-                    id_produto: imagemProduto.id_produto,
-                    des_url_imagem: imagemProduto.des_url_imagem,
-                    num_ordem: imagemProduto.num_ordem,
-                    ind_principal: imagemProduto.ind_principal
+                    id_produto_grade: imagemProdutoId.id_produto_grade,
+                    id_produto: imagemProdutoId.id_produto,
+                    des_url_imagem: imagemProdutoId.des_url_imagem,
+                    num_ordem: imagemProdutoId.num_ordem,
+                    ind_principal: imagemProdutoId.ind_principal
                 }
             });
 
-            const imagemProduto = await ProdutoModel.buscarImagemProdutoPorId(produtoId)
+            const imagemProduto = await ProdutoModel.buscarImagemProdutoPorId(imagemProdutoId)
 
             return imagemProduto;
 
@@ -1038,9 +1050,9 @@ class ProdutoService {
         }
     }
 
-    async listarImagemProduto(id, usuarioLogadoId) {
+    async buscarImagemProdutoID(id_produto, usuarioLogadoId) {
 
-        const imagemProduto = await ProdutoModel.buscarImagemProdutoPorId(id);
+        const imagemProduto = await ProdutoModel.buscarImagemProdutoPorId(id_produto);
 
         if (!imagemProduto) {
             throw new NotFoundError('Produto não encontrada');
@@ -1063,20 +1075,58 @@ class ProdutoService {
         return imagemProduto;
     }
 
-    async atualizarProduto(id, dados, usuarioLogadoId) {
+    async buscarImagemProdutoGradeID(id_produto_grade, usuarioLogadoId) {
+
+        const imagemProduto = await ProdutoModel.buscarImagemProdutoGradeID(id_produto_grade);
+
+        if (!imagemProduto) {
+            throw new NotFoundError('Produto não encontrada');
+        }
+
+        await LogService.registrar({
+            id_usuario: usuarioLogadoId,
+            des_acao: ACOES_LOG.CONSULTAR,
+            des_tabela: 'tab_produto_imagens',
+            des_detalhes: {
+                tipo_consulta: 'busca_por_id',
+                id_produto_grade: imagemProduto.id_produto_grade,
+                id_produto: imagemProduto.id_produto,
+                des_url_imagem: imagemProduto.des_url_imagem,
+                num_ordem: imagemProduto.num_ordem,
+                ind_principal: imagemProduto.ind_principal
+            }
+        });
+
+        return imagemProduto;
+    }
+
+    async atualizarImagemProduto(id, dados, usuarioLogadoId) {
         try {
 
-            const imagemProduto = await ProdutoModel.buscarImagemProdutoPorId(id);
+            dados.id_produto = (dados.id_produto && dados.id_produto !== '' && dados.id_produto !== 'null') ? parseInt(dados.id_produto) : null;
 
+            dados.id_produto_grade = (dados.id_produto_grade && dados.id_produto_grade !== '' && dados.id_produto_grade !== 'null') ? parseInt(dados.id_produto_grade) : null;
+
+            const imagemProduto = await ProdutoModel.buscarImagemProdutoPorId(id);
 
             if (!imagemProduto) {
                 throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO)
             }
 
+            const isPrincipal = dados.ind_principal == true || dados.ind_principal === 'true' || dados.ind_principal === 1;
+
+            if (isPrincipal) {
+                if (dados.id_produto) {
+                    await ProdutoModel.desmarcarImagemPrincipalPorProduto(dados.id_produto)
+                } else if (dados.id_produto_grade) {
+                    await ProdutoModel.desmarcarImagemPrincipalPorGrade(dados.id_produto_grade)
+                }
+            }
+
             const atualizado = await ProdutoModel.atualizarImagemProduto(id, dados);
 
             if (!atualizado) {
-                throw new Error('Erro ao atualizar categoria');
+                throw new Error('Erro ao atualizar');
             }
 
             await LogService.registrar({
@@ -1101,42 +1151,66 @@ class ProdutoService {
         }
     }
 
-    // async deletarImagemProduto(id, usuarioLogadoId) {
-    //     try {
-    //         const imagemProduto = await ProdutoModel.buscarImagemProdutoPorId(id);
+    async deletarImagemProduto(id, usuarioLogadoId) {
+        try {
+            const imagemProduto = await ProdutoModel.buscarImagemProdutoId(id);
 
-    //         if (!imagemProduto) {
-    //             throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
-    //         }
+            if (!imagemProduto) {
+                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
+            }
 
-    //         // Soft delete
-    //         const deletado = await ProdutoModel.deletarImagemProduto(id);
+            const isPrincipal = imagemProduto[0].ind_principal == true || imagemProduto[0].ind_principal === 'true' || imagemProduto[0].ind_principal === 1;
 
-    //         if (!deletado) {
-    //             throw new Error('Erro ao deletar pessoa');
-    //         }
+            // console.log({ imagemProduto, isPrincipal });
+            // console.log(imagemProduto[0].id_produto);
+            // console.log(imagemProduto[0].id_produto_grade);
 
-    //         // Registrar log
-    //         await LogService.registrar({
-    //             id_usuario: usuarioLogadoId,
-    //             des_acao: ACOES_LOG.DELETAR,
-    //             des_tabela: 'tab_produto_imagens',
-    //             num_registro_id: id,
-    //             des_detalhes: {
-    //                 id_produto_grade: imagemProduto.id_produto_grade,
-    //                 id_produto: imagemProduto.id_produto,
-    //                 des_url_imagem: imagemProduto.des_url_imagem,
-    //                 num_ordem: imagemProduto.num_ordem,
-    //                 ind_principal: imagemProduto.ind_principal,
-    //             }
-    //         });
+            if (isPrincipal) {
+                if (imagemProduto[0].id_produto) {
 
-    //         return true;
+                    const produto = await ProdutoModel.buscarImagemProdutoPorId(imagemProduto[0].id_produto);
 
-    //     } catch (error) {
-    //         throw error;
-    //     }
-    // }
+                    if (produto.length > 0) {
+                        await ProdutoModel.desmarcarImagemPrincipalPorProduto(imagemProduto[0].id_produto)
+                        await ProdutoModel.atualizarImagemProduto(produto[0].id, { ind_principal: 1 })
+                    }
+                } else if (imagemProduto[0].id_produto_grade) {
+                    const produto = await ProdutoModel.buscarImagemProdutoGradeID(imagemProduto[0].id_produto_grade);
+                    console.log(produto.length)
+                    if (produto.length > 0) {
+                        await ProdutoModel.desmarcarImagemPrincipalPorGrade(imagemProduto[0].id_produto_grade)
+                        await ProdutoModel.atualizarImagemProduto(produto[0].id, { ind_principal: 1 })
+                    }
+                }
+            }
+            // Soft delete
+            const deletado = await ProdutoModel.deletarImagemProduto(id);
+
+            if (!deletado) {
+                throw new Error('Erro ao deletar pessoa');
+            }
+
+            // Registrar log
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.DELETAR,
+                des_tabela: 'tab_produto_imagens',
+                num_registro_id: id,
+                des_detalhes: {
+                    id_produto_grade: imagemProduto.id_produto_grade,
+                    id_produto: imagemProduto.id_produto,
+                    des_url_imagem: imagemProduto.des_url_imagem,
+                    num_ordem: imagemProduto.num_ordem,
+                    ind_principal: imagemProduto.ind_principal,
+                }
+            });
+
+            return true;
+
+        } catch (error) {
+            throw error;
+        }
+    }
 }
 
 module.exports = new ProdutoService();

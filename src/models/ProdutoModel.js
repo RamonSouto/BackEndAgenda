@@ -502,32 +502,23 @@ class ProdutoModel {
 
 
 
-  async criarProduto(dados) {
+  async criarImagemProduto(dados) {
 
-    const sql = `INSERT INTO tab_produto_imagens(id_produto_grade, id_produto, des_url_imagem, num_ordem, ind_principal) VALUES(?,?,?,?,?)`;
+    const sql = `INSERT INTO tab_produto_imagens(id_produto_grade, id_produto, des_titulo_imagem, des_imagem, des_url_imagem, num_ordem, ind_principal) VALUES(?,?,?,?,?,?,?)`;
 
     const valores = [
       dados.id_produto_grade,
       dados.id_produto,
+      dados.des_titulo_imagem,
+      dados.des_imagem,
       dados.des_url_imagem,
       dados.num_ordem,
-      dados.ind_principal,
+      dados.ind_principal
     ];
 
     const resultado = await database.query(sql, valores);
 
     return resultado.insertId;
-  }
-
-  async buscarImagemProdutoPorId(id) {
-    const sql = `
-      SELECT id, id_produto_grade, id_produto, des_url_imagem, num_ordem, ind_principal, created_at, updated_at, deleted_at
-      FROM tab_produto_imagens
-      WHERE id= ? AND deleted_at IS NULL
-    `;
-
-    const resultado = await database.query(sql, [id]);
-    return resultado[0] || null;
   }
 
   async listarImagemProdutos() {
@@ -537,6 +528,39 @@ class ProdutoModel {
     `;
 
     return await database.query(sql);
+  }
+
+  async buscarImagemProdutoId(id_produto) {
+    const sql = `
+      SELECT id, id_produto_grade, id_produto, des_url_imagem, num_ordem, ind_principal, created_at, updated_at, deleted_at
+      FROM tab_produto_imagens
+      WHERE id = ? AND deleted_at IS NULL
+    `;
+
+    const resultado = await database.query(sql, [id_produto]);
+    return resultado || null;
+  }
+
+  async buscarImagemProdutoPorId(id_produto) {
+    const sql = `
+      SELECT id, id_produto_grade, id_produto, des_url_imagem, num_ordem, ind_principal, created_at, updated_at, deleted_at
+      FROM tab_produto_imagens
+      WHERE id_produto = ? AND deleted_at IS NULL
+    `;
+
+    const resultado = await database.query(sql, [id_produto]);
+    return resultado || null;
+  }
+
+  async buscarImagemProdutoGradeID(id_produto_grade) {
+    const sql = `
+      SELECT id, id_produto_grade, id_produto, des_url_imagem, num_ordem, ind_principal, created_at, updated_at, deleted_at
+      FROM tab_produto_imagens
+      WHERE id_produto_grade = ? AND deleted_at IS NULL
+    `;
+
+    const resultado = await database.query(sql, [id_produto_grade]);
+    return resultado || null;
   }
 
   async atualizarImagemProduto(id, dados) {
@@ -578,6 +602,31 @@ class ProdutoModel {
 
     return resultado.affectedRows > 0;
   }
+
+  async desmarcarImagemPrincipalPorProduto(id_produto) {
+    const sql = `
+      UPDATE tab_produto_imagens 
+      SET ind_principal = false
+      WHERE id_produto = ? AND ind_principal = true AND deleted_at IS NULL
+    `;
+
+    const resultado = await database.query(sql, [id_produto]);
+
+    return resultado.affectedRows > 0;
+  }
+
+  async desmarcarImagemPrincipalPorGrade(id_produto_grade) {
+    const sql = `
+      UPDATE tab_produto_imagens
+      SET ind_principal = false
+      WHERE id_produto_grade = ? AND ind_principal = true AND deleted_at IS NULL
+    `;
+
+    const resultado = await database.query(sql, [id_produto_grade]);
+
+    return resultado.affectedRows > 0;
+  }
+
 }
 
 

@@ -9,8 +9,11 @@ const upload = multer(UploadService.getMulterConfig());
  * Middleware para upload de arquivo único
  * @param {string} fieldName - Nome do campo do formulário
  */
-const uploadSingle = (fieldName = 'foto') => {
+const uploadSingle = (fieldName = 'foto', subpasta = 'ajuste') => {
     return (req, res, next) => {
+
+        req.uploadSubDir = subpasta;
+
         const uploadHandler = upload.single(fieldName);
 
         uploadHandler(req, res, (err) => {
@@ -62,6 +65,60 @@ const uploadSingle = (fieldName = 'foto') => {
         });
     };
 };
+// const uploadSingle = (fieldName = 'foto', subpasta = 'ajuste') => {
+//     return (req, res, next) => {
+
+//         const uploadHandler = upload.single(fieldName);
+
+//         uploadHandler(req, res, (err) => {
+//             if (err instanceof multer.MulterError) {
+//                 // Erro do Multer
+//                 if (err.code === 'LIMIT_FILE_SIZE') {
+//                     return res.status(400).json({
+//                         sucesso: false,
+//                         mensagem: 'Arquivo muito grande',
+//                         erro: `Tamanho máximo permitido: ${UploadService.formatarTamanhoArquivo(UploadService.maxFileSize)}`
+//                     });
+//                 }
+
+//                 return res.status(400).json({
+//                     sucesso: false,
+//                     mensagem: 'Erro no upload',
+//                     erro: err.message
+//                 });
+//             } else if (err) {
+//                 // Outros erros
+//                 return res.status(400).json({
+//                     sucesso: false,
+//                     mensagem: 'Erro no upload',
+//                     erro: err.message
+//                 });
+//             }
+
+//             // Validar arquivo
+//             if (!req.file) {
+//                 return res.status(400).json({
+//                     sucesso: false,
+//                     mensagem: 'Nenhum arquivo foi enviado'
+//                 });
+//             }
+
+//             try {
+//                 UploadService.validarArquivo(req.file);
+//                 next();
+//             } catch (error) {
+//                 // Deletar arquivo inválido
+//                 UploadService.deletarArquivo(req.file.path).catch(console.error);
+
+//                 return res.status(400).json({
+//                     sucesso: false,
+//                     mensagem: 'Arquivo inválido',
+//                     erro: error.message
+//                 });
+//             }
+//         });
+//     };
+// };
 
 /**
  * Middleware para upload de múltiplos arquivos

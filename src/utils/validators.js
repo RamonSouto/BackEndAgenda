@@ -151,11 +151,33 @@ const validators = {
 
     // Schema de validação para imagem de produto
     imagemProdutoSchema: Joi.object({
-        id_produto_grade: Joi.number().integer(),
-        id_produto: Joi.number().integer(),
+        id_produto_grade: Joi.allow(null, '', 'null', 'undefined').optional(),
+        id_produto: Joi.allow(null, '', 'null', 'undefined').optional(),
+        des_titulo_imagem: Joi.string().min(3).max(500),
+        des_imagem: Joi.string().min(3).max(500),
         des_url_imagem: Joi.string().min(3).max(500).required(),
         num_ordem: Joi.number().integer(),
-        ind_principal: Joi.boolean().default(false).required()
+        ind_principal: Joi.boolean().default(false).required(),
+
+    }).custom((value, helpers) => {
+
+        const { id_produto_grade, id_produto } = value;
+
+        const temGrade = id_produto_grade !== undefined && id_produto_grade !== null && id_produto_grade !== '';
+
+        const temProduto = id_produto !== undefined && id_produto !== null && id_produto !== '';
+
+        if (!temGrade && !temProduto) {
+            return helpers.error('any.invalid', {
+                message: 'É necessário informar id_produto_grade ou id_produto (pelo menos um).'
+            });
+        }
+        if (temGrade && temProduto) {
+            return helpers.error('any.invalid', {
+                message: 'Informe apenas um dos campos: id_produto_grade ou id_produto, não ambos.'
+            });
+        }
+        return value;
     }),
 
     // Schema de validação para login
