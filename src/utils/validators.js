@@ -104,6 +104,12 @@ const validators = {
         ).min(1)
     }),
 
+    // Schema de validação para tipo de agendamento
+    tipoAgendamentoSchema: Joi.object({
+        des_tipo_agendamento: Joi.string().min(3).max(50).required(),
+        ind_ativo: Joi.boolean().default(true).required()
+    }),
+
     // Schema de validação de produto
     produtoSchema: Joi.object({
         id_categoria: Joi.number().integer().required(),
@@ -113,6 +119,27 @@ const validators = {
         ref_produto: Joi.string().min(3).max(50),
         val_preco_base: Joi.number().precision(2),
         ind_ativo: Joi.boolean().default(true).required()
+    }),
+
+    // Schema de validação de tipo de serviço
+    tipoServicoSchema: Joi.object({
+        des_tipo_ajuste: Joi.string().min(3).max(200).required(),
+        ind_ativo: Joi.boolean().default(true).required()
+    }),
+
+
+    // Schema de validação de produto por tipo de servico
+    produtoServicoSchema: Joi.object({
+        id_produto: Joi.number().integer().required(),
+        id_tipo_servico: Joi.number().integer().required(),
+        ind_ativo: Joi.boolean().default(true).required()
+    }),
+
+    // Schema de validação de preço de produto por tipo de servico
+    precoProdutoServicoSchema: Joi.object({
+        id_produto_servico: Joi.number().integer().required(),
+        val_preco: Joi.number().positive().required(),
+        dta_inicio: Joi.date().required(),
     }),
 
     // Schema de validação para categoria de produto
@@ -190,6 +217,14 @@ const validators = {
     comparecimentoSchema: Joi.object({
         ind_paciente_compareceu: Joi.boolean().required(),
         des_observacoes_costureira: Joi.string().allow('', null)
+    }),
+
+    parametrizacaoSchema: Joi.object({
+        des_tipo_dia: Joi.string().trim().uppercase().required().valid('UTIL', 'SABADO'),
+        hra_inicio: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/).message('O campo tem que estar no formato váido HH:MM:SS').required(),
+        hra_fim: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/).message('O campo tem que estar no formato váido HH:MM:SS').required(),
+        qtd_minutos_intervalo: Joi.number().integer().required(),
+        ind_ativo: Joi.boolean().required(),
     })
 };
 

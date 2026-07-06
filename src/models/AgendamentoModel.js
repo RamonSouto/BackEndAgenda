@@ -1,6 +1,91 @@
 const database = require('../config/database');
 
 class AgendamentoModel {
+    /** --- TIPO DE AGENDAMENTO --- */
+
+    async criarTipoAgendamento(dados) {
+        const sql = `
+      INSERT INTO tab_tipo_agendamento (
+        des_tipo_agendamento, ind_ativo
+      ) VALUES (?, ?)
+    `;
+
+        const valores = [
+            dados.des_tipo_agendamento,
+            dados.ind_ativo
+        ];
+
+        const resultado = await database.query(sql, valores);
+
+        return resultado.insertId;
+    }
+
+    async listarTipoAgendamento() {
+        const sql = `
+        SELECT id, des_tipo_agendamento, ind_ativo, created_at, updated_at, deleted_at
+        FROM tab_tipo_agendamento
+        `;
+
+        const resultado = await database.query(sql);
+
+        return resultado;
+    }
+
+    async buscarTipoAgendamentoPorId(id) {
+        const sql = `
+        SELECT id, des_tipo_agendamento, ind_ativo, created_at, updated_at, deleted_at
+        FROM tab_tipo_agendamento
+        WHERE id = ? AND deleted_at IS NULL
+        `;
+
+        const resultado = await database.query(sql, [id]);
+
+        return resultado;
+    }
+
+    async atualizarTipoAgendamento(id, dados) {
+
+        const campos = [];
+        const valores = [];
+
+        Object.keys(dados).forEach(campo => {
+            if (dados[campo] !== undefined && campo !== 'id') {
+                campos.push(`${campo} = ?`);
+                valores.push(dados[campo]);
+            }
+        });
+
+        if (campos.length === 0) {
+            throw new Error('Nenhum campo para atualizar');
+        }
+
+        valores.push(id);
+
+        const sql = `
+                UPDATE tab_tipo_agendamento 
+                SET ${campos.join(', ')}
+                WHERE id = ? AND deleted_at IS NULL
+            `;
+
+        const resultado = await database.query(sql, valores);
+        return resultado.affectedRows > 0;
+    }
+
+    async deletarTipoAgendamento(id) {
+        const sql = `
+            UPDATE tab_tipo_agendamento 
+            SET deleted_at = CURRENT_TIMESTAMP 
+            WHERE id = ? AND deleted_at IS NULL
+        `;
+
+        const resultado = await database.query(sql, [id]);
+
+        return resultado.affectedRows > 0;
+    }
+
+
+
+
     async criar(dados) {
         const sql = `
       INSERT INTO tab_agendamentos (
@@ -94,6 +179,30 @@ class AgendamentoModel {
         const resultado = await database.query(sql, valores);
         return resultado[0].total === 0;
     }
+
+    async verificarDisponibilidadeCostureira(dados) {
+        let sql = `
+      SELECT COUNT(id) as total
+      FROM tab_agendamentos
+      WHERE id_costureira = ?
+      AND deleted_at IS NULL
+      AND ind_status IN ('agendado', 'confirmado')
+      AND dta_agendamento < ADDDATE(?, INTERVAL ? MINUTE)
+      AND ADDDATE(dta_agendamento, INTERVAL ? MINUTE) > ?
+    `;
+
+        const valores = [dados.idCostureira, dados.dtaAgendamento, dados.tempo1, dados.tempo2, dados.dtaAgendamento2];
+
+        if (dados.excluirAgendamentoId) {
+            sql += ` AND id != ?`;
+            valores.push(excluirAgendamentoId);
+        }
+
+        const resultado = await database.query(sql, valores);
+
+        return resultado[0].total === 0;
+    }
+
 
     async atualizar(id, dados) {
         const campos = [];

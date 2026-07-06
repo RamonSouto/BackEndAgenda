@@ -8,6 +8,7 @@ class AgendamentoController {
      * POST /api/agendamentos
      */
     criar = asyncHandler(async (req, res) => {
+
         const agendamento = await AgendamentoService.criar(req.body, req.usuario.id);
 
         return res.status(201).json({
@@ -242,6 +243,90 @@ class AgendamentoController {
             }
         });
     });
+
+
+
+    /** TIPO DE AGENDAMENTO */
+    /**
+     * Criar novo tipo agendamento
+     * POST /api/agendamentos/tipo
+     */
+    criarTipoAgendamento = asyncHandler(async (req, res) => {
+
+        const agendamentoTipo = await AgendamentoService.criarTipoAgendamento(req.body, req.usuario.id);
+
+        return res.status(201).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.CRIADO,
+            dados: agendamentoTipo
+        });
+    });
+
+    /**
+     * Listar tipo de agendamento
+     * GET /api/agendamentos/tipo
+     */
+    listarTipoAgendamento = asyncHandler(async (req, res) => {
+
+        const tipoAgendamento = await AgendamentoService.listarTipoAgendamento(req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            total: tipoAgendamento.length,
+            dados: tipoAgendamento
+        });
+    });
+
+    /**
+     * Buscar tipo de agendamento
+     * GET /api/agendamentos/tipo/:id
+     */
+    buscarTipoAgendamentoPorId = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const tipoAgendamento = await AgendamentoService.buscarTipoAgendamentoPorId(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            total: tipoAgendamento.length,
+            dados: tipoAgendamento
+        });
+    });
+
+    /**
+     * Atualizar tipo de agendamento
+     * PUT /api/agendamentos/tipo/:id
+     */
+    atualizarTipoAgendamento = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const tipoAgendamento = await AgendamentoService.atualizarTipoAgendamento(id, req.body, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
+            dados: tipoAgendamento
+        });
+    });
+
+    /**
+     * Deletar categoriaa(soft delete)
+     * DELETE /api/agendamentos/tipo/:id
+     */
+    deletarTipoAgendamento = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        await AgendamentoService.deletarTipoAgendamento(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.DELETADO,
+        });
+    });
+
 }
 
 module.exports = new AgendamentoController();

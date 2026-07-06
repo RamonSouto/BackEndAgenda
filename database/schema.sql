@@ -200,6 +200,29 @@ CREATE TABLE IF NOT EXISTS tab_variacoes_cor_estampa (
     INDEX idx_ordem (num_ordem_exibicao)
 ) ENGINE = InnoDB;
 
+CREATE TABLE IF NOT EXISTS tab_parametrizacao (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    des_tipo_dia ENUM('UTIL', 'SABADO') NOT NULL DEFAULT 'UTIL',
+    hra_inicio TIME NOT NULL,
+    hra_fim TIME NOT NULL,
+    qtd_minutos_intervalo VARCHAR(45) NULL DEFAULT 0,
+    ind_ativo TINYINT(1) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
+    UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE
+) ENGINE = InnoDB
+
+CREATE TABLE IF NOT EXISTS tab_tipo_agendamento (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    des_tipo_agendamento VARCHAR(50) NOT NULL DEFAULT 'UTIL',
+    ind_ativo tinyint(1) DEFAULT '1',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
+    UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE
+) ENGINE = InnoDB;
+
 CREATE TABLE IF NOT EXISTS tab_tamanhos (
     id INT PRIMARY KEY AUTO_INCREMENT,
     cod_tamanho VARCHAR(10) NOT NULL, -- Ex: P, M, G, GG, 36, 38, etc.
@@ -241,6 +264,45 @@ CREATE TABLE IF NOT EXISTS tab_produto_grade (
         id_tamanho
     )
 ) ENGINE = InnoDB;
+
+CREATE TABLE IF NOT EXISTS tab_tipo_servico (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    des_tipo_ajuste VARCHAR(100) NOT NULL,
+    ind_ativo TINYINT(1) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL DEFAULT NULL
+) ENGINE = InnoDB;
+
+CREATE TABLE IF NOT EXISTS tab_produto_servico (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    id_produtos INT NOT NULL,
+    id_tipo_servico INT NOT NULL,
+    ind_ativo TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL DEFAULT NULL,
+    INDEX fk_tab_produto_servico_tab_produtos1_idx (id_produtos ASC) VISIBLE,
+    INDEX fk_tab_produto_servico_tab_tipo_servico1_idx (id_tipo_servico ASC) VISIBLE,
+    CONSTRAINT fk_tab_produto_servico_tab_produtos1 FOREIGN KEY (id_produtos) REFERENCES tab_produtos (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT fk_tab_produto_servico_tab_tipo_servico1 FOREIGN KEY (id_tipo_servico) REFERENCES tab_tipo_servico (id) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE = InnoDB
+
+CREATE TABLE IF NOT EXISTS tab_preco_produto_servico (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    id_produto_servico INT NOT NULL,
+    val_preco DECIMAL(7, 2) ZEROFILL NOT NULL,
+    dta_inicio DATE NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL DEFAULT NULL,
+    INDEX fk_tab_Preco_produto_servico_tab_produto_servico1_idx (id_produto_servico ASC) VISIBLE,
+    UNIQUE INDEX val_preco_UNIQUE (
+        id_produto_servico ASC,
+        dta_inicio ASC
+    ) VISIBLE,
+    CONSTRAINT fk_tab_Preco_produto_servico_tab_produto_servico1 FOREIGN KEY (id_produto_servico) REFERENCES tab_produto_servico (id) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE = InnoDB
 
 CREATE TABLE IF NOT EXISTS tab_produto_imagens (
     id INT PRIMARY KEY AUTO_INCREMENT,

@@ -814,26 +814,6 @@ class ProdutoService {
 
 
 
-    async listarProdutos(usuarioLogadoId) {
-        try {
-            const produtos = await ProdutoModel.listarProdutos();
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_produtos',
-                des_detalhes: {
-                    tipo_consulta: 'listar',
-                    total_registros: produtos.length
-                }
-            });
-
-            return produtos;
-        } catch (error) {
-            throw error;
-        }
-    }
-
     async adicionarProduto(dados, usuarioLogadoId) {
         try {
 
@@ -866,6 +846,26 @@ class ProdutoService {
 
             return produto;
 
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async listarProdutos(usuarioLogadoId) {
+        try {
+            const produtos = await ProdutoModel.listarProdutos();
+
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.CONSULTAR,
+                des_tabela: 'tab_produtos',
+                des_detalhes: {
+                    tipo_consulta: 'listar',
+                    total_registros: produtos.length
+                }
+            });
+
+            return produtos;
         } catch (error) {
             throw error;
         }
@@ -1202,6 +1202,471 @@ class ProdutoService {
                     des_url_imagem: imagemProduto.des_url_imagem,
                     num_ordem: imagemProduto.num_ordem,
                     ind_principal: imagemProduto.ind_principal,
+                }
+            });
+
+            return true;
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+
+
+
+
+    /**
+     * Tipo de Serviço
+     */
+    async adicionarTipoServico(dados, usuarioLogadoId) {
+        try {
+
+            //Validar dados
+            const { error, value } = validators.tipoServicoSchema.validate(dados);
+
+            if (error) {
+                throw new Error(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
+            }
+
+            const tipoServicoId = await ProdutoModel.criarTipoServico(value);
+
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.CRIAR,
+                des_tabela: 'tab_tipo_servico',
+                num_registro_id: tipoServicoId,
+                des_detalhes: {
+                    des_tipo_ajuste: value.des_tipo_ajuste,
+                    ind_ativo: value.ind_ativo,
+                }
+            });
+
+            const tipoServico = await ProdutoModel.buscarTipoServicoPorId(tipoServicoId)
+
+            return tipoServico;
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async listarTipoServico(usuarioLogadoId) {
+        try {
+            const tipoServico = await ProdutoModel.listarTipoServico();
+
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.CONSULTAR,
+                des_tabela: 'tab_tipo_servico',
+                des_detalhes: {
+                    tipo_consulta: 'listar',
+                    total_registros: tipoServico.length
+                }
+            });
+
+            return tipoServico;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async buscarTipoServicoId(id, usuarioLogadoId) {
+
+        const tipoServico = await ProdutoModel.buscarTipoServicoPorId(id);
+
+        if (!tipoServico) {
+            throw new NotFoundError('Tipo de serviço não encontrado');
+        }
+
+        await LogService.registrar({
+            id_usuario: usuarioLogadoId,
+            des_acao: ACOES_LOG.CONSULTAR,
+            des_tabela: 'tab_tipo_servico',
+            des_detalhes: {
+                tipo_consulta: 'busca_por_id',
+                id: tipoServico.id,
+                des_tipo_ajuste: tipoServico.des_tipo_ajuste,
+                ind_ativo: tipoServico.ind_ativo,
+            }
+        });
+
+        return tipoServico;
+    }
+
+    async atualizarTipoServico(id, dados, usuarioLogadoId) {
+        try {
+
+            const tipoServico = await ProdutoModel.buscarTipoServicoPorId(id);
+
+
+            if (!tipoServico) {
+                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO)
+            }
+
+            const atualizado = await ProdutoModel.atualizarTipoServico(id, dados);
+
+            if (!atualizado) {
+                throw new Error('Erro ao atualizar tipo de Serviço');
+            }
+
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.EDITAR,
+                des_tabela: 'tab_tipo_servico',
+                des_detalhes: {
+                    id: tipoServico.id_categoria,
+                    des_tipo_ajuste: tipoServico.nom_produto,
+                    ind_ativo: tipoServico.num_sku,
+                    campos_alterados: Object.keys(dados)
+                }
+            });
+
+            const tipoServicoAtualizada = await ProdutoModel.buscarTipoServicoPorId(id);
+
+            return tipoServicoAtualizada;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async deletarTipoServico(id, usuarioLogadoId) {
+        try {
+            const tipoServico = await ProdutoModel.buscarTipoServicoPorId(id);
+
+            if (!tipoServico) {
+                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
+            }
+
+            // Soft delete
+            const deletado = await ProdutoModel.deletarTipoServico(id);
+
+            if (!deletado) {
+                throw new Error('Erro ao deletar pessoa');
+            }
+
+            // Registrar log
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.DELETAR,
+                des_tabela: 'tab_tipo_servico',
+                num_registro_id: id,
+                des_detalhes: {
+                    id: deletado.id,
+                    des_tipo_ajuste: deletado.des_tipo_ajuste,
+                    ind_ativo: deletado.ind_ativo
+                }
+            });
+
+            return true;
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+
+
+
+
+    /**
+     * Produto por Tipo de Serviço
+     */
+    async adicionarProdutoServico(dados, usuarioLogadoId) {
+        try {
+
+            //Validar dados
+            const { error, value } = validators.produtoServicoSchema.validate(dados);
+
+            if (error) {
+                throw new Error(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
+            }
+
+            const produtoServicoId = await ProdutoModel.criarProdutoTipoServico(value);
+
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.CRIAR,
+                des_tabela: 'tab_produto_servico',
+                num_registro_id: produtoServicoId,
+                des_detalhes: {
+                    id_produto: value.id_produto,
+                    id_tipo_servico: value.id_tipo_servico,
+                    ind_ativo: value.ind_ativo,
+                }
+            });
+
+            const produtoServico = await ProdutoModel.buscarProdutoServicoPorId(produtoServicoId)
+
+            return produtoServico;
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async listarProdutoServico(usuarioLogadoId) {
+        try {
+            const produtoServico = await ProdutoModel.listarProdutoServico();
+
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.CONSULTAR,
+                des_tabela: 'tab_produto_servico',
+                des_detalhes: {
+                    tipo_consulta: 'listar',
+                    total_registros: produtoServico.length
+                }
+            });
+
+            return produtoServico;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async buscarProdutoServicoId(id, usuarioLogadoId) {
+
+        const produtoServico = await ProdutoModel.buscarProdutoServicoPorId(id);
+
+        if (!produtoServico) {
+            throw new NotFoundError('Tipo de serviço não encontrado');
+        }
+
+        await LogService.registrar({
+            id_usuario: usuarioLogadoId,
+            des_acao: ACOES_LOG.CONSULTAR,
+            des_tabela: 'tab_produto_servico',
+            des_detalhes: {
+                tipo_consulta: 'busca_por_id',
+                id: produtoServico.id,
+                des_tipo_ajuste: produtoServico.des_tipo_ajuste,
+                ind_ativo: produtoServico.ind_ativo,
+            }
+        });
+
+        return produtoServico;
+    }
+
+    async atualizarProdutoServico(id, dados, usuarioLogadoId) {
+        try {
+
+            const produtoServico = await ProdutoModel.buscarProdutoServicoPorId(id);
+
+
+            if (!produtoServico) {
+                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO)
+            }
+
+            const atualizado = await ProdutoModel.atualizarProdutoServico(id, dados);
+
+            if (!atualizado) {
+                throw new Error('Erro ao atualizar tipo de Serviço');
+            }
+
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.EDITAR,
+                des_tabela: 'tab_produto_servico',
+                des_detalhes: {
+                    id: produtoServico.id_categoria,
+                    des_tipo_ajuste: produtoServico.nom_produto,
+                    ind_ativo: produtoServico.num_sku,
+                    campos_alterados: Object.keys(dados)
+                }
+            });
+
+            const tipoServicoAtualizada = await ProdutoModel.buscarProdutoServicoPorId(id);
+
+            return tipoServicoAtualizada;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async deletarProdutoServico(id, usuarioLogadoId) {
+        try {
+            const produtoServico = await ProdutoModel.buscarProdutoServicoPorId(id);
+
+            if (!produtoServico) {
+                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
+            }
+
+            // Soft delete
+            const deletado = await ProdutoModel.deletarProdutoServico(id);
+
+            if (!deletado) {
+                throw new Error('Erro ao deletar pessoa');
+            }
+
+            // Registrar log
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.DELETAR,
+                des_tabela: 'tab_produto_servico',
+                num_registro_id: id,
+                des_detalhes: {
+                    id: deletado.id,
+                    id_produto: deletado.id_produto,
+                    id_tipo_servico: deletado.id_tipo_servico,
+                    ind_ativo: deletado.ind_ativo
+                }
+            });
+
+            return true;
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+
+
+
+
+    /**
+     * Preço Produto por Tipo de Serviço
+     */
+    async adicionarPrecoProdutoServico(dados, usuarioLogadoId) {
+        try {
+
+            //Validar dados
+            const { error, value } = validators.precoProdutoServicoSchema.validate(dados);
+
+            if (error) {
+                throw new Error(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
+            }
+
+            const precoProdutoServicoId = await ProdutoModel.criarPrecoProdutoServico(value);
+
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.CRIAR,
+                des_tabela: 'tab_preco_produto_servico',
+                num_registro_id: precoProdutoServicoId,
+                des_detalhes: {
+                    id_produto_servico: value.id_produto_servico,
+                    val_preco: value.val_preco,
+                    dta_inicio: value.dta_inicio,
+                }
+            });
+
+            const precoProdutoServico = await ProdutoModel.buscarPrecoProdutoServicoPorId(precoProdutoServicoId)
+
+            return precoProdutoServicoId;
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async listarPrecoProdutoServico(usuarioLogadoId) {
+        try {
+            const precoProdutoServico = await ProdutoModel.listarPrecoProdutoServico();
+
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.CONSULTAR,
+                des_tabela: 'tab_preco_produto_servico',
+                des_detalhes: {
+                    tipo_consulta: 'listar',
+                    total_registros: precoProdutoServico.length
+                }
+            });
+
+            return precoProdutoServico;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async buscarPrecoProdutoServicoPorId(id, usuarioLogadoId) {
+
+        const precoProdutoServico = await ProdutoModel.buscarPrecoProdutoServicoPorId(id);
+
+        if (!precoProdutoServico) {
+            throw new NotFoundError('Tipo de serviço não encontrado');
+        }
+
+        await LogService.registrar({
+            id_usuario: usuarioLogadoId,
+            des_acao: ACOES_LOG.CONSULTAR,
+            des_tabela: 'tab_preco_produto_servico',
+            des_detalhes: {
+                tipo_consulta: 'busca_por_id',
+                id: precoProdutoServico.id,
+                id_produto_servico: precoProdutoServico.id_produto_servico,
+                val_preco: precoProdutoServico.val_preco,
+                dta_inicio: precoProdutoServico.dta_inicio,
+            }
+        });
+
+        return precoProdutoServico;
+    }
+
+    async atualizarPrecoProdutoServico(id, dados, usuarioLogadoId) {
+        try {
+
+            const precoProdutoServico = await ProdutoModel.buscarPrecoProdutoServicoPorId(id);
+
+
+            if (!precoProdutoServico) {
+                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO)
+            }
+
+            const atualizado = await ProdutoModel.atualizarPrecoProdutoServico(id, dados);
+
+            if (!atualizado) {
+                throw new Error('Erro ao atualizar tipo de Serviço');
+            }
+
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.EDITAR,
+                des_tabela: 'tab_preco_produto_servico',
+                des_detalhes: {
+                    id: precoProdutoServico.id,
+                    id_produto_servico: precoProdutoServico.id_produto_servico,
+                    val_preco: precoProdutoServico.val_preco,
+                    dta_inicio: precoProdutoServico.dta_inicio,
+                    campos_alterados: Object.keys(dados)
+                }
+            });
+
+            const precoProdutoServicoAtualizada = await ProdutoModel.buscarPrecoProdutoServicoPorId(id);
+
+            return precoProdutoServicoAtualizada;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async deletarPrecoProdutoServico(id, usuarioLogadoId) {
+        try {
+            const precoProdutoServico = await ProdutoModel.buscarPrecoProdutoServicoPorId(id);
+
+            if (!precoProdutoServico) {
+                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
+            }
+
+            // Soft delete
+            const deletado = await ProdutoModel.deletarPrecoProdutoServico(id);
+
+            if (!deletado) {
+                throw new Error('Erro ao deletar pessoa');
+            }
+
+            // Registrar log
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.DELETAR,
+                des_tabela: 'tab_preco_produto_servico',
+                num_registro_id: id,
+                des_detalhes: {
+                    id: precoProdutoServico.id,
+                    id_produto_servico: precoProdutoServico.id_produto_servico,
+                    val_preco: precoProdutoServico.val_preco,
+                    dta_inicio: precoProdutoServico.dta_inicio,
                 }
             });
 

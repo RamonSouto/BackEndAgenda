@@ -4,11 +4,12 @@ const ProdutoModel = require('../models/ProdutoModel');
 const LogService = require('./LogService');
 const NotificacaoService = require('./NotificacaoService');
 const { STATUS_AGENDAMENTO, TIPO_PESSOA, MENSAGENS, ACOES_LOG } = require('../utils/constants');
-const { differenceInHours, parseISO } = require('date-fns');
+const { differenceInHours, parseISO, format, parse } = require('date-fns');
 const database = require('../config/database');
 
 class AgendamentoService {
     async criar(dados, usuarioLogadoId) {
+
         return await database.transaction(async (connection) => {
             try {
                 // Validar dados
@@ -31,7 +32,9 @@ class AgendamentoService {
                 }
 
                 // Verificar se costureira está disponível
-                const costureiraDisponivel = await AgendamentoModel.verificarCostureiraDisponivel(value.id_costureira);
+                // const costureiraDisponivel = await AgendamentoModel.verificarCostureiraDisponivel(value.id_costureira);
+                const costureiraDisponivel = await AgendamentoModel.verificarDisponibilidadeCostureira({ 'idCostureira': dados.id_costureira, 'dtaAgendamento': dados.dta_agendamento, 'tempo1': 30, 'tempo2': 30, 'dtaAgendamento2': dados.dta_agendamento });
+
                 if (!costureiraDisponivel) {
                     throw new Error(MENSAGENS.ERRO.COSTUREIRA_OCUPADA);
                 }
@@ -390,6 +393,154 @@ class AgendamentoService {
             });
 
             return agendamentos;
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+
+
+
+
+    /**Tipo de Agendamento */
+    async criarTipoAgendamento(dados, usuarioLogadoId) {
+        try {
+
+            const { error, value } = require('../utils/validators').tipoAgendamentoSchema.validate(dados);
+
+            if (error) {
+                throw new Error(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
+            }
+
+            // Adicionar produto ao agendamento
+            const tipoAgendamentoId = await AgendamentoModel.criarTipoAgendamento(value);
+
+            // Registrar log
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.CRIAR,
+                des_tabela: 'tab_tipo_agendamento',
+                num_registro_id: tipoAgendamentoId,
+                des_detalhes: {
+                    tipo_agendamento_id: tipoAgendamentoId,
+                    des_tipo_agendamento: dados.des_tipo_agendamento,
+                    ind_ativo: dados.ind_ativo,
+                }
+            });
+
+            return tipoAgendamentoId;
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async listarTipoAgendamento(usuarioLogadoId) {
+
+        try {
+            const tipoAgendamento = await AgendamentoModel.listarTipoAgendamento();
+
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.CONSULTAR,
+                des_tabela: 'tab_tipo_agendamento',
+                des_detalhes: {
+                    tipo_consulta: 'listar',
+                    total_registros: tipoAgendamento.length
+                }
+            });
+
+            return tipoAgendamento;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async buscarTipoAgendamentoPorId(id, usuarioLogadoId) {
+
+        try {
+            const tipoAgendamento = await AgendamentoModel.buscarTipoAgendamentoPorId(id);
+
+            if (!tipoAgendamento) {
+                throw new Error('Foto não encontrada');
+            }
+
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.CONSULTAR,
+                des_tabela: 'tab_tipo_agendamento',
+                des_detalhes: {
+                    tipo_consulta: 'buscar',
+                    total_registros: tipoAgendamento.length
+                }
+            });
+
+            return tipoAgendamento;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async atualizarTipoAgendamento(id, dados, usuarioLogadoId) {
+        try {
+            const tipoAgendamentoExiste = await AgendamentoModel.buscarTipoAgendamentoPorId(id);
+
+            if (!tipoAgendamentoExiste) {
+                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO)
+            }
+
+            const atualizado = await AgendamentoModel.atualizarTipoAgendamento(id, dados);
+
+            if (!atualizado) {
+                throw new Error('Erro ao atualizar tipo de Agendamento');
+            }
+
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.EDITAR,
+                des_tabela: 'tab_tipo_agendamento',
+                des_detalhes: {
+                    categoria: tipoAgendamentoExiste.des_tipo_agendamento,
+                    campos_alterados: Object.keys(dados)
+                }
+            });
+
+            const tipoAgendamentoAtualizada = await AgendamentoModel.buscarTipoAgendamentoPorId(id);
+
+            return tipoAgendamentoAtualizada;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async deletarTipoAgendamento(id, usuarioLogadoId) {
+        try {
+            const tipoAgendamento = await AgendamentoModel.buscarTipoAgendamentoPorId(id);
+
+            if (!tipoAgendamento) {
+                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
+            }
+
+            // Soft delete
+            const deletado = await AgendamentoModel.deletarTipoAgendamento(id);
+
+            if (!deletado) {
+                throw new Error('Erro ao deletar pessoa');
+            }
+
+            // Registrar log
+            await LogService.registrar({
+                id_usuario: usuarioLogadoId,
+                des_acao: ACOES_LOG.DELETAR,
+                des_tabela: 'tab_tipo_agendamento',
+                num_registro_id: id,
+                des_detalhes: {
+                    tipoAgendamento: tipoAgendamento.des_tipo_agendamento,
+                }
+            });
+
+            return true;
 
         } catch (error) {
             throw error;

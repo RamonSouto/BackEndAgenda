@@ -77,7 +77,7 @@ module.exports = {
             CPF_EXISTENTE: 'CPF já cadastrado',
             CREDENCIAIS_INVALIDAS: 'Credenciais inválidas',
             CONTA_BLOQUEADA: 'Conta bloqueada por excesso de tentativas',
-            COSTUREIRA_OCUPADA: 'Costureira já possui um agendamento ativo',
+            COSTUREIRA_OCUPADA: 'Costureira já possui um agendamento ativo neste horario',
             PRAZO_CANCELAMENTO: 'Não é possível cancelar com menos de 2 horas de antecedência',
             CATEGORIA_PAI: 'Categoria pai não encontrado'
         },

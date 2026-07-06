@@ -570,6 +570,10 @@ class ProdutoController {
 
 
     /**
+     * Produto
+     */
+
+    /**
      * Adicionar Produto
      * POST /api/produtos/produto
      */
@@ -655,6 +659,10 @@ class ProdutoController {
 
 
 
+
+    /**
+     * Imagem Produto
+     */
 
     /**
      * Adicionar Imagem Produto
@@ -775,6 +783,270 @@ class ProdutoController {
         const { id } = req.params;
 
         await ProdutoService.deletarImagemProduto(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.DELETADO,
+        });
+    });
+
+
+
+
+
+    /**
+     * Tipo de Serviço
+     */
+
+    /**
+     * Adicionar tipo de serviço
+     * POST /api/produtos/tipoServico
+     */
+    adicionarTipoServico = asyncHandler(async (req, res) => {
+
+        const tipoServicoId = await ProdutoService.adicionarTipoServico(req.body, req.usuario.id);
+
+        return res.status(201).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.CRIADO,
+            dados: { id: tipoServicoId }
+        })
+    });
+
+
+    /**
+     * Listar tipo de serviço
+     * GET /api/produtos/tipoServico
+     */
+    listarTipoServico = asyncHandler(async (req, res) => {
+
+        const tipoServico = await ProdutoService.listarTipoServico(req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            total: tipoServico.length,
+            dados: tipoServico
+        });
+    });
+
+    /**
+     * Buscar tipo de serviço por ID
+     * GET /api/produtos/tipoServico/:id
+     */
+    buscarTipoServicoId = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const tipoServico = await ProdutoService.buscarTipoServicoId(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            dados: tipoServico
+        });
+    });
+
+    /**
+     * Atualizar Produto
+     * PUT /api/produtos/produto/:id
+     */
+    atualizarTipoServico = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const tipoServico = await ProdutoService.atualizarTipoServico(id, req.body, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
+            dados: tipoServico
+        });
+    });
+
+    /**
+     * Deletar Produto(soft delete)
+     * DELETE /api/produtos/tipoServico/:id
+     */
+    deletarTipoServico = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        await ProdutoService.deletarTipoServico(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.DELETADO,
+        });
+    });
+
+
+
+
+
+    /**
+     * Produto por Tipo de Serviço
+     */
+
+    /**
+     * Adicionar Produto por Tipo de Serviço
+     * POST /api/produtos/produtoServico
+     */
+    adicionarProdutoServico = asyncHandler(async (req, res) => {
+
+        const produtoTipoServicoId = await ProdutoService.adicionarProdutoServico(req.body, req.usuario.id);
+
+        return res.status(201).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.CRIADO,
+            dados: { id: produtoTipoServicoId }
+        })
+    });
+
+
+    /**
+     * Listar Produto por Tipo de Serviço
+     * GET /api/produtos/produtoServico
+     */
+    listarProdutoServico = asyncHandler(async (req, res) => {
+
+        const produtoTipoServico = await ProdutoService.listarProdutoServico(req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            total: produtoTipoServico.length,
+            dados: produtoTipoServico
+        });
+    });
+
+    /**
+     * Buscar Produto por Tipo de Serviço por ID
+     * GET /api/produtos/produtoServico/:id
+     */
+    buscarProdutoServicoId = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const produtoTipoServico = await ProdutoService.buscarProdutoServicoId(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            dados: produtoTipoServico
+        });
+    });
+
+    /**
+     * Atualizar Produto por Tipo de Serviço
+     * PUT /api/produtos/produtoServico/:id
+     */
+    atualizarProdutoServico = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const produtoTipoServico = await ProdutoService.atualizarProdutoServico(id, req.body, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
+            dados: produtoTipoServico
+        });
+    });
+
+    /**
+     * Deletar Produto por Tipo de Serviço(soft delete)
+     * DELETE /api/produtos/produtoServico/:id
+     */
+    deletarProdutoServico = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        await ProdutoService.deletarProdutoServico(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.DELETADO,
+        });
+    });
+
+
+
+
+
+    /**
+     * Preço Produto por Tipo de Serviço
+     */
+
+    /**
+     * Adicionar Produto por Tipo de Serviço
+     * POST /api/produtos/precoProdutoServico
+     */
+    adicionarPrecoProdutoServico = asyncHandler(async (req, res) => {
+
+        const precoProdutoServicoId = await ProdutoService.adicionarPrecoProdutoServico(req.body, req.usuario.id);
+
+        return res.status(201).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.CRIADO,
+            dados: { id: precoProdutoServicoId }
+        })
+    });
+
+
+    /**
+     * Listar Produto por Tipo de Serviço
+     * GET /api/produtos/precoProdutoServico
+     */
+    listarPrecoProdutoServico = asyncHandler(async (req, res) => {
+
+        const precoProdutoServico = await ProdutoService.listarPrecoProdutoServico(req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            total: precoProdutoServico.length,
+            dados: precoProdutoServico
+        });
+    });
+
+    /**
+     * Buscar Produto por Tipo de Serviço por ID
+     * GET /api/produtos/precoProdutoServico/:id
+     */
+    buscarPrecoProdutoServicoId = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const precoProdutoServico = await ProdutoService.buscarPrecoProdutoServicoPorId(id, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            dados: precoProdutoServico
+        });
+    });
+
+    /**
+     * Atualizar Produto por Tipo de Serviço
+     * PUT /api/produtos/precoProdutoServico/:id
+     */
+    atualizarPrecoProdutoServico = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        const precoProdutoServico = await ProdutoService.atualizarPrecoProdutoServico(id, req.body, req.usuario.id);
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
+            dados: precoProdutoServico
+        });
+    });
+
+    /**
+     * Deletar Produto por Tipo de Serviço(soft delete)
+     * DELETE /api/produtos/precoProdutoServico/:id
+     */
+    deletarPrecoProdutoServico = asyncHandler(async (req, res) => {
+
+        const { id } = req.params;
+
+        await ProdutoService.deletarPrecoProdutoServico(id, req.usuario.id);
 
         return res.status(200).json({
             sucesso: true,

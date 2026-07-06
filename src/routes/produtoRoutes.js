@@ -540,4 +540,200 @@ router.delete(
 );
 
 
+
+
+
+/**
+ * Tipo de Serviço
+ */
+
+/**
+ * @route   POST /api/produtos/tipoServico
+ * @desc    Adicionar tipo de serviço
+ * @access  Privado - Admin
+ */
+router.post(
+    '/tipoServico',
+    apenasAdminMiddleware,
+    // validarBodyMiddleware,
+    tipoUsuarioMiddleware([TIPO_PESSOA.ADMINISTRADOR]),
+    ProdutoController.adicionarTipoServico
+);
+
+/**
+ * @route   GET /api/produtos/tipoServico
+ * @desc    Listar tipo de serviço
+ * @access  Privado - Admin
+ */
+router.get(
+    '/tipoServico',
+    apenasAdminMiddleware,
+    ProdutoController.listarTipoServico
+);
+
+/**
+ * @route   GET /api/produtos/tipoServico/:id
+ * @desc    Buscar tipo de serviço por ID
+ * @access  Privado - Admin
+ */
+router.get(
+    '/tipoServico/:id',
+    apenasAdminMiddleware,
+    ProdutoController.buscarTipoServicoId
+);
+
+/**
+ * @route   PUT /api/produtos/tipoServico/:id
+ * @desc    Atualizar tipo de serviço
+ * @access  Privado - Admin
+ */
+router.put(
+    '/tipoServico/:id',
+    apenasAdminMiddleware,
+    ProdutoController.atualizarTipoServico
+);
+
+/**
+ * @route   DELETE /api/produtos/tipoServico/:id
+ * @desc    Deletar tipo de serviço
+ * @access  Privado - Admin
+ */
+router.delete(
+    '/tipoServico/:id',
+    apenasAdminMiddleware,
+    ProdutoController.deletarTipoServico
+);
+
+
+
+
+
+/**
+ * Produto Serviço
+ */
+
+/**
+ * @route   POST /api/produtos/produtoServico
+ * @desc    Adicionar produto por tipo de serviço
+ * @access  Privado - Admin
+ */
+router.post(
+    '/produtoServico',
+    apenasAdminMiddleware,
+    validarBodyMiddleware,
+    tipoUsuarioMiddleware([TIPO_PESSOA.ADMINISTRADOR]),
+    ProdutoController.adicionarProdutoServico
+);
+
+/**
+ * @route   GET /api/produtos/produtoServico
+ * @desc    Listar produto por tipo de serviço
+ * @access  Privado - Admin
+ */
+router.get(
+    '/produtoServico',
+    apenasAdminMiddleware,
+    ProdutoController.listarProdutoServico
+);
+
+/**
+ * @route   GET /api/produtos/produtoServico/:id
+ * @desc    Buscar produto por tipo de serviço por ID
+ * @access  Privado - Admin
+ */
+router.get(
+    '/produtoServico/:id',
+    apenasAdminMiddleware,
+    ProdutoController.buscarProdutoServicoId
+);
+
+/**
+ * @route   PUT /api/produtos/produtoServico/:id
+ * @desc    Atualizar produto por tipo de serviço
+ * @access  Privado - Admin
+ */
+router.put(
+    '/produtoServico/:id',
+    apenasAdminMiddleware,
+    validarBodyMiddleware,
+    ProdutoController.atualizarProdutoServico
+);
+
+/**
+ * @route   DELETE /api/produtos/produtoServico/:id
+ * @desc    Deletar produto por tipo de serviço
+ * @access  Privado - Admin
+ */
+router.delete(
+    '/produtoServico/:id',
+    apenasAdminMiddleware,
+    ProdutoController.deletarProdutoServico
+);
+
+
+
+
+
+/**
+ * Preço Produto Serviço
+ */
+
+/**
+ * @route   POST /api/produtos/precoProdutoServico
+ * @desc    Adicionar produto por tipo de serviço
+ * @access  Privado - Admin
+ */
+router.post(
+    '/precoProdutoServico',
+    apenasAdminMiddleware,
+    validarBodyMiddleware,
+    tipoUsuarioMiddleware([TIPO_PESSOA.ADMINISTRADOR]),
+    ProdutoController.adicionarPrecoProdutoServico
+);
+
+/**
+ * @route   GET /api/produtos/precoProdutoServico
+ * @desc    Listar produto por tipo de serviço
+ * @access  Privado - Admin
+ */
+router.get(
+    '/precoProdutoServico',
+    apenasAdminMiddleware,
+    ProdutoController.listarPrecoProdutoServico
+);
+
+/**
+ * @route   GET /api/produtos/precoProdutoServico/:id
+ * @desc    Buscar produto por tipo de serviço por ID
+ * @access  Privado - Admin
+ */
+router.get(
+    '/precoProdutoServico/:id',
+    apenasAdminMiddleware,
+    ProdutoController.buscarPrecoProdutoServicoId
+);
+
+/**
+ * @route   PUT /api/produtos/precoProdutoServico/:id
+ * @desc    Atualizar produto por tipo de serviço
+ * @access  Privado - Admin
+ */
+router.put(
+    '/precoProdutoServico/:id',
+    apenasAdminMiddleware,
+    validarBodyMiddleware,
+    ProdutoController.atualizarPrecoProdutoServico
+);
+
+/**
+ * @route   DELETE /api/produtos/precoProdutoServico/:id
+ * @desc    Deletar produto por tipo de serviço
+ * @access  Privado - Admin
+ */
+router.delete(
+    '/precoProdutoServico/:id',
+    apenasAdminMiddleware,
+    ProdutoController.deletarPrecoProdutoServico
+);
+
 module.exports = router;

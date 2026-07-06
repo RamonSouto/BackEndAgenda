@@ -7,6 +7,7 @@ const pessoaRoutes = require('./pessoaRoutes');
 const agendamentoRoutes = require('./agendamentoRoutes');
 const produtoRoutes = require('./produtoRoutes');
 const relatorioRoutes = require('./relatorioRoutes');
+const parametrizacaoRoutes = require('./parametrizacaoRoutes');
 
 /**
  * Rota de health check
@@ -48,5 +49,6 @@ router.use('/pessoas', pessoaRoutes);
 router.use('/agendamentos', agendamentoRoutes);
 router.use('/produtos', produtoRoutes);
 router.use('/relatorios', relatorioRoutes);
+router.use('/parametrizacao', parametrizacaoRoutes);
 
 module.exports = router;

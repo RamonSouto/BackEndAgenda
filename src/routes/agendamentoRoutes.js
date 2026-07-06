@@ -5,7 +5,8 @@ const authMiddleware = require('../middlewares/authMiddleware');
 const {
     secretariaOuAdminMiddleware,
     costureiraOuAdminMiddleware,
-    tipoUsuarioMiddleware
+    tipoUsuarioMiddleware,
+    apenasAdminMiddleware
 } = require('../middlewares/permissionMiddleware');
 const { validarIdMiddleware, validarBodyMiddleware } = require('../middlewares/errorMiddleware');
 const { limiterCriacao } = require('../middlewares/rateLimitMiddleware');
@@ -13,6 +14,24 @@ const { TIPO_PESSOA } = require('../utils/constants');
 
 // Todas as rotas requerem autenticação
 router.use(authMiddleware);
+
+
+/**
+ * @route   POST /api/agendamentos
+ * @desc    Criar novo agendamento
+ * @access  Privado - Secretária, Costureira, Admin
+ */
+router.post(
+    '/',
+    limiterCriacao,
+    validarBodyMiddleware,
+    tipoUsuarioMiddleware([
+        TIPO_PESSOA.SECRETARIA,
+        TIPO_PESSOA.COSTUREIRA,
+        TIPO_PESSOA.ADMINISTRADOR
+    ]),
+    AgendamentoController.criar
+);
 
 /**
  * @route   GET /api/agendamentos/estatisticas
@@ -45,23 +64,6 @@ router.get(
 );
 
 /**
- * @route   POST /api/agendamentos
- * @desc    Criar novo agendamento
- * @access  Privado - Secretária, Costureira, Admin
- */
-router.post(
-    '/',
-    limiterCriacao,
-    validarBodyMiddleware,
-    tipoUsuarioMiddleware([
-        TIPO_PESSOA.SECRETARIA,
-        TIPO_PESSOA.COSTUREIRA,
-        TIPO_PESSOA.ADMINISTRADOR
-    ]),
-    AgendamentoController.criar
-);
-
-/**
  * @route   GET /api/agendamentos
  * @desc    Listar agendamentos com filtros
  * @access  Privado - Todos autenticados
@@ -69,16 +71,60 @@ router.post(
 router.get('/', AgendamentoController.listar);
 
 /**
+ * @route   POST /api/agendamentos/tipo
+ * @desc    Criar novo agendamento
+ * @access  Privado - Secretária, Costureira, Admin
+ */
+router.post(
+    '/tipo',
+    limiterCriacao,
+    apenasAdminMiddleware,
+    AgendamentoController.criarTipoAgendamento
+);
+
+/**
+ * @route   GET /api/agendamentos/tipo
+ * @desc    Listar tipo de agendamento
+ * @access  Privado - Todos autenticados
+ */
+router.get(
+    '/tipo',
+    apenasAdminMiddleware,
+    AgendamentoController.listarTipoAgendamento
+);
+
+/**
  * @route   GET /api/agendamentos/:id
  * @desc    Buscar agendamento por ID
  * @access  Privado - Todos autenticados
  */
 router.get(
-    '/:id',
+    '/tipo/:id',
     validarIdMiddleware(),
-    AgendamentoController.buscarPorId
+    AgendamentoController.buscarTipoAgendamentoPorId
 );
 
+/**
+ * @route   PUT /api/produtos/tamanho/:id
+ * @desc    Atualizar categoria
+ * @access  Privado - Admin
+ */
+router.put(
+    '/tipo/:id',
+    apenasAdminMiddleware,
+    AgendamentoController.atualizarTipoAgendamento
+);
+
+/**
+ * @route   DELETE /api/produtos/tamanho/:id
+ * @desc    Deletar categoria
+ * @access  Privado - Admin
+ */
+router.delete(
+    '/tipo/:id',
+    apenasAdminMiddleware,
+    AgendamentoController.deletarTipoAgendamento
+);
 /**
  * @route   PUT /api/agendamentos/:id
  * @desc    Atualizar agendamento
@@ -138,5 +184,7 @@ router.delete(
     validarIdMiddleware(),
     AgendamentoController.deletar
 );
+
+
 
 module.exports = router;

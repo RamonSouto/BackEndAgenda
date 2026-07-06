@@ -1,4 +1,4 @@
-const { format, parseISO } = require('date-fns');
+const { format, parseISO, parse } = require('date-fns');
 const { ptBR } = require('date-fns/locale');
 
 module.exports = {
@@ -39,7 +39,7 @@ module.exports = {
         return telefone.replace(/[^\d]/g, '');
     },
 
-    ocultarDadosSensiveis(objeto, campos = ['des_senha', 'senha_hash']) {
+    ocultarDadosSensiveis(objeto, campos = ['des_senha', 'senha_hash', 'cpf']) {
         const copia = { ...objeto };
         campos.forEach(campo => {
             if (copia[campo]) {
