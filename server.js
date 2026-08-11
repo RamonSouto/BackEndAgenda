@@ -14,6 +14,7 @@ class Server {
 
     async start() {
         try {
+            console.clear();
             console.log('\n🚀 Iniciando servidor...\n');
 
             // Conectar ao banco de dados
@@ -29,7 +30,7 @@ class Server {
             this.setupShutdownHandlers();
 
             console.log('\n✅ Servidor iniciado com sucesso!\n');
-            this.printServerInfo();
+            // this.printServerInfo();
 
         } catch (error) {
             console.error('❌ Erro ao iniciar servidor:', error);

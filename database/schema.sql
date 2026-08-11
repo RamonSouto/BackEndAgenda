@@ -19,17 +19,43 @@ CREATE TABLE IF NOT EXISTS tab_cidade (
     INDEX idx_ibge (cod_municipio_ibge)
 ) ENGINE = InnoDB;
 
+CREATE TABLE IF NOT EXISTS tab_empresa (
+    id INT NOT NULL AUTO_INCREMENT,
+    id_cidade INT NOT NULL,
+    nom_fantasia VARCHAR(100) NOT NULL,
+    nom_razao_social VARCHAR(100) NOT NULL,
+    num_cnpj VARCHAR(14) NOT NULL,
+    num_inscricao_estadual VARCHAR(20) NULL,
+    dta_abertura DATE NOT NULL,
+    des_logradouro VARCHAR(45) NOT NULL,
+    num_endereco VARCHAR(255) NULL,
+    des_complemento VARCHAR(100) NULL,
+    num_cep VARCHAR(8) NOT NULL,
+    nom_bairro VARCHAR(100) NOT NULL,
+    num_celular_1 VARCHAR(15) NOT NULL,
+    ind_whatsapp_1 TINYINT NOT NULL,
+    num_celular_2 VARCHAR(15) NULL,
+    ind_whatsapp_2 TINYINT NOT NULL,
+    des_email_1 VARCHAR(255) NOT NULL,
+    des_email_2 VARCHAR(255) NULL,
+    val_cor_principal VARCHAR(6) NOT NULL,
+    des_url_logo_vertical VARCHAR(255) NULL DEFAULT NULL,
+    des_url_logo_horizontal VARCHAR(255) NULL DEFAULT NULL,
+    des_url_logo_vertical_negativa VARCHAR(255) NULL DEFAULT NULL,
+    des_url_logo_horizontal_negativa VARCHAR(255) NULL DEFAULT NULL,
+    ind_ativo TINYINT NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_ad DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL DEFAULT NULL,
+    PRIMARY KEY (id),
+    INDEX fk_tab_empresa_tab_cidade1_idx (id_cidade ASC) VISIBLE,
+    CONSTRAINT fk_tab_empresa_tab_cidade1 FOREIGN KEY (id_cidade) REFERENCES tab_cidade (id) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE = InnoDB
+
 CREATE TABLE IF NOT EXISTS tab_pessoas (
     id INT PRIMARY KEY AUTO_INCREMENT,
     id_cidade INT NOT NULL,
     ind_status ENUM('ativo', 'inativo') NOT NULL DEFAULT 'ativo',
-    ind_tipo_pessoa ENUM(
-        'medico',
-        'secretaria',
-        'costureira',
-        'paciente',
-        'administrador'
-    ) NOT NULL,
     nom_completo VARCHAR(255) NOT NULL,
     num_cpf VARCHAR(11) UNIQUE NOT NULL,
     num_rg VARCHAR(20) NOT NULL,
@@ -49,6 +75,12 @@ CREATE TABLE IF NOT EXISTS tab_pessoas (
     num_tentativas_login INT DEFAULT 0,
     dta_ultimo_login DATETIME,
     dta_bloqueio_login DATETIME,
+    ind_medico tinyint(1) NOT NULL DEFAULT '0',
+    ind_secretaria tinyint(1) NOT NULL DEFAULT '0',
+    ind_costureira tinyint(1) NOT NULL DEFAULT '0',
+    ind_paciente tinyint(1) NOT NULL DEFAULT '0',
+    ind_administrador tinyint(1) NOT NULL DEFAULT '0',
+    val_cor_hex varchar(6) DEFAULT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME,
@@ -483,6 +515,31 @@ FOR EACH ROW BEGIN
         END IF;
     END IF;
 END;
+
+CREATE TRIGGER before_insert_tab_parametrizacao 
+BEFORE INSERT ON tab_parametrizacao
+FOR EACH ROW BEGIN
+    IF NEW.ind_ativo = 1 THEN
+        UPDATE tab_parametrizacao
+        SET ind_ativo = 0
+        WHERE des_tipo_dia = NEW.des_tipo_dia
+          AND ind_ativo = 1
+          AND deleted_at IS NULL;
+    END IF;
+END;
+
+CREATE TRIGGER before_update_tab_parametrizacao 
+BEFORE UPDATE ON tab_parametrizacao 
+FOR EACH ROW BEGIN
+    IF NEW.ind_ativo = 1 THEN
+        UPDATE tab_parametrizacao
+        SET ind_ativo = 0
+        WHERE des_tipo_dia = NEW.des_tipo_dia
+          AND ind_ativo = 1
+          AND id <> OLD.id
+          AND deleted_at IS NULL;
+    END IF;
+END
 
 -- ====================
 -- VIEWS ÚTEIS

@@ -3,10 +3,60 @@ const jwt = require('jsonwebtoken');
 const PessoaModel = require('../models/PessoaModel');
 const LogService = require('./LogService');
 const config = require('../config/env');
-const { TIPO_PESSOA, MENSAGENS, ACOES_LOG } = require('../utils/constants');
+const { PAPEIS_PESSOA, MENSAGENS, ACOES_LOG, PERMISSOES } = require('../utils/constants');
 const { differenceInMinutes } = require('date-fns');
+const { UnauthorizedError } = require('../utils/ApiError');
 
 class AuthService {
+    extrairPapeis(usuario) {
+        const papeis = [];
+
+        if (usuario.ind_medico) {
+            papeis.push(PAPEIS_PESSOA.MEDICO);
+        }
+
+        if (usuario.ind_secretaria) {
+            papeis.push(PAPEIS_PESSOA.SECRETARIA);
+        }
+
+        if (usuario.ind_costureira) {
+            papeis.push(PAPEIS_PESSOA.COSTUREIRA);
+        }
+
+        if (usuario.ind_paciente) {
+            papeis.push(PAPEIS_PESSOA.PACIENTE);
+        }
+
+        if (usuario.ind_administrador) {
+            papeis.push(PAPEIS_PESSOA.ADMINISTRADOR);
+        }
+
+        return papeis;
+    }
+
+    possuiAlgumPapel(usuario, papeisPermitidos = []) {
+        const papeisUsuario = this.extrairPapeis(usuario);
+        return papeisUsuario.some(papel => papeisPermitidos.includes(papel));
+    }
+
+    obterPermissoesUsuario(usuario) {
+        const papeisUsuario = this.extrairPapeis(usuario);
+
+        const permissoes = new Set();
+
+        for (const papel of papeisUsuario) {
+            const permissoesDoPapel = PERMISSOES[papel] || [];
+
+            if (permissoesDoPapel.includes('*')) {
+                return ['*'];
+            }
+
+            permissoesDoPapel.forEach(permissoes => permissoes.add(permissao));
+        }
+
+        return Array.from(permissoes);
+    }
+
     async login(num_cpf, des_senha, ipAddress, userAgent) {
         try {
             // Buscar usuário por CPF
@@ -21,7 +71,7 @@ class AuthService {
                     des_user_agent: userAgent
                 });
 
-                throw new Error(MENSAGENS.ERRO.CREDENCIAIS_INVALIDAS);
+                throw new UnauthorizedError(MENSAGENS.ERRO.CREDENCIAIS_INVALIDAS);
             }
 
             // Verificar se usuário está ativo
@@ -30,15 +80,15 @@ class AuthService {
             }
 
             // Verificar se o tipo de pessoa pode fazer login
-            const tiposComAcesso = [
-                TIPO_PESSOA.ADMINISTRADOR,
-                TIPO_PESSOA.SECRETARIA,
-                TIPO_PESSOA.COSTUREIRA,
-                TIPO_PESSOA.MEDICO
+            const papeisComAcesso = [
+                PAPEIS_PESSOA.ADMINISTRADOR,
+                PAPEIS_PESSOA.SECRETARIA,
+                PAPEIS_PESSOA.COSTUREIRA,
+                PAPEIS_PESSOA.MEDICO
             ];
 
-            if (!tiposComAcesso.includes(usuario.ind_tipo_pessoa)) {
-                throw new Error('Tipo de usuário sem permissão de acesso');
+            if (!this.possuiAlgumPapel(usuario, papeisComAcesso)) {
+                throw new Error('Usuário sem permissão de acesso')
             }
 
             // Verificar bloqueio por tentativas
@@ -112,12 +162,14 @@ class AuthService {
             // Login bem-sucedido - resetar tentativas
             await PessoaModel.resetarTentativasLogin(usuario.id);
 
+            const papeis = this.extrairPapeis(usuario)
+
             // Gerar token JWT
             const token = jwt.sign(
                 {
                     id: usuario.id,
                     cpf: usuario.num_cpf,
-                    tipo: usuario.ind_tipo_pessoa
+                    papeis
                 },
                 config.jwt.secret,
                 { expiresIn: config.jwt.expiresIn }
@@ -129,7 +181,7 @@ class AuthService {
                 des_acao: ACOES_LOG.LOGIN,
                 des_tabela: 'tab_pessoas',
                 num_registro_id: usuario.id,
-                des_detalhes: { sucesso: true },
+                des_detalhes: { sucesso: true, papeis },
                 num_ip_address: ipAddress,
                 des_user_agent: userAgent
             });
@@ -143,8 +195,15 @@ class AuthService {
                     id: usuario.id,
                     nome: usuario.nom_completo,
                     cpf: usuario.num_cpf,
-                    tipo: usuario.ind_tipo_pessoa,
-                    email: usuario.des_email_1
+                    email: usuario.des_email_1,
+                    papeis,
+                    indicadores: {
+                        ind_medico: !!usuario.ind_medico,
+                        ind_secretaria: !!usuario.ind_secretaria,
+                        ind_costureira: !!usuario.ind_costureira,
+                        ind_paciente: !!usuario.ind_paciente,
+                        ind_administrador: !!usuario.ind_administrador
+                    }
                 }
             };
 
@@ -251,8 +310,7 @@ class AuthService {
             return false;
         }
 
-        const { PERMISSOES } = require('../utils/constants');
-        const permissoesUsuario = PERMISSOES[usuario.ind_tipo_pessoa] || [];
+        const permissoesUsuario = this.obterPermissoesUsuario(usuario);
 
         // Administrador tem todas as permissões
         if (permissoesUsuario.includes('*')) {

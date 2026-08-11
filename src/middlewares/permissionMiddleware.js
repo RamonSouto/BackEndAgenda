@@ -1,37 +1,52 @@
-const { TIPO_PESSOA, PERMISSOES, MENSAGENS } = require('../utils/constants');
+const { PAPEIS_PESSOA, PERMISSOES, MENSAGENS } = require('../utils/constants');
 
-/**
- * Middleware para verificar permissões específicas
- * @param {string|string[]} permissoesRequeridas - Permissão(ões) necessária(s)
- */
+const extrairPapeisUsuario = (usuario) => {
+    const papeis = [];
+
+    if (usuario.ind_medico) papeis.push(PAPEIS_PESSOA.MEDICO);
+    if (usuario.ind_secretaria) papeis.push(PAPEIS_PESSOA.SECRETARIA);
+    if (usuario.ind_costureira) papeis.push(PAPEIS_PESSOA.COSTUREIRA);
+    if (usuario.ind_paciente) papeis.push(PAPEIS_PESSOA.PACIENTE);
+    if (usuario.ind_administrador) papeis.push(PAPEIS_PESSOA.ADMINISTRADOR);
+
+    return papeis;
+};
+
 const permissionMiddleware = (permissoesRequeridas) => {
     return (req, res, next) => {
         try {
-            // Verificar se usuário está autenticado
-            if (!req.usuario || !req.usuario.tipo) {
+            if (!req.usuario) {
                 return res.status(401).json({
                     sucesso: false,
                     mensagem: MENSAGENS.ERRO.NAO_AUTORIZADO
                 });
             }
 
-            const tipoUsuario = req.usuario.tipo;
-            const permissoesUsuario = PERMISSOES[tipoUsuario] || [];
+            const papeisUsuario = req.usuario.papeis || extrairPapeisUsuario(req.usuario);
 
-            // Administrador tem todas as permissões
-            if (permissoesUsuario.includes('*')) {
+            if (!papeisUsuario.length) {
+                return res.status(401).json({
+                    sucesso: false,
+                    mensagem: MENSAGENS.ERRO.NAO_AUTORIZADO
+                });
+            }
+
+            const todasPermissoes = new Set();
+
+            for (const papel of papeisUsuario) {
+                const permissoesDoPapel = PERMISSOES[papel] || [];
+                permissoesDoPapel.forEach(permissao => todasPermissoes.add(permissao));
+            }
+
+            if (todasPermissoes.has('*')) {
                 return next();
             }
 
-            // Converter para array se for string
             const permissoes = Array.isArray(permissoesRequeridas)
                 ? permissoesRequeridas
                 : [permissoesRequeridas];
 
-            // Verificar se usuário tem pelo menos uma das permissões requeridas
-            const temPermissao = permissoes.some(permissao =>
-                permissoesUsuario.includes(permissao)
-            );
+            const temPermissao = permissoes.some(permissao => todasPermissoes.has(permissao));
 
             if (!temPermissao) {
                 return res.status(403).json({
@@ -42,7 +57,6 @@ const permissionMiddleware = (permissoesRequeridas) => {
             }
 
             next();
-
         } catch (error) {
             console.error('Erro no middleware de permissão:', error);
             return res.status(500).json({
@@ -54,36 +68,42 @@ const permissionMiddleware = (permissoesRequeridas) => {
     };
 };
 
-/**
- * Middleware para verificar se usuário é de um tipo específico
- * @param {string|string[]} tiposPermitidos - Tipo(s) de usuário permitido(s)
- */
-const tipoUsuarioMiddleware = (tiposPermitidos) => {
+const papelMiddleware = (papeisPermitidos) => {
     return (req, res, next) => {
         try {
-            if (!req.usuario || !req.usuario.tipo) {
+            if (!req.usuario) {
                 return res.status(401).json({
                     sucesso: false,
                     mensagem: MENSAGENS.ERRO.NAO_AUTORIZADO
                 });
             }
 
-            const tipos = Array.isArray(tiposPermitidos)
-                ? tiposPermitidos
-                : [tiposPermitidos];
+            const papeisUsuario = req.usuario.papeis || extrairPapeisUsuario(req.usuario);
 
-            if (!tipos.includes(req.usuario.tipo)) {
+            if (!papeisUsuario.length) {
+                return res.status(401).json({
+                    sucesso: false,
+                    mensagem: MENSAGENS.ERRO.NAO_AUTORIZADO
+                });
+            }
+
+            const papeis = Array.isArray(papeisPermitidos)
+                ? papeisPermitidos
+                : [papeisPermitidos];
+
+            const autorizado = papeis.some(papel => papeisUsuario.includes(papel));
+
+            if (!autorizado) {
                 return res.status(403).json({
                     sucesso: false,
                     mensagem: 'Acesso negado',
-                    erro: 'Tipo de usuário não autorizado para esta ação'
+                    erro: 'Papel de usuário não autorizado para esta ação'
                 });
             }
 
             next();
-
         } catch (error) {
-            console.error('Erro no middleware de tipo de usuário:', error);
+            console.error('Erro no middleware de papel de usuário:', error);
             return res.status(500).json({
                 sucesso: false,
                 mensagem: MENSAGENS.ERRO.SERVIDOR,
@@ -93,42 +113,30 @@ const tipoUsuarioMiddleware = (tiposPermitidos) => {
     };
 };
 
-/**
- * Middleware para permitir apenas administradores
- */
 const apenasAdminMiddleware = (req, res, next) => {
-    return tipoUsuarioMiddleware(TIPO_PESSOA.ADMINISTRADOR)(req, res, next);
+    return papelMiddleware(PAPEIS_PESSOA.ADMINISTRADOR)(req, res, next);
 };
 
-/**
- * Middleware para permitir secretárias e administradores
- */
 const secretariaOuAdminMiddleware = (req, res, next) => {
-    return tipoUsuarioMiddleware([
-        TIPO_PESSOA.SECRETARIA,
-        TIPO_PESSOA.ADMINISTRADOR
+    return papelMiddleware([
+        PAPEIS_PESSOA.SECRETARIA,
+        PAPEIS_PESSOA.ADMINISTRADOR
     ])(req, res, next);
 };
 
-/**
- * Middleware para permitir costureiras e administradores
- */
 const costureiraOuAdminMiddleware = (req, res, next) => {
-    return tipoUsuarioMiddleware([
-        TIPO_PESSOA.COSTUREIRA,
-        TIPO_PESSOA.ADMINISTRADOR
+    return papelMiddleware([
+        PAPEIS_PESSOA.COSTUREIRA,
+        PAPEIS_PESSOA.ADMINISTRADOR
     ])(req, res, next);
 };
 
-/**
- * Middleware para verificar se usuário pode acessar recurso próprio
- * @param {string} paramName - Nome do parâmetro que contém o ID do recurso
- */
 const recursoProprio = (paramName = 'id') => {
     return (req, res, next) => {
         try {
-            // Administrador pode acessar qualquer recurso
-            if (req.usuario.tipo === TIPO_PESSOA.ADMINISTRADOR) {
+            const papeisUsuario = req.usuario?.papeis || extrairPapeisUsuario(req.usuario || {});
+
+            if (papeisUsuario.includes(PAPEIS_PESSOA.ADMINISTRADOR)) {
                 return next();
             }
 
@@ -144,7 +152,6 @@ const recursoProprio = (paramName = 'id') => {
             }
 
             next();
-
         } catch (error) {
             console.error('Erro no middleware de recurso próprio:', error);
             return res.status(500).json({
@@ -158,9 +165,10 @@ const recursoProprio = (paramName = 'id') => {
 
 module.exports = {
     permissionMiddleware,
-    tipoUsuarioMiddleware,
+    papelMiddleware,
     apenasAdminMiddleware,
     secretariaOuAdminMiddleware,
     costureiraOuAdminMiddleware,
-    recursoProprio
+    recursoProprio,
+    extrairPapeisUsuario
 };

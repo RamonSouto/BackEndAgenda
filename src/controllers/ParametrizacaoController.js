@@ -23,7 +23,7 @@ class ParametrizacaoController {
      * GET /api/parametrizacao/
      */
     listarParametrizacao = asyncHandler(async (req, res) => {
-        console.log(req);
+
         const parametrizacao = await ParametrizacaoService.listar(req.usuario.id)
 
         return res.status(200).json({

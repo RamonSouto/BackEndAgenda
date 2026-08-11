@@ -2,12 +2,9 @@ const express = require('express');
 const router = express.Router();
 const RelatorioController = require('../controllers/RelatorioController');
 const authMiddleware = require('../middlewares/authMiddleware');
-const {
-    apenasAdminMiddleware,
-    tipoUsuarioMiddleware
-} = require('../middlewares/permissionMiddleware');
+const { apenasAdminMiddleware, papelMiddleware } = require('../middlewares/permissionMiddleware');
 const { validarIdMiddleware } = require('../middlewares/errorMiddleware');
-const { TIPO_PESSOA } = require('../utils/constants');
+const { PAPEIS_PESSOA } = require('../utils/constants');
 
 // Todas as rotas requerem autenticação
 router.use(authMiddleware);
@@ -78,10 +75,10 @@ router.get(
  */
 router.get(
     '/agendamentos',
-    tipoUsuarioMiddleware([
-        TIPO_PESSOA.SECRETARIA,
-        TIPO_PESSOA.MEDICO,
-        TIPO_PESSOA.ADMINISTRADOR
+    papelMiddleware([
+        PAPEIS_PESSOA.SECRETARIA,
+        PAPEIS_PESSOA.MEDICO,
+        PAPEIS_PESSOA.ADMINISTRADOR
     ]),
     RelatorioController.agendamentos
 );

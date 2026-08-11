@@ -2,12 +2,10 @@ const express = require('express');
 const router = express.Router();
 const PessoaController = require('../controllers/PessoaController');
 const authMiddleware = require('../middlewares/authMiddleware');
-const { apenasAdminMiddleware, secretariaOuAdminMiddleware, permissionMiddleware } = require('../middlewares/permissionMiddleware');
+const { apenasAdminMiddleware, secretariaOuAdminMiddleware } = require('../middlewares/permissionMiddleware');
 const { validarIdMiddleware, validarBodyMiddleware } = require('../middlewares/errorMiddleware');
 const { limiterCriacao } = require('../middlewares/rateLimitMiddleware');
 
-
-// Todas as rotas requerem autenticação
 router.use(authMiddleware);
 
 /**
@@ -43,7 +41,6 @@ router.get(
     PessoaController.listarSecretarias
 );
 
-
 /**
  * @route   GET /api/pessoas/costureiras
  * @desc    Listar costureiras
@@ -67,14 +64,14 @@ router.get(
 );
 
 /**
- * @route   GET /api/pessoas/tipo/:tipo
- * @desc    Listar pessoas por tipo
+ * @route   GET /api/pessoas/papel/:papel
+ * @desc    Listar pessoas por papel
  * @access  Privado - Secretária, Admin
  */
 router.get(
-    '/tipo/:tipo',
+    '/papel/:papel',
     secretariaOuAdminMiddleware,
-    PessoaController.listarPorTipo
+    PessoaController.listarPorPapel
 );
 
 /**
@@ -99,7 +96,6 @@ router.get(
     secretariaOuAdminMiddleware,
     PessoaController.listar
 );
-
 
 /** Cidades e Estados */
 /**
@@ -142,7 +138,6 @@ router.get(
     PessoaController.buscarCidadeEstadoId
 );
 
-
 /**
  * @route   GET /api/pessoas/estados
  * @desc    Listar estados
@@ -182,8 +177,6 @@ router.get(
     '/estado/sgl/:sgl',
     PessoaController.buscarEstadoSgl
 );
-
-
 
 
 
@@ -234,6 +227,7 @@ router.patch(
     '/:id/ativar',
     validarIdMiddleware(),
     apenasAdminMiddleware,
+
     PessoaController.ativar
 );
 
@@ -248,7 +242,5 @@ router.patch(
     apenasAdminMiddleware,
     PessoaController.desativar
 );
-
-
 
 module.exports = router;

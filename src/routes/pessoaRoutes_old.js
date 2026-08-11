@@ -43,6 +43,7 @@ router.get(
     PessoaController.listarSecretarias
 );
 
+
 /**
  * @route   GET /api/pessoas/costureiras
  * @desc    Listar costureiras
@@ -98,6 +99,95 @@ router.get(
     secretariaOuAdminMiddleware,
     PessoaController.listar
 );
+
+
+/** Cidades e Estados */
+/**
+ * @route   GET /api/pessoas/cidades
+ * @desc    Listar cidades
+ * @access  Privado - Secretária, Admin
+ */
+router.get(
+    '/cidades',
+    PessoaController.listarCidades
+);
+
+/**
+ * @route   GET /api/pessoas/cidade/id
+ * @desc    Buscar cidade por ID
+ * @access  Privado - Secretária, Admin
+ */
+router.get(
+    '/cidade/:id',
+    PessoaController.buscarCidadeId
+);
+
+/**
+ * @route   GET /api/pessoas/cidades/nome
+ * @desc    Buscar cidade por nome
+ * @access  Privado - Secretária, Admin
+ */
+router.get(
+    '/cidades/nome/:nome',
+    PessoaController.buscarCidadeNome
+);
+
+/**
+ * @route   GET /api/pessoas/cidades/estado/:id
+ * @desc    Buscar cidade por ID estado
+ * @access  Privado - Secretária, Admin
+ */
+router.get(
+    '/cidades/estado/:id',
+    PessoaController.buscarCidadeEstadoId
+);
+
+
+/**
+ * @route   GET /api/pessoas/estados
+ * @desc    Listar estados
+ * @access  Privado - Secretária, Admin
+ */
+router.get(
+    '/estados',
+    PessoaController.listarEstados
+);
+
+/**
+ * @route   GET /api/pessoas/estado/id/:id
+ * @desc    Buscar estado
+ * @access  Privado - Secretária, Admin
+ */
+router.get(
+    '/estado/id/:id',
+    PessoaController.buscarEstadoId
+);
+
+/**
+ * @route   GET /api/pessoas/estado/nome/:nome
+ * @desc    Buscar estado por nome
+ * @access  Privado - Secretária, Admin
+ */
+router.get(
+    '/estado/nome/:nome',
+    PessoaController.buscarEstadoNome
+);
+
+/**
+ * @route   GET /api/pessoas/estado/sgl/:sgl
+ * @desc    Buscar estado por sigla
+ * @access  Privado - Secretária, Admin
+ */
+router.get(
+    '/estado/sgl/:sgl',
+    PessoaController.buscarEstadoSgl
+);
+
+
+
+
+
+
 
 /**
  * @route   GET /api/pessoas/:id

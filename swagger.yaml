@@ -144,15 +144,32 @@ components:
                 cpf:
                   type: string
                   example: "00000000000"
-                tipo:
-                  type: string
-                  enum:
-                    [administrador, secretaria, costureira, medico, paciente]
-                  example: administrador
                 email:
                   type: string
                   example: admin@sistema.com
-
+                papeis:
+                  type: array
+                  enum:
+                    [administrador, secretaria, costureira, medico, paciente]
+                  example: [administrador, paciente]
+                indicadores:
+                  type: object
+                  properties:
+                    ind_medico:
+                      type: boolean
+                      example: 0
+                    ind_secretaria:
+                      type: boolean
+                      example: 0
+                    ind_costureira:
+                      type: boolean
+                      example: 0
+                    ind_paciente:
+                      type: boolean
+                      example: 1
+                    ind_administrador:
+                      type: boolean
+                      example: 1
     # Schema de Cor e Estampa
     CorEstampaInput:
       type: object
@@ -372,7 +389,6 @@ components:
       type: object
       required:
         - id_cidade
-        - ind_tipo_pessoa
         - nom_completo
         - num_cpf
         - num_rg
@@ -393,11 +409,6 @@ components:
           enum: [ativo, inativo]
           default: ativo
           example: ativo
-        ind_tipo_pessoa:
-          type: string
-          enum: [medico, secretaria, costureira, paciente, administrador]
-          description: Tipo de pessoa/usuário
-          example: paciente
         nom_completo:
           type: string
           maxLength: 255
@@ -496,6 +507,44 @@ components:
             id:
               type: integer
               example: 1
+            num_tentativas_login:
+              type: integer
+              example: 0
+            dta_ultimo_login:
+              type: string
+              format: date-time
+              example: 2026-07-21T03:24:45.000Z
+            dta_bloqueio_login:
+              type: string
+              format: date-time
+              example: 2026-07-21T03:24:45.000Z
+            ind_medico:
+              type: boolean
+              example: 0
+            ind_secretaria:
+              type: boolean
+              example: 0
+            ind_costureira:
+              type: boolean
+              example: 0
+            ind_paciente:
+              type: boolean
+              example: 1
+            ind_administrador:
+              type: boolean
+              example: 1
+            created_at:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+            updated_at:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+            deleted_at_at:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
             nom_cidade:
               type: string
               example: Goiânia
@@ -505,14 +554,6 @@ components:
             sgl_estado:
               type: string
               example: GO
-            created_at:
-              type: string
-              format: date-time
-              example: "2024-01-15T10:30:00Z"
-            updated_at:
-              type: string
-              format: date-time
-              example: "2024-01-15T10:30:00Z"
 
     PessoaList:
       type: object
@@ -975,7 +1016,7 @@ paths:
               example:
                 sucesso: false
                 mensagem: Muitas tentativas de login
-                erro: Você excedeu o limite de tentativas. Tente novamente em 15 minutos
+                erro: Conta bloqueada por excesso de tentativas. Tente novamente em 15 minutos
 
   /api/auth/logout:
     post:

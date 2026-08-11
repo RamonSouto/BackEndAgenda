@@ -189,7 +189,66 @@ const uploadMultiple = (fieldName = 'fotos', maxCount = 10) => {
     };
 };
 
+
+/**
+ * Middleware para upload de múltiplos campos específicos
+ * @param {Array} fields - Array de objetos { name, maxCount }
+ * @param {string} subpasta - Subdiretório dentro de uploads
+ */
+const uploadFields = (fields, subpasta = 'empresa') => {
+    return (req, res, next) => {
+        req.uploadSubDir = subpasta;
+
+        const uploadHandler = upload.fields(fields);
+
+        uploadHandler(req, res, (err) => {
+            if (err instanceof multer.MulterError) {
+                return res.status(400).json({
+                    sucesso: false,
+                    mensagem: 'Erro no upload',
+                    erro: err.message
+                });
+            } else if (err) {
+                return res.status(400).json({
+                    sucesso: false,
+                    mensagem: 'Erro no upload',
+                    erro: err.message
+                });
+            }
+
+            // req.files é um objeto: { fieldname: [file, ...] }
+            // Validar cada arquivo individualmente
+            const allFiles = [];
+            if (req.files) {
+                Object.values(req.files).forEach(fileArray => {
+                    allFiles.push(...fileArray);
+                });
+            }
+
+            // Se nenhum arquivo foi enviado, não há problema (todos opcionais)
+            try {
+                for (const file of allFiles) {
+                    UploadService.validarArquivo(file);
+                }
+                next();
+            } catch (error) {
+                // Deletar todos os arquivos enviados se algum for inválido
+                Promise.all(
+                    allFiles.map(file => UploadService.deletarArquivo(file.path))
+                ).catch(console.error);
+
+                return res.status(400).json({
+                    sucesso: false,
+                    mensagem: 'Arquivo inválido',
+                    erro: error.message
+                });
+            }
+        });
+    };
+};
+
 module.exports = {
     uploadSingle,
-    uploadMultiple
+    uploadMultiple,
+    uploadFields
 };

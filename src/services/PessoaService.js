@@ -1,22 +1,41 @@
 const bcrypt = require('bcryptjs');
 const PessoaModel = require('../models/PessoaModel');
 const LogService = require('./LogService');
-const { TIPO_PESSOA, MENSAGENS, ACOES_LOG } = require('../utils/constants');
+const { PAPEIS_PESSOA, MENSAGENS, ACOES_LOG } = require('../utils/constants');
 const validators = require('../utils/validators');
 const { limparCPF, limparCEP, limparTelefone, ocultarDadosSensiveis } = require('../utils/formatters');
 
 class PessoaService {
+    extrairPapeis(dados) {
+        const papeis = [];
+
+        if (dados.ind_medico) papeis.push(PAPEIS_PESSOA.MEDICO);
+        if (dados.ind_secretaria) papeis.push(PAPEIS_PESSOA.SECRETARIA);
+        if (dados.ind_costureira) papeis.push(PAPEIS_PESSOA.COSTUREIRA);
+        if (dados.ind_paciente) papeis.push(PAPEIS_PESSOA.PACIENTE);
+        if (dados.ind_administrador) papeis.push(PAPEIS_PESSOA.ADMINISTRADOR);
+
+        return papeis;
+    }
+
+    possuiAlgumPapel(dados) {
+        return (
+            dados.ind_medico ||
+            dados.ind_secretaria ||
+            dados.ind_costureira ||
+            dados.ind_paciente ||
+            dados.ind_administrador
+        );
+    }
+
     async criar(dados, usuarioLogadoId) {
         try {
-
-            // Validar dados
             const { error, value } = validators.pessoaSchema.validate(dados);
 
             if (error) {
                 throw new Error(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
             }
 
-            // Limpar dados
             value.num_cpf = limparCPF(value.num_cpf);
             value.num_cep = limparCEP(value.num_cep);
 
@@ -25,40 +44,33 @@ class PessoaService {
                 value.num_celular_2 = limparTelefone(value.num_celular_2);
             }
 
-            // Verificar se CPF já existe
             const cpfExistente = await PessoaModel.buscarPorCPF(value.num_cpf);
 
             if (cpfExistente) {
                 throw new Error(MENSAGENS.ERRO.CPF_EXISTENTE);
             }
 
-            // Hash da senha se fornecida
             if (value.des_senha) {
                 value.des_senha = await bcrypt.hash(value.des_senha, 10);
             }
 
-            // console.log(value);
-
-            // Criar pessoa
             const pessoaId = await PessoaModel.criar(value);
+            const papeis = this.extrairPapeis(value);
 
-            // Registrar log
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.CRIAR,
                 des_tabela: 'tab_pessoas',
                 num_registro_id: pessoaId,
                 des_detalhes: {
-                    tipo_pessoa: value.ind_tipo_pessoa,
+                    papeis,
                     nome: value.nom_completo,
                     cpf: value.num_cpf
                 }
             });
 
             const pessoa = await PessoaModel.buscarPorId(pessoaId);
-
             return ocultarDadosSensiveis(pessoa);
-
         } catch (error) {
             throw error;
         }
@@ -72,7 +84,6 @@ class PessoaService {
                 throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
             }
 
-            // Registrar log de consulta
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.CONSULTAR,
@@ -85,7 +96,6 @@ class PessoaService {
             });
 
             return ocultarDadosSensiveis(pessoa);
-
         } catch (error) {
             throw error;
         }
@@ -105,7 +115,6 @@ class PessoaService {
                 throw new Error('Pessoa não encontrada');
             }
 
-            // Registrar log de consulta
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.CONSULTAR,
@@ -119,7 +128,6 @@ class PessoaService {
             });
 
             return ocultarDadosSensiveis(pessoa);
-
         } catch (error) {
             throw error;
         }
@@ -129,43 +137,39 @@ class PessoaService {
         try {
             const pessoas = await PessoaModel.listar(filtros);
 
-            // Registrar log
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.CONSULTAR,
                 des_tabela: 'tab_pessoas',
                 des_detalhes: {
                     tipo_consulta: 'listar',
-                    filtros: filtros,
+                    filtros,
                     total_registros: pessoas.length
                 }
             });
 
             return pessoas.map(pessoa => ocultarDadosSensiveis(pessoa));
-
         } catch (error) {
             throw error;
         }
     }
 
-    async listarPorTipo(tipo, usuarioLogadoId) {
+    async listarPorPapel(papel, usuarioLogadoId) {
         try {
-            const pessoas = await PessoaModel.buscarPorTipo(tipo);
+            const pessoas = await PessoaModel.buscarPorPapel(papel);
 
-            // Registrar log
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.CONSULTAR,
                 des_tabela: 'tab_pessoas',
                 des_detalhes: {
-                    tipo_consulta: 'listar_por_tipo',
-                    tipo_pessoa: tipo,
+                    tipo_consulta: 'listar_por_papel',
+                    papel,
                     total_registros: pessoas.length
                 }
             });
 
             return pessoas.map(pessoa => ocultarDadosSensiveis(pessoa));
-
         } catch (error) {
             throw error;
         }
@@ -179,11 +183,9 @@ class PessoaService {
                 throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
             }
 
-            // Limpar dados se fornecidos
             if (dados.num_cpf) {
                 dados.num_cpf = limparCPF(dados.num_cpf);
 
-                // Verificar se novo CPF já existe em outra pessoa
                 if (dados.num_cpf !== pessoaExistente.num_cpf) {
                     const cpfExistente = await PessoaModel.buscarPorCPF(dados.num_cpf);
                     if (cpfExistente) {
@@ -204,19 +206,35 @@ class PessoaService {
                 dados.num_celular_2 = limparTelefone(dados.num_celular_2);
             }
 
-            // Hash da senha se fornecida
+            const dadosFinais = {
+                ...pessoaExistente,
+                ...dados
+            };
+
+            if (!this.possuiAlgumPapel(dadosFinais)) {
+                throw new Error('A pessoa deve possuir ao menos um papel.');
+            }
+
+            const exigeSenha =
+                dadosFinais.ind_medico ||
+                dadosFinais.ind_secretaria ||
+                dadosFinais.ind_costureira ||
+                dadosFinais.ind_administrador;
+
+            if (exigeSenha && !dados.des_senha && !pessoaExistente.des_senha) {
+                throw new Error('Senha é obrigatória para médico, secretária, costureira ou administrador.');
+            }
+
             if (dados.des_senha) {
                 dados.des_senha = await bcrypt.hash(dados.des_senha, 10);
             }
 
-            // Atualizar pessoa
             const atualizado = await PessoaModel.atualizar(id, dados);
 
             if (!atualizado) {
                 throw new Error('Erro ao atualizar pessoa');
             }
 
-            // Registrar log
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.EDITAR,
@@ -224,13 +242,13 @@ class PessoaService {
                 num_registro_id: id,
                 des_detalhes: {
                     pessoa: pessoaExistente.nom_completo,
-                    campos_alterados: Object.keys(dados)
+                    campos_alterados: Object.keys(dados),
+                    papeis_resultantes: this.extrairPapeis(dadosFinais)
                 }
             });
 
             const pessoaAtualizada = await PessoaModel.buscarPorId(id);
             return ocultarDadosSensiveis(pessoaAtualizada);
-
         } catch (error) {
             throw error;
         }
@@ -244,14 +262,12 @@ class PessoaService {
                 throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
             }
 
-            // Soft delete
             const deletado = await PessoaModel.deletar(id);
 
             if (!deletado) {
                 throw new Error('Erro ao deletar pessoa');
             }
 
-            // Registrar log
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.DELETAR,
@@ -260,12 +276,11 @@ class PessoaService {
                 des_detalhes: {
                     pessoa: pessoa.nom_completo,
                     cpf: pessoa.num_cpf,
-                    tipo: pessoa.ind_tipo_pessoa
+                    papeis: this.extrairPapeis(pessoa)
                 }
             });
 
             return true;
-
         } catch (error) {
             throw error;
         }
@@ -281,7 +296,6 @@ class PessoaService {
 
             await PessoaModel.atualizar(id, { ind_status: status });
 
-            // Registrar log
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.EDITAR,
@@ -294,7 +308,6 @@ class PessoaService {
             });
 
             return true;
-
         } catch (error) {
             throw error;
         }
@@ -302,7 +315,7 @@ class PessoaService {
 
     async listarCostureirasDisponiveis(usuarioLogadoId) {
         try {
-            const costureiras = await PessoaModel.buscarPorTipo(TIPO_PESSOA.COSTUREIRA);
+            const costureiras = await PessoaModel.buscarPorPapel(PAPEIS_PESSOA.COSTUREIRA);
             const AgendamentoModel = require('../models/AgendamentoModel');
 
             const costureirasComStatus = await Promise.all(
@@ -317,7 +330,6 @@ class PessoaService {
                 })
             );
 
-            // Registrar log
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.CONSULTAR,
@@ -330,7 +342,6 @@ class PessoaService {
             });
 
             return costureirasComStatus;
-
         } catch (error) {
             throw error;
         }
@@ -340,7 +351,6 @@ class PessoaService {
         try {
             const cidades = await PessoaModel.listarCidades();
 
-            // Registrar log
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.LISTAR,
@@ -352,7 +362,6 @@ class PessoaService {
             });
 
             return cidades;
-
         } catch (error) {
             throw error;
         }
@@ -362,7 +371,6 @@ class PessoaService {
         try {
             const cidade = await PessoaModel.buscarCidadeId(id);
 
-            // Registrar log
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.CONSULTAR,
@@ -374,7 +382,6 @@ class PessoaService {
             });
 
             return cidade;
-
         } catch (error) {
             throw error;
         }
@@ -384,7 +391,6 @@ class PessoaService {
         try {
             const cidades = await PessoaModel.buscarCidadeNome(nome);
 
-            // Registrar log
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.CONSULTAR,
@@ -396,7 +402,6 @@ class PessoaService {
             });
 
             return cidades;
-
         } catch (error) {
             throw error;
         }
@@ -405,9 +410,8 @@ class PessoaService {
     async buscarCidadeEstadoId(id, req) {
         try {
             const cidades = await PessoaModel.buscarCidadeEstadoId(id);
-            const usuarioLogadoId = req.usuario.id
+            const usuarioLogadoId = req.usuario.id;
 
-            // Registrar log
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.CONSULTAR,
@@ -420,7 +424,6 @@ class PessoaService {
             });
 
             return cidades;
-
         } catch (error) {
             throw error;
         }
@@ -430,7 +433,6 @@ class PessoaService {
         try {
             const estados = await PessoaModel.listarEstados();
 
-            // Registrar log
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.LISTAR,
@@ -442,7 +444,6 @@ class PessoaService {
             });
 
             return estados;
-
         } catch (error) {
             throw error;
         }
@@ -452,7 +453,6 @@ class PessoaService {
         try {
             const estado = await PessoaModel.buscarEstadoId(id);
 
-            // Registrar log
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.CONSULTAR,
@@ -464,7 +464,6 @@ class PessoaService {
             });
 
             return estado;
-
         } catch (error) {
             throw error;
         }
@@ -474,7 +473,6 @@ class PessoaService {
         try {
             const estados = await PessoaModel.buscarEstadoNome(nome);
 
-            // Registrar log
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.CONSULTAR,
@@ -486,7 +484,6 @@ class PessoaService {
             });
 
             return estados;
-
         } catch (error) {
             throw error;
         }
@@ -496,7 +493,6 @@ class PessoaService {
         try {
             const estados = await PessoaModel.buscarEstadoSgl(sgl);
 
-            // Registrar log
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.CONSULTAR,
@@ -508,7 +504,6 @@ class PessoaService {
             });
 
             return estados;
-
         } catch (error) {
             throw error;
         }

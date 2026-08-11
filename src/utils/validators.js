@@ -1,7 +1,6 @@
 const Joi = require('joi');
 
 const validators = {
-    // Validação de CPF
     cpfValido(cpf) {
         cpf = cpf.replace(/[^\d]/g, '');
 
@@ -36,7 +35,6 @@ const validators = {
         if (!cpf || cpf.length !== 11) return false;
         if (/^(\d)\1+$/.test(cpf)) return false;
 
-        // Algoritmo de validação de CPF
         let soma = 0;
         for (let i = 0; i < 9; i++) {
             soma += parseInt(cpf.charAt(i)) * (10 - i);
@@ -56,11 +54,82 @@ const validators = {
         return true;
     },
 
-    // Schema de validação para cadastro de pessoa
+    cnpjValido(cnpj) {
+        cnpj = cnpj.replace(/[^\d]/g, '');
+        if (cnpj.length !== 14) return false;
+        return this.validarCNPJ(cnpj);
+    },
+
+    validarCNPJ(cnpj) {
+        if (cnpj.length !== 14) return false;
+        // Rejeita sequências com todos os dígitos iguais
+        if (/^(\d)\1+$/.test(cnpj)) return false;
+
+        let soma = 0;
+        let peso = 5;
+        for (let i = 0; i < 12; i++) {
+            soma += parseInt(cnpj.charAt(i)) * peso;
+            peso--;
+            if (peso < 2) peso = 9;
+        }
+        let resto = soma % 11;
+        let digito1 = resto < 2 ? 0 : 11 - resto;
+        if (parseInt(cnpj.charAt(12)) !== digito1) return false;
+
+        soma = 0;
+        peso = 6;
+        for (let i = 0; i < 13; i++) {
+            soma += parseInt(cnpj.charAt(i)) * peso;
+            peso--;
+            if (peso < 2) peso = 9;
+        }
+        resto = soma % 11;
+        let digito2 = resto < 2 ? 0 : 11 - resto;
+        if (parseInt(cnpj.charAt(13)) !== digito2) return false;
+
+        return true;
+    },
+    empresaSchema: Joi.object({
+        id_cidade: Joi.number().integer().required(),
+        ind_ativo: Joi.boolean().default(true).required(),
+        nom_fantasia: Joi.string().max(100).required(),
+        nom_razao_social: Joi.string().max(100).required(),
+        num_cnpj: Joi.string().length(14).required().custom((value, helpers) => {
+            if (!validators.cnpjValido(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        }),
+        num_inscricao_estadual: Joi.string().max(20).default(null),
+        dta_abertura: Joi.date().max('now').required(),
+        des_logradouro: Joi.string().max(255).required(),
+        num_endereco: Joi.string().max(10),
+        des_complemento: Joi.string().max(100).allow('', null),
+        num_cep: Joi.string().length(8).required(),
+        nom_bairro: Joi.string().max(100).required(),
+        num_celular_1: Joi.string().max(15).required(),
+        ind_whatsapp_1: Joi.boolean().default(true),
+        num_celular_2: Joi.string().max(15).allow('', null),
+        ind_whatsapp_2: Joi.boolean().default(true).required(),
+        des_email_1: Joi.string().email().max(255).required(),
+        des_email_2: Joi.string().email().max(255).allow('', null),
+        val_cor_principal: Joi.string().max(6).allow('', null),
+        des_url_logo_vertical: Joi.string().max(255).allow('', null),
+        des_url_logo_horizontal: Joi.string().max(255).allow('', null),
+        des_url_logo_vertical_negativa: Joi.string().max(255).allow('', null),
+        des_url_logo_horizontal_negativa: Joi.string().max(255).allow('', null)
+    }),
+
     pessoaSchema: Joi.object({
         id_cidade: Joi.number().integer().required(),
         ind_status: Joi.string().valid('ativo', 'inativo').default('ativo'),
-        ind_tipo_pessoa: Joi.string().valid('medico', 'secretaria', 'costureira', 'paciente', 'administrador').required(),
+
+        ind_medico: Joi.boolean().default(false),
+        ind_secretaria: Joi.boolean().default(false),
+        ind_costureira: Joi.boolean().default(false),
+        ind_paciente: Joi.boolean().default(false),
+        ind_administrador: Joi.boolean().default(false),
+
         nom_completo: Joi.string().max(255).required(),
         num_cpf: Joi.string().length(11).required().custom((value, helpers) => {
             if (!validators.cpfValido(value)) {
@@ -81,14 +150,43 @@ const validators = {
         ind_whatsapp_2: Joi.boolean().default(true),
         des_email_1: Joi.string().email().max(255).required(),
         des_email_2: Joi.string().email().max(255).allow('', null),
-        des_senha: Joi.string().min(6).when('ind_tipo_pessoa', {
-            is: Joi.valid('secretaria', 'costureira', 'administrador', 'medico'),
-            then: Joi.required(),
-            otherwise: Joi.allow('', null)
-        })
+        des_senha: Joi.string().min(6).allow('', null),
+        val_cor_hex: Joi.string().min(6).max(6).empty('')
+    }).custom((value, helpers) => {
+        const possuiAlgumPapel =
+            value.ind_medico ||
+            value.ind_secretaria ||
+            value.ind_costureira ||
+            value.ind_paciente ||
+            value.ind_administrador;
+
+        if (!possuiAlgumPapel) {
+            return helpers.error('any.invalid', {
+                message: 'É necessário informar pelo menos um papel para a pessoa.'
+            });
+        }
+
+        const exigeSenha =
+            value.ind_medico ||
+            value.ind_secretaria ||
+            value.ind_costureira ||
+            value.ind_administrador;
+
+        if (exigeSenha && !value.des_senha) {
+            return helpers.error('any.invalid', {
+                message: 'Senha é obrigatória para médico, secretária, costureira ou administrador.'
+            });
+        }
+
+        const exigeCor = value.ind_costureira;
+
+        if (exigeCor && !value.val_cor_hex) {
+            return helpers.error('any.invalid', { message: 'É necessário informar uma cor para a costureira' })
+        }
+
+        return value;
     }),
 
-    // Schema de validação para agendamento
     agendamentoSchema: Joi.object({
         id_paciente: Joi.number().integer().required(),
         id_costureira: Joi.number().integer().required(),
@@ -104,13 +202,11 @@ const validators = {
         ).min(1)
     }),
 
-    // Schema de validação para tipo de agendamento
     tipoAgendamentoSchema: Joi.object({
         des_tipo_agendamento: Joi.string().min(3).max(50).required(),
         ind_ativo: Joi.boolean().default(true).required()
     }),
 
-    // Schema de validação de produto
     produtoSchema: Joi.object({
         id_categoria: Joi.number().integer().required(),
         nom_produto: Joi.string().min(3).max(200).required(),
@@ -121,34 +217,28 @@ const validators = {
         ind_ativo: Joi.boolean().default(true).required()
     }),
 
-    // Schema de validação de tipo de serviço
     tipoServicoSchema: Joi.object({
         des_tipo_ajuste: Joi.string().min(3).max(200).required(),
         ind_ativo: Joi.boolean().default(true).required()
     }),
 
-
-    // Schema de validação de produto por tipo de servico
     produtoServicoSchema: Joi.object({
         id_produto: Joi.number().integer().required(),
         id_tipo_servico: Joi.number().integer().required(),
         ind_ativo: Joi.boolean().default(true).required()
     }),
 
-    // Schema de validação de preço de produto por tipo de servico
     precoProdutoServicoSchema: Joi.object({
         id_produto_servico: Joi.number().integer().required(),
         val_preco: Joi.number().positive().required(),
         dta_inicio: Joi.date().required(),
     }),
 
-    // Schema de validação para categoria de produto
     categoriaProdutoSchema: Joi.object({
         nom_categoria: Joi.string().min(3).max(50).required(),
         id_pai: Joi.number().allow('', null),
     }),
 
-    // Schema de validação para tamanho de produto
     tamanhoProdutoSchema: Joi.object({
         cod_tamanho: Joi.string().min(1).max(10).required(),
         des_tamanho: Joi.string().min(3).max(50).required(),
@@ -156,7 +246,6 @@ const validators = {
         num_ordem_exibicao: Joi.number().integer().allow('', null)
     }),
 
-    // Schema de validação para cor e estampa de produto
     corEstampaProdutoSchema: Joi.object({
         nom_cor_estampa: Joi.string().min(3).max(10).required(),
         ind_tipo: Joi.string().valid('cor', 'estampa').required(),
@@ -165,7 +254,6 @@ const validators = {
         num_ordem_exibicao: Joi.number().integer().allow('', null)
     }),
 
-    // Schema de validação para grade de produto
     gradeProdutoSchema: Joi.object({
         id_produto: Joi.number().integer().required(),
         id_variacao_cor_estampa: Joi.number().integer().required(),
@@ -176,7 +264,6 @@ const validators = {
         num_codigo_barras: Joi.string().min(3).max(13).allow('', null)
     }),
 
-    // Schema de validação para imagem de produto
     imagemProdutoSchema: Joi.object({
         id_produto_grade: Joi.allow(null, '', 'null', 'undefined').optional(),
         id_produto: Joi.allow(null, '', 'null', 'undefined').optional(),
@@ -185,13 +272,10 @@ const validators = {
         des_url_imagem: Joi.string().min(3).max(500).required(),
         num_ordem: Joi.number().integer(),
         ind_principal: Joi.boolean().default(false).required(),
-
     }).custom((value, helpers) => {
-
         const { id_produto_grade, id_produto } = value;
 
         const temGrade = id_produto_grade !== undefined && id_produto_grade !== null && id_produto_grade !== '';
-
         const temProduto = id_produto !== undefined && id_produto !== null && id_produto !== '';
 
         if (!temGrade && !temProduto) {
@@ -199,21 +283,21 @@ const validators = {
                 message: 'É necessário informar id_produto_grade ou id_produto (pelo menos um).'
             });
         }
+
         if (temGrade && temProduto) {
             return helpers.error('any.invalid', {
                 message: 'Informe apenas um dos campos: id_produto_grade ou id_produto, não ambos.'
             });
         }
+
         return value;
     }),
 
-    // Schema de validação para login
     loginSchema: Joi.object({
         num_cpf: Joi.string().length(11).required(),
         des_senha: Joi.string().required()
     }),
 
-    // Schema de validação para atualização de comparecimento
     comparecimentoSchema: Joi.object({
         ind_paciente_compareceu: Joi.boolean().required(),
         des_observacoes_costureira: Joi.string().allow('', null)

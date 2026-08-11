@@ -5,12 +5,12 @@ const authMiddleware = require('../middlewares/authMiddleware');
 const {
     secretariaOuAdminMiddleware,
     costureiraOuAdminMiddleware,
-    tipoUsuarioMiddleware,
+    papelMiddleware,
     apenasAdminMiddleware
 } = require('../middlewares/permissionMiddleware');
 const { validarIdMiddleware, validarBodyMiddleware } = require('../middlewares/errorMiddleware');
 const { limiterCriacao } = require('../middlewares/rateLimitMiddleware');
-const { TIPO_PESSOA } = require('../utils/constants');
+const { PAPEIS_PESSOA } = require('../utils/constants');
 
 // Todas as rotas requerem autenticação
 router.use(authMiddleware);
@@ -25,10 +25,10 @@ router.post(
     '/',
     limiterCriacao,
     validarBodyMiddleware,
-    tipoUsuarioMiddleware([
-        TIPO_PESSOA.SECRETARIA,
-        TIPO_PESSOA.COSTUREIRA,
-        TIPO_PESSOA.ADMINISTRADOR
+    papelMiddleware([
+        PAPEIS_PESSOA.SECRETARIA,
+        PAPEIS_PESSOA.COSTUREIRA,
+        PAPEIS_PESSOA.ADMINISTRADOR
     ]),
     AgendamentoController.criar
 );
@@ -47,7 +47,7 @@ router.get('/estatisticas', AgendamentoController.estatisticas);
  */
 router.get(
     '/meus',
-    tipoUsuarioMiddleware(TIPO_PESSOA.COSTUREIRA),
+    papelMiddleware(PAPEIS_PESSOA.COSTUREIRA),
     AgendamentoController.listarMeus
 );
 

@@ -8,9 +8,8 @@ class AuthController {
      * POST /api/auth/login
      */
     login = asyncHandler(async (req, res) => {
-        const { num_cpf, des_senha } = req.body;
-
-        if (!num_cpf || !des_senha) {
+        const { user, senha } = req.body;
+        if (!user || !senha) {
             return res.status(400).json({
                 sucesso: false,
                 mensagem: MENSAGENS.ERRO.VALIDACAO,
@@ -19,8 +18,8 @@ class AuthController {
         }
 
         const resultado = await AuthService.login(
-            num_cpf,
-            des_senha,
+            user,
+            senha,
             req.ipAddress || req.ip,
             req.get('user-agent')
         );

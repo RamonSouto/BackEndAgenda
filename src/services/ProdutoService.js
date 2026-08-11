@@ -1107,7 +1107,7 @@ class ProdutoService {
 
             dados.id_produto_grade = (dados.id_produto_grade && dados.id_produto_grade !== '' && dados.id_produto_grade !== 'null') ? parseInt(dados.id_produto_grade) : null;
 
-            const imagemProduto = await ProdutoModel.buscarImagemProdutoPorId(id);
+            const imagemProduto = await ProdutoModel.buscarImagemProdutoId(id);
 
             if (!imagemProduto) {
                 throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO)

@@ -44,7 +44,7 @@ const authMiddleware = async (req, res, next) => {
             req.usuario = {
                 id: decoded.id,
                 cpf: decoded.cpf,
-                tipo: decoded.tipo
+                papeis: Array.isArray(decoded.papeis) ? decoded.papeis : []
             };
 
             // Adicionar informações de IP e User Agent

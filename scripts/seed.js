@@ -23,53 +23,66 @@ async function seed() {
         console.log('👨‍💼 Inserindo administrador...');
         await database.query(
             `INSERT INTO tab_pessoas (
-            id_cidade, ind_status, ind_tipo_pessoa, nom_completo, num_cpf, num_rg,
-            dta_nascimento, des_logradouro, num_endereco, num_cep, nom_bairro,
-            num_celular_1, des_email_1, des_senha
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON DUPLICATE KEY UPDATE nom_completo = nom_completo`,
+             id_cidade, ind_status, ind_tipo_pessoa, nom_completo, num_cpf,
+             num_rg, dta_nascimento, des_logradouro, num_endereco, num_cep,
+             nom_bairro, num_celular_1, des_email_1, des_senha, ind_medico,
+             ind_secretaria, ind_costureira, ind_paciente, ind_administrador
+             )  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE nom_completo = nom_completo`,
             [
-                cidadeId, 'ativo', 'administrador', 'Administrador do Sistema',
-                '00000000000', '0000000', '1980-01-01', 'Rua Principal', '100',
-                '74000000', 'Centro', '62999999999', 'admin@sistema.com', senhaHash
+                cidadeId, 'ativo', 'administrador', 'Administrador do Sistema', '12345678909',
+                '0000000', '1980-01-01', 'Rua Principal', '100', '74000000',
+                'Centro', '62999999999', 'admin@sistema.com', senhaHash, 0,
+                0, 0, 0, 1
             ]
         );
 
         // Inserir Secretária
         console.log('👩‍💼 Inserindo secretária...');
-        await database.query(
-            `INSERT INTO tab_pessoas (
-            id_cidade, ind_status, ind_tipo_pessoa, nom_completo, num_cpf, num_rg,
-            dta_nascimento, des_logradouro, num_endereco, num_cep, nom_bairro,
-            num_celular_1, des_email_1, des_senha
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON DUPLICATE KEY UPDATE nom_completo = nom_completo`,
-            [
-                cidadeId, 'ativo', 'secretaria', 'Maria Secretária Silva',
-                '25863990139', '1111111', '1990-05-15', 'Rua das Flores', '200',
-                '74100000', 'Setor Bueno', '62988888888', 'secretaria@sistema.com', senhaHash
-            ]
-        );
+        const secretarias = [
+            ['Maria Secretária Silva', '25863990139', '1111111', '62988888888', 'secretaria@sistema.com']
+        ];
+
+        for (const [nome, cpf, rg, celular, email] of secretarias) {
+            await database.query(
+                `INSERT INTO tab_pessoas (
+                id_cidade, ind_status, ind_tipo_pessoa, nom_completo, num_cpf,
+                num_rg, dta_nascimento, des_logradouro, num_endereco, num_cep,
+                nom_bairro, num_celular_1, des_email_1, des_senha, ind_medico,
+                ind_secretaria, ind_costureira, ind_paciente, ind_administrador
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE nom_completo = nom_completo`,
+                [
+                    cidadeId, 'ativo', 'secretaria', 'Maria Secretária Silva', '25863990139',
+                    '1111111', '1990-05-15', 'Rua das Flores', '200', '74100000',
+                    'Setor Bueno', '62988888888', 'secretaria@sistema.com', senhaHash, 0,
+                    1, 0, 0, 0
+                ]
+            );
+        }
+
 
         // Inserir Costureiras
         console.log('✂️  Inserindo costureiras...');
         const costureiras = [
-            ['Ana Costureira Santos', '45557511164', '2222222', '62977777777', 'costureira1@sistema.com'],
-            ['Julia Costureira Oliveira', '95954557179', '3333333', '62966666666', 'costureira2@sistema.com']
+            ['Ana Costureira Santos', '45557511164', '2222222', '62977777777', 'costureira1@sistema.com', 'AAAAAA'],
+            ['Julia Costureira Oliveira', '95954557179', '3333333', '62966666666', 'costureira2@sistema.com', 'ABABAB'],
+            ['Marcia Costureira Silva', '48019407065', '3333333', '62966666666', 'costureira3@sistema.com', 'ACACAC'],
         ];
 
-        for (const [nome, cpf, rg, celular, email] of costureiras) {
+        for (const [nome, cpf, rg, celular, email, cor] of costureiras) {
             await database.query(
                 `INSERT INTO tab_pessoas (
-              id_cidade, ind_status, ind_tipo_pessoa, nom_completo, num_cpf, num_rg,
-              dta_nascimento, des_logradouro, num_endereco, num_cep, nom_bairro,
-              num_celular_1, des_email_1, des_senha
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE nom_completo = nom_completo`,
+                 id_cidade, ind_status, nom_completo, num_cpf, num_rg,
+                 dta_nascimento, des_logradouro, num_endereco, num_cep, nom_bairro,
+                 num_celular_1, des_email_1, des_senha, ind_medico, ind_secretaria, 
+                 ind_costureira, ind_paciente, ind_administrador, val_cor_hex
+                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE nom_completo = nom_completo`,
                 [
-                    cidadeId, 'ativo', 'costureira', nome, cpf, rg,
-                    '1985-03-20', 'Avenida Central', '300', '74200000',
-                    'Setor Oeste', celular, email, senhaHash
+                    cidadeId, 'ativo', nome, cpf, rg,
+                    '1985-03-20', 'Avenida Central', '300', '74200000', 'Setor Oeste',
+                    celular, email, senhaHash, 0, 0, 1, 0, 0, cor
                 ]
             );
         }
@@ -85,15 +98,17 @@ async function seed() {
         for (const [nome, cpf, rg, celular, email] of pacientes) {
             await database.query(
                 `INSERT INTO tab_pessoas (
-              id_cidade, ind_status, ind_tipo_pessoa, nom_completo, num_cpf, num_rg,
-              dta_nascimento, des_logradouro, num_endereco, num_cep, nom_bairro,
-              num_celular_1, ind_whatsapp_1, des_email_1
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE nom_completo = nom_completo`,
+                 id_cidade, ind_status, nom_completo, num_cpf, num_rg,
+                 dta_nascimento, des_logradouro, num_endereco, num_cep, nom_bairro,
+                 num_celular_1, ind_whatsapp_1, des_email_1, ind_medico, ind_secretaria, 
+                 ind_costureira, ind_paciente, ind_administrador
+                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE nom_completo = nom_completo`,
                 [
-                    cidadeId, 'ativo', 'paciente', nome, cpf, rg,
-                    '1995-08-10', 'Rua dos Pacientes', '400', '74300000',
-                    'Setor Sul', celular, true, email
+                    cidadeId, 'ativo', nome, cpf, rg,
+                    '1995-08-10', 'Rua dos Pacientes', '400', '74300000', 'Setor Sul',
+                    celular, true, email, 0, 0,
+                    0, 1, 0
                 ]
             );
         }
@@ -101,7 +116,7 @@ async function seed() {
         console.log('\n✅ Seed concluído com sucesso!\n');
         console.log('📝 Credenciais de acesso:');
         console.log('   Administrador:');
-        console.log('   - CPF: 00000000000');
+        console.log('   - CPF: 12345678909');
         console.log('   - Senha: senha123\n');
         console.log('   Secretária:');
         console.log('   - CPF: 11111111111');

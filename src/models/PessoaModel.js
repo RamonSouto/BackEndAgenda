@@ -1,21 +1,26 @@
 const database = require('../config/database');
+const { COLUNAS_PAPEIS_PESSOA } = require('../utils/constants');
 
 class PessoaModel {
     async criar(dados) {
-
         const sql = `
-      INSERT INTO tab_pessoas (
-        id_cidade, ind_status, ind_tipo_pessoa, nom_completo, num_cpf, num_rg,
-        dta_nascimento, des_logradouro, num_endereco, des_complemento, num_cep,
-        nom_bairro, num_celular_1, ind_whatsapp_1, num_celular_2, ind_whatsapp_2,
-        des_email_1, des_email_2, des_senha
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+            INSERT INTO tab_pessoas (
+                id_cidade, ind_status, ind_medico, ind_secretaria, ind_costureira,
+                ind_paciente, ind_administrador, nom_completo, num_cpf, num_rg,
+                dta_nascimento, des_logradouro, num_endereco, des_complemento, num_cep,
+                nom_bairro, num_celular_1, ind_whatsapp_1, num_celular_2, ind_whatsapp_2,
+                des_email_1, des_email_2, des_senha,val_cor_hex
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)
+        `;
 
         const valores = [
             dados.id_cidade,
             dados.ind_status || 'ativo',
-            dados.ind_tipo_pessoa,
+            dados.ind_medico ?? false,
+            dados.ind_secretaria ?? false,
+            dados.ind_costureira ?? false,
+            dados.ind_paciente ?? false,
+            dados.ind_administrador ?? false,
             dados.nom_completo,
             dados.num_cpf,
             dados.num_rg,
@@ -31,24 +36,22 @@ class PessoaModel {
             dados.ind_whatsapp_2 ?? true,
             dados.des_email_1,
             dados.des_email_2 || null,
-            dados.des_senha || null
+            dados.des_senha || null,
+            dados.val_cor_hex || null
         ];
 
         const resultado = await database.query(sql, valores);
-
-
-
         return resultado.insertId;
     }
 
     async buscarPorId(id) {
         const sql = `
-      SELECT p.*, c.nom_cidade, e.nom_estado, e.sgl_estado
-      FROM tab_pessoas p
-      LEFT JOIN tab_cidade c ON c.id = p.id_cidade
-      LEFT JOIN tab_estado e ON e.id = c.id_estado
-      WHERE p.id = ? AND p.deleted_at IS NULL
-    `;
+            SELECT p.*, c.nom_cidade, e.nom_estado, e.sgl_estado
+            FROM tab_pessoas p
+            LEFT JOIN tab_cidade c ON c.id = p.id_cidade
+            LEFT JOIN tab_estado e ON e.id = c.id_estado
+            WHERE p.id = ? AND p.deleted_at IS NULL
+        `;
 
         const resultado = await database.query(sql, [id]);
         return resultado[0] || null;
@@ -56,44 +59,55 @@ class PessoaModel {
 
     async buscarPorCPF(cpf) {
         const sql = `
-      SELECT p.*, c.nom_cidade, e.nom_estado, e.sgl_estado
-      FROM tab_pessoas p
-      LEFT JOIN tab_cidade c ON c.id = p.id_cidade
-      LEFT JOIN tab_estado e ON e.id = c.id_estado
-      WHERE p.num_cpf = ? AND p.deleted_at IS NULL
-    `;
+            SELECT p.*, c.nom_cidade, e.nom_estado, e.sgl_estado
+            FROM tab_pessoas p
+            LEFT JOIN tab_cidade c ON c.id = p.id_cidade
+            LEFT JOIN tab_estado e ON e.id = c.id_estado
+            WHERE p.num_cpf = ? AND p.deleted_at IS NULL
+        `;
 
         const resultado = await database.query(sql, [cpf]);
         return resultado[0] || null;
     }
 
-    async buscarPorTipo(tipo) {
-        const sql = `
-      SELECT p.*, c.nom_cidade, e.nom_estado, e.sgl_estado
-      FROM tab_pessoas p
-      LEFT JOIN tab_cidade c ON c.id = p.id_cidade
-      LEFT JOIN tab_estado e ON e.id = c.id_estado
-      WHERE p.ind_tipo_pessoa = ? AND p.deleted_at IS NULL
-      ORDER BY p.nom_completo
-    `;
+    async buscarPorPapel(papel) {
+        const coluna = COLUNAS_PAPEIS_PESSOA[papel];
 
-        return await database.query(sql, [tipo]);
+        if (!coluna) {
+            throw new Error('Papel inválido');
+        }
+
+        const sql = `
+            SELECT p.*, c.nom_cidade, e.nom_estado, e.sgl_estado
+            FROM tab_pessoas p
+            LEFT JOIN tab_cidade c ON c.id = p.id_cidade
+            LEFT JOIN tab_estado e ON e.id = c.id_estado
+            WHERE p.${coluna} = 1 AND p.deleted_at IS NULL
+            ORDER BY p.nom_completo
+        `;
+
+        return await database.query(sql);
     }
 
     async listar(filtros = {}) {
         let sql = `
-      SELECT p.*, c.nom_cidade, e.nom_estado, e.sgl_estado
-      FROM tab_pessoas p
-      LEFT JOIN tab_cidade c ON c.id = p.id_cidade
-      LEFT JOIN tab_estado e ON e.id = c.id_estado
-      WHERE p.deleted_at IS NULL
-    `;
+            SELECT p.*, c.nom_cidade, e.nom_estado, e.sgl_estado
+            FROM tab_pessoas p
+            LEFT JOIN tab_cidade c ON c.id = p.id_cidade
+            LEFT JOIN tab_estado e ON e.id = c.id_estado
+            WHERE p.deleted_at IS NULL
+        `;
 
         const valores = [];
 
-        if (filtros.ind_tipo_pessoa) {
-            sql += ' AND p.ind_tipo_pessoa = ?';
-            valores.push(filtros.ind_tipo_pessoa);
+        if (filtros.papel) {
+            const coluna = COLUNAS_PAPEIS_PESSOA[filtros.papel];
+
+            if (!coluna) {
+                throw new Error('Papel inválido');
+            }
+
+            sql += ` AND p.${coluna} = 1`;
         }
 
         if (filtros.ind_status) {
@@ -129,7 +143,7 @@ class PessoaModel {
         valores.push(id);
 
         const sql = `
-            UPDATE tab_pessoas 
+            UPDATE tab_pessoas
             SET ${campos.join(', ')}
             WHERE id = ? AND deleted_at IS NULL
         `;
@@ -140,10 +154,10 @@ class PessoaModel {
 
     async deletar(id) {
         const sql = `
-      UPDATE tab_pessoas 
-      SET deleted_at = CURRENT_TIMESTAMP 
-      WHERE id = ? AND deleted_at IS NULL
-    `;
+            UPDATE tab_pessoas
+            SET deleted_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND deleted_at IS NULL
+        `;
 
         const resultado = await database.query(sql, [id]);
         return resultado.affectedRows > 0;
@@ -151,42 +165,42 @@ class PessoaModel {
 
     async incrementarTentativasLogin(id) {
         const sql = `
-      UPDATE tab_pessoas 
-      SET num_tentativas_login = num_tentativas_login + 1
-      WHERE id = ?
-    `;
+            UPDATE tab_pessoas
+            SET num_tentativas_login = num_tentativas_login + 1
+            WHERE id = ?
+        `;
 
         await database.query(sql, [id]);
     }
 
     async bloquearLogin(id) {
         const sql = `
-      UPDATE tab_pessoas 
-      SET dta_bloqueio_login = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `;
+            UPDATE tab_pessoas
+            SET dta_bloqueio_login = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `;
 
         await database.query(sql, [id]);
     }
 
     async resetarTentativasLogin(id) {
         const sql = `
-      UPDATE tab_pessoas 
-      SET num_tentativas_login = 0, 
-          dta_bloqueio_login = NULL,
-          dta_ultimo_login = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `;
+            UPDATE tab_pessoas
+            SET num_tentativas_login = 0,
+                dta_bloqueio_login = NULL,
+                dta_ultimo_login = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `;
 
         await database.query(sql, [id]);
     }
 
     async verificarBloqueio(id) {
         const sql = `
-      SELECT num_tentativas_login, dta_bloqueio_login
-      FROM tab_pessoas
-      WHERE id = ?
-    `;
+            SELECT num_tentativas_login, dta_bloqueio_login
+            FROM tab_pessoas
+            WHERE id = ?
+        `;
 
         const resultado = await database.query(sql, [id]);
         return resultado[0] || null;
@@ -194,8 +208,14 @@ class PessoaModel {
 
     async listarCidades() {
         const sql = `
-        SELECT *
-        FROM tab_cidade
+            SELECT c.id as id, 
+                   c.nom_cidade as nom_cidade,
+                   c.cod_municipio_ibge as cod_municipio_ibge, 
+                   c.id_estado as id_estado,
+                   e.nom_estado as nom_estado,
+                   e.sgl_estado as sgl_estado
+            FROM tab_cidade c
+            INNER JOIN tab_estado e ON (c.id_estado = e.id)
         `;
         const resultado = await database.query(sql);
         return resultado || null;
@@ -203,84 +223,76 @@ class PessoaModel {
 
     async buscarCidadeId(id) {
         const sql = `
-        SELECT *
-        FROM tab_cidade
-        WHERE id = ?
+            SELECT *
+            FROM tab_cidade
+            WHERE id = ?
         `;
         const resultado = await database.query(sql, [id]);
-
         return resultado || null;
     }
 
     async buscarCidadeNome(nome) {
         const sql = `
-        SELECT *
-        FROM tab_cidade
-        WHERE nom_cidade like ?
+            SELECT *
+            FROM tab_cidade
+            WHERE nom_cidade LIKE ?
         `;
         const resultado = await database.query(sql, [`%${nome}%`]);
-
         return resultado || null;
     }
 
     async buscarCidadeEstadoId(id) {
         const sql = `
-        SELECT c.*
-        FROM tab_cidade c
-        INNER JOIN tab_estado e ON (c.id_estado = e.id)
-        WHERE e.id = ?
+            SELECT c.*
+            FROM tab_cidade c
+            INNER JOIN tab_estado e ON (c.id_estado = e.id)
+            WHERE e.id = ?
         `;
         const resultado = await database.query(sql, [id]);
-
         return resultado || null;
     }
 
     async listarEstados() {
         const sql = `
-        SELECT *
-        FROM tab_estado
+            SELECT *
+            FROM tab_estado
         `;
         const resultado = await database.query(sql);
-
         return resultado || null;
     }
 
     async buscarEstadoId(id) {
         const sql = `
-        SELECT *
-        FROM tab_estado
-        WHERE id = ?
+            SELECT *
+            FROM tab_estado
+            WHERE id = ?
         `;
 
         const resultado = await database.query(sql, [id]);
-
         return resultado || null;
     }
 
     async buscarEstadoNome(nome) {
         const sql = `
-        SELECT *
-        FROM tab_estado
-        WHERE nom_estado like ?
+            SELECT *
+            FROM tab_estado
+            WHERE nom_estado LIKE ?
         `;
 
         const resultado = await database.query(sql, [`%${nome}%`]);
-
         return resultado || null;
     }
 
     async buscarEstadoSgl(sgl) {
         const sql = `
-        SELECT *
-        FROM tab_estado
-        WHERE sgl_estado like ?
+            SELECT *
+            FROM tab_estado
+            WHERE sgl_estado LIKE ?
         `;
 
         const resultado = await database.query(sql, [`%${sgl}%`]);
-
         return resultado || null;
     }
-
 }
 
 module.exports = new PessoaModel();

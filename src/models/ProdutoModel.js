@@ -212,7 +212,6 @@ class ProdutoModel {
   }
 
   async atualizarTamanho(id, dados) {
-    console.log()
     const campos = [];
     const valores = [];
     Object.keys(dados).forEach(campo => {
@@ -530,14 +529,14 @@ class ProdutoModel {
     return await database.query(sql);
   }
 
-  async buscarImagemProdutoId(id_produto) {
+  async buscarImagemProdutoId(id) {
     const sql = `
       SELECT id, id_produto_grade, id_produto, des_url_imagem, num_ordem, ind_principal, created_at, updated_at, deleted_at
       FROM tab_produto_imagens
       WHERE id = ? AND deleted_at IS NULL
     `;
 
-    const resultado = await database.query(sql, [id_produto]);
+    const resultado = await database.query(sql, [id]);
     return resultado || null;
   }
 

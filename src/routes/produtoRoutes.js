@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 const ProdutoController = require('../controllers/ProdutoController');
 const authMiddleware = require('../middlewares/authMiddleware');
-const { costureiraOuAdminMiddleware, tipoUsuarioMiddleware, apenasAdminMiddleware } = require('../middlewares/permissionMiddleware');
+const { costureiraOuAdminMiddleware, papelMiddleware, apenasAdminMiddleware } = require('../middlewares/permissionMiddleware');
 const { validarIdMiddleware, validarBodyMiddleware } = require('../middlewares/errorMiddleware');
 const { uploadSingle, uploadMultiple } = require('../middlewares/uploadMiddleware');
 const { limiterUpload } = require('../middlewares/rateLimitMiddleware');
-const { TIPO_PESSOA } = require('../utils/constants');
+const { PAPEIS_PESSOA } = require('../utils/constants');
 
 // Todas as rotas requerem autenticação
 router.use(authMiddleware);
@@ -104,10 +104,10 @@ router.get(
 router.post(
     '/agendamento',
     validarBodyMiddleware,
-    tipoUsuarioMiddleware([
-        TIPO_PESSOA.SECRETARIA,
-        TIPO_PESSOA.COSTUREIRA,
-        TIPO_PESSOA.ADMINISTRADOR
+    papelMiddleware([
+        PAPEIS_PESSOA.SECRETARIA,
+        PAPEIS_PESSOA.COSTUREIRA,
+        PAPEIS_PESSOA.ADMINISTRADOR
     ]),
     ProdutoController.adicionarProdutoAgendamento
 );
@@ -164,7 +164,7 @@ router.post(
     '/categoria',
     apenasAdminMiddleware,
     validarBodyMiddleware,
-    tipoUsuarioMiddleware([TIPO_PESSOA.ADMINISTRADOR]),
+    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
     ProdutoController.adicionarCategoria
 );
 
@@ -222,14 +222,14 @@ router.get(
 
 /**
  * @route   POST /api/produtos/tamanho
- * @desc    Adicionar categoria
+ * @desc    Adicionar tamanho
  * @access  Privado - Admin
  */
 router.post(
     '/tamanho',
     apenasAdminMiddleware,
     validarBodyMiddleware,
-    tipoUsuarioMiddleware([TIPO_PESSOA.ADMINISTRADOR]),
+    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
     ProdutoController.adicionarTamanho
 );
 
@@ -294,7 +294,7 @@ router.post(
     '/cor_estampa',
     apenasAdminMiddleware,
     validarBodyMiddleware,
-    tipoUsuarioMiddleware([TIPO_PESSOA.ADMINISTRADOR]),
+    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
     ProdutoController.adicionarCorEstampa
 );
 
@@ -359,7 +359,7 @@ router.post(
     '/produto',
     apenasAdminMiddleware,
     validarBodyMiddleware,
-    tipoUsuarioMiddleware([TIPO_PESSOA.ADMINISTRADOR]),
+    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
     ProdutoController.adicionarProduto
 );
 
@@ -424,7 +424,7 @@ router.post(
     '/grade_produto',
     apenasAdminMiddleware,
     validarBodyMiddleware,
-    tipoUsuarioMiddleware([TIPO_PESSOA.ADMINISTRADOR]),
+    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
     ProdutoController.adicionarGradeProduto
 );
 
@@ -478,7 +478,7 @@ router.post(
     '/imagemProduto',
     apenasAdminMiddleware,
     // validarBodyMiddleware,
-    tipoUsuarioMiddleware([TIPO_PESSOA.ADMINISTRADOR]),
+    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
     limiterUpload,
     uploadSingle('foto', 'imagem_produto'),
     ProdutoController.adicionarImagemProduto
@@ -556,7 +556,7 @@ router.post(
     '/tipoServico',
     apenasAdminMiddleware,
     // validarBodyMiddleware,
-    tipoUsuarioMiddleware([TIPO_PESSOA.ADMINISTRADOR]),
+    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
     ProdutoController.adicionarTipoServico
 );
 
@@ -621,7 +621,7 @@ router.post(
     '/produtoServico',
     apenasAdminMiddleware,
     validarBodyMiddleware,
-    tipoUsuarioMiddleware([TIPO_PESSOA.ADMINISTRADOR]),
+    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
     ProdutoController.adicionarProdutoServico
 );
 
@@ -687,7 +687,7 @@ router.post(
     '/precoProdutoServico',
     apenasAdminMiddleware,
     validarBodyMiddleware,
-    tipoUsuarioMiddleware([TIPO_PESSOA.ADMINISTRADOR]),
+    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
     ProdutoController.adicionarPrecoProdutoServico
 );
 

@@ -8,6 +8,7 @@ const agendamentoRoutes = require('./agendamentoRoutes');
 const produtoRoutes = require('./produtoRoutes');
 const relatorioRoutes = require('./relatorioRoutes');
 const parametrizacaoRoutes = require('./parametrizacaoRoutes');
+const empresaRoutes = require('./empresaRoutes');
 
 /**
  * Rota de health check
@@ -50,5 +51,6 @@ router.use('/agendamentos', agendamentoRoutes);
 router.use('/produtos', produtoRoutes);
 router.use('/relatorios', relatorioRoutes);
 router.use('/parametrizacao', parametrizacaoRoutes);
+router.use('/empresa', empresaRoutes);
 
 module.exports = router;
