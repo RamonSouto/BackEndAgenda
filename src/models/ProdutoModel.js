@@ -100,6 +100,7 @@ class ProdutoModel {
     return resultado[0] || null;
   }
 
+  /** Categoria */
   async criarCategoriaProduto(dados) {
 
     const sql = `INSERT INTO tab_categorias_produtos(nom_categoria, id_pai) VALUES(?,?)`;
@@ -161,6 +162,17 @@ class ProdutoModel {
     return resultado.affectedRows > 0;
   }
 
+  async buscarCategoriaFilho(id) {
+    const sql = `
+      SELECT *
+      FROM tab_categorias_produtos
+      WHERE id_pai = ? AND deleted_at IS NULL
+    `;
+
+    const resultado = await database.query(sql, [id]);
+
+    return resultado;
+  }
 
   async deletarCategoria(id) {
     const sql = `
@@ -175,6 +187,7 @@ class ProdutoModel {
   }
 
 
+  /** Tamanho Produto */
   async criarTamanhoProduto(dados) {
 
     const sql = `INSERT INTO tab_tamanhos(cod_tamanho, des_tamanho, des_categoria_tamanho, num_ordem_exibicao) VALUES(?,?,?,?)`;

@@ -313,6 +313,14 @@ class ProdutoService {
                 throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
             }
 
+            const temFilho = await ProdutoModel.buscarCategoriaFilho(id);
+
+            console.log(temFilho.length);
+
+            if (temFilho) {
+                throw new Error(MENSAGENS.ERRO.CATEGORIA_FILHO);
+            }
+
             // Soft delete
             const deletado = await ProdutoModel.deletarCategoria(id);
 

@@ -148,7 +148,7 @@ class ParametrizacaoService {
 
             const isUnicoAtivo = (totalAtivosTipoAtual === 0); // porque excluímos o próprio, se ele for ativo, contagem 0 significa que é o único
 
-            const desativadoMaisNovo = await parametrizacaoModel.buscarTipoDesativadoMaisRecente(tipoAtual);
+            const desativadoMaisNovo = await parametrizacaoModel.buscarTipoDesativadoMaisRecente(tipoAtual, id);
 
             if (isUnicoAtivo && desativadoMaisNovo >= 1) {
 

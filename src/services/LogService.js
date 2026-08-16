@@ -54,7 +54,16 @@ class LogService {
 
     async gerarRelatorioAuditoria(filtros = {}) {
         try {
-            const logs = await LogModel.listar(filtros);
+
+            const filtrosLimpos = Object.fromEntries(
+                Object.entries(filtros).filter(([_, v]) => v !== undefined && v !== null)
+            );
+            Object.entries(filtrosLimpos).forEach(([key, value]) => {
+                console.log(`${key}: ${value} Tipo:` + typeof parseInt(value));
+            })
+            console.log(filtrosLimpos);
+
+            const logs = await LogModel.listar(filtrosLimpos);
 
             // Agrupar por tipo de ação
             const porAcao = logs.reduce((acc, log) => {

@@ -25,20 +25,23 @@ class LogModel {
 
     async listar(filtros = {}) {
         let sql = `
-      SELECT 
-        l.*,
-        p.nom_completo as usuario_nome,
-        p.ind_tipo_pessoa as usuario_tipo
-      FROM tab_logs l
-      LEFT JOIN tab_pessoas p ON l.id_usuario = p.id
-      WHERE 1=1
-    `;
+            SELECT l.*,
+                p.nom_completo as usuario_nome,
+                p.ind_administrador as usuario_administrador,
+                p.ind_costureira as usuario_costureira,
+                p.ind_secretaria as usuario_secretaria,
+                p.ind_medico as usuario_medico,
+                p.ind_paciente as usuario_paciente
+            FROM tab_logs l
+            LEFT JOIN tab_pessoas p ON l.id_usuario = p.id
+            WHERE 1=1
+        `;
 
         const valores = [];
 
-        if (filtros.id_usuario) {
+        if (filtros.id_usuario !== undefined && filtros.id_usuario !== null) {
             sql += ' AND l.id_usuario = ?';
-            valores.push(filtros.id_usuario);
+            valores.push(parseInt(filtros.id_usuario));
         }
 
         if (filtros.des_acao) {
@@ -52,17 +55,23 @@ class LogModel {
         }
 
         if (filtros.data_inicio && filtros.data_fim) {
+            // Converte para string no formato aceito pelo MySQL
+            const inicio = new Date(filtros.data_inicio).toISOString().slice(0, 19).replace('T', ' ');
+            const fim = new Date(filtros.data_fim).toISOString().slice(0, 19).replace('T', ' ');
             sql += ' AND l.created_at BETWEEN ? AND ?';
-            valores.push(filtros.data_inicio, filtros.data_fim);
+            valores.push(inicio, fim);
         }
 
         sql += ' ORDER BY l.created_at DESC';
 
         if (filtros.limite) {
-            sql += ' LIMIT ?';
-            valores.push(parseInt(filtros.limite));
+            const limite = parseInt(filtros.limite, 10);
+            if (!isNaN(limite) && limite > 0) {
+                sql += ' LIMIT ?';
+                valores.push(parseInt(limite));
+            }
         }
-
+        console.log({filtros})
         return await database.query(sql, valores);
     }
 

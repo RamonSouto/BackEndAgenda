@@ -86,7 +86,8 @@ const MENSAGENS = {
         CONTA_BLOQUEADA: 'Conta bloqueada por excesso de tentativas',
         COSTUREIRA_OCUPADA: 'Costureira já possui um agendamento ativo neste horario',
         PRAZO_CANCELAMENTO: 'Não é possível cancelar com menos de 2 horas de antecedência',
-        CATEGORIA_PAI: 'Categoria pai não encontrado'
+        CATEGORIA_PAI: 'Categoria pai não encontrado',
+        CATEGORIA_FILHO: 'Não é possível excluir esta categoria, pois há outras subcategoria(s) vinculada(s) a ela'
     },
     SUCESSO: {
         CRIADO: 'Registro criado com sucesso',

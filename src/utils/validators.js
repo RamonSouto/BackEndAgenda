@@ -91,7 +91,13 @@ const validators = {
     },
     empresaSchema: Joi.object({
         id_cidade: Joi.number().integer().required(),
-        ind_ativo: Joi.boolean().default(true).required(),
+        ind_ativo: Joi.alternatives()
+            .try(Joi.boolean(), Joi.string().valid('1', '0'))
+            .custom((value, helpers) => {
+                if (typeof value === 'string') return value === '1';
+                return value;
+            })
+            .default(true).required(),
         nom_fantasia: Joi.string().max(100).required(),
         nom_razao_social: Joi.string().max(100).required(),
         num_cnpj: Joi.string().length(14).required().custom((value, helpers) => {
@@ -100,7 +106,7 @@ const validators = {
             }
             return value;
         }),
-        num_inscricao_estadual: Joi.string().max(20).default(null),
+        num_inscricao_estadual: Joi.string().max(20).default(null).allow(null),
         dta_abertura: Joi.date().max('now').required(),
         des_logradouro: Joi.string().max(255).required(),
         num_endereco: Joi.string().max(10),

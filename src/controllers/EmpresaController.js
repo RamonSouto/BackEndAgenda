@@ -73,6 +73,7 @@ class EmpresaController {
      */
     atualizar = asyncHandler(async (req, res) => {
         const { id } = req.params;
+
         const empresa = await EmpresaService.atualizar(id, req.body, req.usuario.id);
 
         return res.status(200).json({
