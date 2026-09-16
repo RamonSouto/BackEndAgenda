@@ -1,3 +1,4 @@
+// src/tests/e2e/fluxoErros.test.js
 const request = require('supertest');
 const app = require('../../app');
 const database = require('../../config/database');

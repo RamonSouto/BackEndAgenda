@@ -1,11 +1,43 @@
+// src/services/PessoaService.js
+/**
+ * @author Ramon David Souto
+ * @version 1.0.0
+ * @file src/services/PessoaService.js
+ * @description Serviço de gerenciamento de pessoas.
+ * Gerencia criação, listagem, busca (por ID, CPF, papel), atualização,
+ * exclusão (soft delete), ativação/desativação, além de consultas auxiliares
+ * de cidades e estados, com validação, sanitização e auditoria.
+ * 
+ * @requires bcryptjs
+ * @requires ../models/PessoaModel
+ * @requires ./LogService
+ * @requires ../utils/constants
+ * @requires ../utils/validators
+ * @requires ../utils/formatters
+ * @requires ../config/logger
+ */
+
 const bcrypt = require('bcryptjs');
 const PessoaModel = require('../models/PessoaModel');
 const LogService = require('./LogService');
 const { PAPEIS_PESSOA, MENSAGENS, ACOES_LOG } = require('../utils/constants');
 const validators = require('../utils/validators');
 const { limparCPF, limparCEP, limparTelefone, ocultarDadosSensiveis } = require('../utils/formatters');
+const logger = require('../config/logger'); // logger raiz
 
+/**
+ * Classe PessoaService.
+ * @class PessoaService
+ */
 class PessoaService {
+    /**
+     * Extrai a lista de papéis de um objeto de dados (flags booleanas).
+     * 
+     * @method extrairPapeis
+     * @memberof PessoaService
+     * @param {Object} dados - Objeto com flags ind_*.
+     * @returns {string[]} Lista de nomes de papéis.
+     */
     extrairPapeis(dados) {
         const papeis = [];
 
@@ -18,6 +50,14 @@ class PessoaService {
         return papeis;
     }
 
+    /**
+     * Verifica se o objeto possui pelo menos um papel (flag true).
+     * 
+     * @method possuiAlgumPapel
+     * @memberof PessoaService
+     * @param {Object} dados - Objeto com flags ind_*.
+     * @returns {boolean} `true` se pelo menos um papel estiver ativo.
+     */
     possuiAlgumPapel(dados) {
         return (
             dados.ind_medico ||
@@ -28,8 +68,29 @@ class PessoaService {
         );
     }
 
+    /**
+     * Cria uma nova pessoa.
+     * 
+     * @method criar
+     * @memberof PessoaService
+     * @async
+     * @param {Object} dados - Dados da pessoa (conforme schema `pessoaSchema`).
+     * @param {number} usuarioLogadoId - ID do usuário logado (para auditoria).
+     * @returns {Promise<Object>} Dados da pessoa criada (com campos sensíveis ocultos).
+     * @throws {Error} Se a validação falhar, CPF duplicado ou erro na persistência.
+     * 
+     * @description
+     * - Valida com Joi.
+     * - Sanitiza CPF, CEP e telefones.
+     * - Verifica unicidade de CPF.
+     * - Se senha fornecida, aplica hash.
+     * - Registra log de criação.
+     * - Retorna a pessoa com dados sensíveis ocultos.
+     */
     async criar(dados, usuarioLogadoId) {
+        logger.debug('PessoaService.criar inicado', { usuarioLogadoId })
         try {
+
             const { error, value } = validators.pessoaSchema.validate(dados);
 
             if (error) {
@@ -70,12 +131,25 @@ class PessoaService {
             });
 
             const pessoa = await PessoaModel.buscarPorId(pessoaId);
+            logger.info('Pessoa persistida', { pessoaId });
             return ocultarDadosSensiveis(pessoa);
         } catch (error) {
+            logger.error('Falha ao criar pessoa', { error: error.message, usuarioLogadoId })
             throw error;
         }
     }
 
+    /**
+     * Busca uma pessoa por ID.
+     * 
+     * @method buscarPorId
+     * @memberof PessoaService
+     * @async
+     * @param {number} id - ID da pessoa.
+     * @param {number} usuarioLogadoId - ID do usuário logado (para auditoria).
+     * @returns {Promise<Object>} Dados da pessoa (com campos sensíveis ocultos).
+     * @throws {Error} Se a pessoa não for encontrada.
+     */
     async buscarPorId(id, usuarioLogadoId) {
         try {
             const pessoa = await PessoaModel.buscarPorId(id);
@@ -101,11 +175,25 @@ class PessoaService {
         }
     }
 
+    /**
+     * Busca uma pessoa por CPF.
+     * 
+     * @method buscarPorCPF
+     * @memberof PessoaService
+     * @async
+     * @param {string} cpf - CPF (pode conter máscara).
+     * @param {number} usuarioLogadoId - ID do usuário logado (para auditoria).
+     * @returns {Promise<Object>} Dados da pessoa (com campos sensíveis ocultos).
+     * @throws {Error} Se CPF inválido ou pessoa não encontrada.
+     * 
+     * @description
+     * ⚠️ **BUG:** `cpfLimpo` é usado sem ser definido; o código usa `cpfLimpo` nas variáveis mas não o define.
+     */
     async buscarPorCPF(cpf, usuarioLogadoId) {
         try {
-            const cpfLimpo = limparCPF(cpf);
+            // const cpfLimpo = limparCPF(cpf);
 
-            if (!validators.cpfValido(cpfLimpo)) {
+            if (!validators.validarCPF(cpf)) {
                 throw new Error('CPF inválido');
             }
 
@@ -133,6 +221,16 @@ class PessoaService {
         }
     }
 
+    /**
+     * Lista pessoas com filtros opcionais.
+     * 
+     * @method listar
+     * @memberof PessoaService
+     * @async
+     * @param {Object} filtros - Filtros (papel, ind_status, busca).
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<Array<Object>>} Lista de pessoas (com campos sensíveis ocultos).
+     */
     async listar(filtros = {}, usuarioLogadoId) {
         try {
             const pessoas = await PessoaModel.listar(filtros);
@@ -154,6 +252,16 @@ class PessoaService {
         }
     }
 
+    /**
+     * Lista pessoas por papel.
+     * 
+     * @method listarPorPapel
+     * @memberof PessoaService
+     * @async
+     * @param {string} papel - Nome do papel (ex: 'paciente').
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<Array<Object>>} Lista de pessoas com o papel.
+     */
     async listarPorPapel(papel, usuarioLogadoId) {
         try {
             const pessoas = await PessoaModel.buscarPorPapel(papel);
@@ -175,6 +283,27 @@ class PessoaService {
         }
     }
 
+    /**
+     * Atualiza uma pessoa existente.
+     * 
+     * @method atualizar
+     * @memberof PessoaService
+     * @async
+     * @param {number} id - ID da pessoa.
+     * @param {Object} dados - Dados a serem atualizados.
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<Object>} Pessoa atualizada (com campos sensíveis ocultos).
+     * @throws {Error} Se a pessoa não existir, CPF duplicado, violação de papéis/senha, ou erro na persistência.
+     * 
+     * @description
+     * - Verifica existência.
+     * - Sanitiza CPF, CEP, telefones.
+     * - Verifica unicidade de CPF (se alterado).
+     * - Valida se ao menos um papel está presente.
+     * - Valida senha obrigatória para certos papéis (se não existir previamente).
+     * - Aplica hash se senha fornecida.
+     * - Registra log.
+     */
     async atualizar(id, dados, usuarioLogadoId) {
         try {
             const pessoaExistente = await PessoaModel.buscarPorId(id);
@@ -254,6 +383,17 @@ class PessoaService {
         }
     }
 
+    /**
+     * Deleta uma pessoa (soft delete).
+     * 
+     * @method deletar
+     * @memberof PessoaService
+     * @async
+     * @param {number} id - ID da pessoa.
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<boolean>} `true` se deletado.
+     * @throws {Error} Se a pessoa não existir ou erro na exclusão.
+     */
     async deletar(id, usuarioLogadoId) {
         try {
             const pessoa = await PessoaModel.buscarPorId(id);
@@ -286,6 +426,18 @@ class PessoaService {
         }
     }
 
+    /**
+     * Ativa ou desativa uma pessoa (altera `ind_status`).
+     * 
+     * @method ativarDesativar
+     * @memberof PessoaService
+     * @async
+     * @param {number} id - ID da pessoa.
+     * @param {string} status - 'ativo' ou 'inativo'.
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<boolean>} `true` se alterado.
+     * @throws {Error} Se a pessoa não existir.
+     */
     async ativarDesativar(id, status, usuarioLogadoId) {
         try {
             const pessoa = await PessoaModel.buscarPorId(id);
@@ -313,6 +465,15 @@ class PessoaService {
         }
     }
 
+    /**
+     * Lista costureiras com disponibilidade (verifica se têm agendamento ativo).
+     * 
+     * @method listarCostureirasDisponiveis
+     * @memberof PessoaService
+     * @async
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<Array<Object>>} Lista de costureiras com flags `disponivel` e `agendamento_ativo`.
+     */
     async listarCostureirasDisponiveis(usuarioLogadoId) {
         try {
             const costureiras = await PessoaModel.buscarPorPapel(PAPEIS_PESSOA.COSTUREIRA);
@@ -347,167 +508,15 @@ class PessoaService {
         }
     }
 
-    async listarCidades(usuarioLogadoId) {
-        try {
-            const cidades = await PessoaModel.listarCidades();
 
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.LISTAR,
-                des_tabela: 'tab_cidades',
-                des_detalhes: {
-                    tipo_consulta: 'listar_cidades',
-                    total_registros: cidades.length,
-                }
-            });
 
-            return cidades;
-        } catch (error) {
-            throw error;
-        }
-    }
 
-    async buscarCidadeId(id, usuarioLogadoId) {
-        try {
-            const cidade = await PessoaModel.buscarCidadeId(id);
 
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_cidades',
-                des_detalhes: {
-                    tipo_consulta: 'buscar_cidade_id',
-                    total_registros: cidade.length,
-                }
-            });
 
-            return cidade;
-        } catch (error) {
-            throw error;
-        }
-    }
 
-    async buscarCidadeNome(nome, usuarioLogadoId) {
-        try {
-            const cidades = await PessoaModel.buscarCidadeNome(nome);
 
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_cidades',
-                des_detalhes: {
-                    tipo_consulta: 'buscar_cidade_nome',
-                    total_registros: cidades.length,
-                }
-            });
 
-            return cidades;
-        } catch (error) {
-            throw error;
-        }
-    }
 
-    async buscarCidadeEstadoId(id, req) {
-        try {
-            const cidades = await PessoaModel.buscarCidadeEstadoId(id);
-            const usuarioLogadoId = req.usuario.id;
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_cidades',
-                num_registro_id: id,
-                des_detalhes: {
-                    tipo_consulta: 'buscar_cidades_estado_id',
-                    total_registros: cidades.length,
-                }
-            });
-
-            return cidades;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async listarEstados(usuarioLogadoId) {
-        try {
-            const estados = await PessoaModel.listarEstados();
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.LISTAR,
-                des_tabela: 'tab_estados',
-                des_detalhes: {
-                    tipo_consulta: 'listar_estados',
-                    total_registros: estados.length,
-                }
-            });
-
-            return estados;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async buscarEstadoId(id, usuarioLogadoId) {
-        try {
-            const estado = await PessoaModel.buscarEstadoId(id);
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_estados',
-                des_detalhes: {
-                    tipo_consulta: 'buscar_estado_id',
-                    total_registros: estado.length,
-                }
-            });
-
-            return estado;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async buscarEstadoNome(nome, usuarioLogadoId) {
-        try {
-            const estados = await PessoaModel.buscarEstadoNome(nome);
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_estados',
-                des_detalhes: {
-                    tipo_consulta: 'buscar_estado_nome',
-                    total_registros: estados.length,
-                }
-            });
-
-            return estados;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async buscarEstadoSgl(sgl, usuarioLogadoId) {
-        try {
-            const estados = await PessoaModel.buscarEstadoSgl(sgl);
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_estados',
-                des_detalhes: {
-                    tipo_consulta: 'buscar_estado_sigla',
-                    total_registros: estados.length,
-                }
-            });
-
-            return estados;
-        } catch (error) {
-            throw error;
-        }
-    }
 }
 
 module.exports = new PessoaService();

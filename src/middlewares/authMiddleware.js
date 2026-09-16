@@ -1,7 +1,44 @@
+// src/middlewares/authMiddleware.js
+
+/**
+ * @author Ramon David Souto
+ * @version 1.0.0
+ * @module authMiddleware
+ * @description Middleware de autenticação JWT para proteger rotas da API.
+ * Extrai e valida o token Bearer do cabeçalho Authorization, injeta dados do usuário
+ * no objeto `req` e permite ou nega o acesso.
+ * 
+ * @requires jsonwebtoken
+ * @requires ../config/env
+ * @requires ../utils/constants
+ */
 const jwt = require('jsonwebtoken');
 const config = require('../config/env');
 const { MENSAGENS } = require('../utils/constants');
+const { setContext } = require('../utils/loggerContext');
 
+/**
+ * Middleware de autenticação.
+ * 
+ * @function authMiddleware
+ * @param {Object} req - Objeto de requisição do Express.
+ * @param {Object} res - Objeto de resposta do Express.
+ * @param {Function} next - Função para passar o controle para o próximo middleware/controller.
+ * @returns {void} - Se autenticado, chama `next()`. Caso contrário, envia resposta JSON com erro.
+ * 
+ * @property {Object} req.usuario - Adicionado ao objeto `req` em caso de sucesso.
+ * @property {number|string} req.usuario.id - ID do usuário extraído do token.
+ * @property {string} req.usuario.cpf - CPF do usuário.
+ * @property {Array<string>} req.usuario.papeis - Lista de papéis/funções do usuário.
+ * @property {string} req.ipAddress - Endereço IP do cliente (real, considerando proxy).
+ * @property {string} req.userAgent - User-Agent do cliente.
+ * 
+ * @example
+ * // Uso em uma rota Express
+ * app.get('/perfil', authMiddleware, (req, res) => {
+ *   res.json({ usuario: req.usuario });
+ * });
+ */
 const authMiddleware = async (req, res, next) => {
     try {
         // Verificar se token foi fornecido
@@ -46,6 +83,7 @@ const authMiddleware = async (req, res, next) => {
                 cpf: decoded.cpf,
                 papeis: Array.isArray(decoded.papeis) ? decoded.papeis : []
             };
+            setContext({ userId: decoded.id });
 
             // Adicionar informações de IP e User Agent
             req.ipAddress = req.ip || req.connection.remoteAddress;
@@ -78,7 +116,7 @@ const authMiddleware = async (req, res, next) => {
         return res.status(500).json({
             sucesso: false,
             mensagem: MENSAGENS.ERRO.SERVIDOR,
-            erro: error.message
+            erro: 'Erro interno ao processar autenticação'
         });
     }
 };

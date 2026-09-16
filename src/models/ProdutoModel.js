@@ -1,6 +1,36 @@
+// src/models/ProdutosModel.js
+
+/**
+ * @author Ramon David Souto
+ * @version 1.0.0
+ * @file ProdutoModel.js
+ * @description Modelo de dados para produtos, categorias, tamanhos, cores/estampas,
+ * grades, imagens, tipos de serviço, associações produto-serviço e preços.
+ * 
+ * @requires ../config/database
+ */
 const database = require('../config/database');
 
+/**
+ * Classe ProdutoModel.
+ * @class ProdutoModel
+ */
 class ProdutoModel {
+  // ==============================
+  // PRODUTOS EM AGENDAMENTO
+  // ==============================
+
+  /**
+   * Adiciona um produto a um agendamento.
+   * 
+   * @method adicionarProdutoAgendamento
+   * @param {Object} dados - Dados do produto no agendamento.
+   * @param {number} dados.id_agendamento - ID do agendamento.
+   * @param {number} dados.id_produto_grade - ID da grade do produto.
+   * @param {string} [dados.des_ajuste_produto] - Descrição do ajuste (opcional).
+   * @param {string} [dados.ind_status='pendente'] - Status inicial.
+   * @returns {Promise<number>} ID do registro inserido.
+   */
   async adicionarProdutoAgendamento(dados) {
     const sql = `
       INSERT INTO tab_produto_agendamento (
@@ -19,6 +49,13 @@ class ProdutoModel {
     return resultado.insertId;
   }
 
+  /**
+   * Lista os produtos de um agendamento.
+   * 
+   * @method listarProdutosAgendamento
+   * @param {number} id_agendamento - ID do agendamento.
+   * @returns {Promise<Array>} Lista de produtos com detalhes (nome, SKU, tamanho, cor).
+   */
   async listarProdutosAgendamento(id_agendamento) {
     const sql = `
       SELECT 
@@ -39,6 +76,14 @@ class ProdutoModel {
     return await database.query(sql, [id_agendamento]);
   }
 
+  /**
+   * Atualiza o status de um produto de agendamento.
+   * 
+   * @method atualizarStatusProduto
+   * @param {number} id - ID do produto de agendamento.
+   * @param {string} status - Novo status.
+   * @returns {Promise<boolean>} `true` se atualizado, `false` caso contrário.
+   */
   async atualizarStatusProduto(id, status) {
     const sql = `
       UPDATE tab_produto_agendamento 
@@ -50,6 +95,23 @@ class ProdutoModel {
     return resultado.affectedRows > 0;
   }
 
+
+
+  // ==============================
+  // FOTOS DE AJUSTE
+  // ==============================
+
+  /**
+   * Adiciona uma foto de ajuste.
+   * 
+   * @method adicionarFotoAjuste
+   * @param {Object} dados - Dados da foto.
+   * @param {number} dados.id_produto_agendamento - ID do produto de agendamento.
+   * @param {string} dados.des_caminho_arquivo - Caminho do arquivo.
+   * @param {string} dados.nom_original - Nome original.
+   * @param {number} dados.num_tamanho_bytes - Tamanho em bytes.
+   * @returns {Promise<number>} ID da foto inserida.
+   */
   async adicionarFotoAjuste(dados) {
     const sql = `
       INSERT INTO tab_fotos_ajustes (
@@ -69,6 +131,13 @@ class ProdutoModel {
     return resultado.insertId;
   }
 
+  /**
+   * Lista fotos de ajuste de um produto de agendamento.
+   * 
+   * @method listarFotosAjuste
+   * @param {number} id_produto_agendamento - ID do produto de agendamento.
+   * @returns {Promise<Array>} Lista de fotos (ordem decrescente de criação).
+   */
   async listarFotosAjuste(id_produto_agendamento) {
     const sql = `
       SELECT * FROM tab_fotos_ajustes
@@ -79,6 +148,13 @@ class ProdutoModel {
     return await database.query(sql, [id_produto_agendamento]);
   }
 
+  /**
+   * Deleta (soft delete) uma foto de ajuste.
+   * 
+   * @method deletarFoto
+   * @param {number} id - ID da foto.
+   * @returns {Promise<boolean>} `true` se deletado.
+   */
   async deletarFoto(id) {
     const sql = `
       UPDATE tab_fotos_ajustes 
@@ -90,6 +166,13 @@ class ProdutoModel {
     return resultado.affectedRows > 0;
   }
 
+  /**
+   * Busca uma foto por ID.
+   * 
+   * @method buscarFotoPorId
+   * @param {number} id - ID da foto.
+   * @returns {Promise<Object|null>} Dados da foto ou `null`.
+   */
   async buscarFotoPorId(id) {
     const sql = `
       SELECT * FROM tab_fotos_ajustes
@@ -100,337 +183,58 @@ class ProdutoModel {
     return resultado[0] || null;
   }
 
-  /** Categoria */
-  async criarCategoriaProduto(dados) {
 
-    const sql = `INSERT INTO tab_categorias_produtos(nom_categoria, id_pai) VALUES(?,?)`;
 
-    const valores = [
-      dados.nom_categoria,
-      dados.id_pai
-    ];
-
-    const resultado = await database.query(sql, valores);
+  // ==============================
+  // CATEGORIAS
+  // ==============================
 
-    return resultado.insertId;
-  }
-
-  async buscarCategoriaPorId(id) {
-    const sql = `
-      SELECT id, nom_categoria, id_pai, created_at, updated_at, deleted_at
-      FROM tab_categorias_produtos
-      WHERE id= ? AND deleted_at IS NULL
-    `;
-
-    const resultado = await database.query(sql, [id]);
-    return resultado[0] || null;
-  }
-
-  async listarCategorias() {
-    const sql = `
-      SELECT id, nom_categoria, id_pai, created_at, updated_at, deleted_at
-      FROM tab_categorias_produtos
-    `;
-
-    return await database.query(sql);
-  }
-
-  async atualizarCategoria(id, dados) {
-    const campos = [];
-    const valores = [];
-    Object.keys(dados).forEach(campo => {
-      if (dados[campo] !== undefined && campo !== 'id') {
-        campos.push(`${campo} = ?`);
-        valores.push(dados[campo]);
-      }
-    });
-
-    if (campos.length === 0) {
-      throw new Error('Nenhum campo para atualizar')
-    }
-
-    valores.push(id);
-
-    const sql = `
-      UPDATE tab_categorias_produtos
-      SET ${campos.join(', ')}
-      WHERE id = ? AND deleted_at IS NULL
-    `;
-
-    const resultado = await database.query(sql, valores);
-
-    return resultado.affectedRows > 0;
-  }
-
-  async buscarCategoriaFilho(id) {
-    const sql = `
-      SELECT *
-      FROM tab_categorias_produtos
-      WHERE id_pai = ? AND deleted_at IS NULL
-    `;
 
-    const resultado = await database.query(sql, [id]);
 
-    return resultado;
-  }
 
-  async deletarCategoria(id) {
-    const sql = `
-      UPDATE tab_categorias_produtos 
-      SET deleted_at = CURRENT_TIMESTAMP 
-      WHERE id = ? AND deleted_at IS NULL
-    `;
 
-    const resultado = await database.query(sql, [id]);
+  // ==============================
+  // TAMANHOS
+  // ==============================
 
-    return resultado.affectedRows > 0;
-  }
 
 
-  /** Tamanho Produto */
-  async criarTamanhoProduto(dados) {
 
-    const sql = `INSERT INTO tab_tamanhos(cod_tamanho, des_tamanho, des_categoria_tamanho, num_ordem_exibicao) VALUES(?,?,?,?)`;
 
-    const valores = [
-      dados.cod_tamanho,
-      dados.des_tamanho,
-      dados.des_categoria_tamanho,
-      dados.num_ordem_exibicao
-    ];
+  // ==============================
+  // CORES E ESTAMPAS
+  // ==============================
 
-    const resultado = await database.query(sql, valores);
 
-    return resultado.insertId;
-  }
 
-  async buscarTamanhoPorId(id) {
-    const sql = `
-      SELECT id, cod_tamanho, des_tamanho, des_categoria_tamanho, num_ordem_exibicao, created_at, updated_at, deleted_at
-      FROM tab_tamanhos
-      WHERE id= ? AND deleted_at IS NULL
-    `;
 
-    const resultado = await database.query(sql, [id]);
-    return resultado[0] || null;
-  }
 
-  async listarTamanhos() {
-    const sql = `
-      SELECT id, cod_tamanho, des_tamanho, des_categoria_tamanho, num_ordem_exibicao, created_at, updated_at, deleted_at
-      FROM tab_tamanhos
-    `;
+  // ==============================
+  // GRADES DE PRODUTOS
+  // ==============================
 
-    return await database.query(sql);
-  }
 
-  async atualizarTamanho(id, dados) {
-    const campos = [];
-    const valores = [];
-    Object.keys(dados).forEach(campo => {
-      if (dados[campo] !== undefined && campo !== 'id') {
-        campos.push(`${campo} = ?`);
-        valores.push(dados[campo]);
-      }
-    });
 
-    if (campos.length === 0) {
-      throw new Error('Nenhum campo para atualizar')
-    }
 
-    valores.push(id);
 
-    const sql = `
-        UPDATE tab_tamanhos
-        SET ${campos.join(', ')}
-        WHERE id = ? AND deleted_at IS NULL
-      `;
+  // ==============================
+  // PRODUTOS
+  // ==============================
 
-    const resultado = await database.query(sql, valores);
-
-    return resultado.affectedRows > 0;
-  }
-
-  async deletarTamanho(id) {
-    const sql = `
-      UPDATE tab_tamanhos 
-      SET deleted_at = CURRENT_TIMESTAMP 
-      WHERE id = ? AND deleted_at IS NULL
-    `;
-
-    const resultado = await database.query(sql, [id]);
-
-    return resultado.affectedRows > 0;
-  }
-
-
-
-
-
-  async criarCorEstampaProduto(dados) {
-
-    const sql = `INSERT INTO tab_variacoes_cor_estampa(nom_cor_estampa, ind_tipo, val_codigo_hex, des_imagem_url, num_ordem_exibicao) VALUES(?,?,?,?,?)`;
-
-    const valores = [
-      dados.nom_cor_estampa,
-      dados.ind_tipo,
-      dados.val_codigo_hex,
-      dados.des_imagem_url,
-      dados.num_ordem_exibicao
-    ];
-
-    const resultado = await database.query(sql, valores);
-
-    return resultado.insertId;
-  }
-
-  async buscarCorEstampaPorId(id) {
-    const sql = `
-      SELECT id, nom_cor_estampa, ind_tipo, val_codigo_hex, des_imagem_url, num_ordem_exibicao, created_at, updated_at, deleted_at
-      FROM tab_variacoes_cor_estampa
-      WHERE id= ? AND deleted_at IS NULL
-    `;
-
-    const resultado = await database.query(sql, [id]);
-    return resultado[0] || null;
-  }
-
-  async listarCoresEstampas() {
-    const sql = `
-      SELECT id, nom_cor_estampa, ind_tipo, val_codigo_hex, des_imagem_url, num_ordem_exibicao, created_at, updated_at, deleted_at
-      FROM tab_variacoes_cor_estampa
-    `;
-
-    return await database.query(sql);
-  }
-
-  async atualizarCorEstampa(id, dados) {
-
-    const campos = [];
-    const valores = [];
-    Object.keys(dados).forEach(campo => {
-      if (dados[campo] !== undefined && campo !== 'id') {
-        campos.push(`${campo} = ?`);
-        valores.push(dados[campo]);
-      }
-    });
-
-    if (campos.length === 0) {
-      throw new Error('Nenhum campo para atualizar')
-    }
-
-    valores.push(id);
-
-    const sql = `
-        UPDATE tab_variacoes_cor_estampa
-        SET ${campos.join(', ')}
-        WHERE id = ? AND deleted_at IS NULL
-      `;
-
-    const resultado = await database.query(sql, valores);
-
-    return resultado.affectedRows > 0;
-  }
-
-  async deletarCorEstampa(id) {
-    const sql = `
-      UPDATE tab_variacoes_cor_estampa 
-      SET deleted_at = CURRENT_TIMESTAMP 
-      WHERE id = ? AND deleted_at IS NULL
-    `;
-
-    const resultado = await database.query(sql, [id]);
-
-    return resultado.affectedRows > 0;
-  }
-
-
-
-
-
-  async criarGradeProduto(dados) {
-
-    const sql = `INSERT INTO tab_produto_grade(id_produto, id_variacao_cor_estampa, id_tamanho, num_sku, val_preco_variacao, ind_ativo, num_codigo_barras) VALUES(?,?,?,?,?,?,?)`;
-
-    const valores = [
-      dados.id_produto,
-      dados.id_variacao_cor_estampa,
-      dados.id_tamanho,
-      dados.num_sku,
-      dados.val_preco_variacao,
-      dados.ind_ativo,
-      dados.num_codigo_barras
-    ];
-
-    const resultado = await database.query(sql, valores);
-
-    return resultado.insertId;
-  }
-
-  async buscarGradeProdutoPorId(id) {
-    const sql = `
-      SELECT id, id_produto, id_variacao_cor_estampa, id_tamanho, num_sku, val_preco_variacao, ind_ativo, num_codigo_barras, created_at, updated_at, deleted_at
-      FROM tab_produto_grade
-      WHERE id= ? AND deleted_at IS NULL
-    `;
-
-    const resultado = await database.query(sql, [id]);
-    return resultado[0] || null;
-  }
-
-  async listarGradesProdutos() {
-    const sql = `
-      SELECT id, id_produto, id_variacao_cor_estampa, id_tamanho, num_sku, val_preco_variacao, ind_ativo, num_codigo_barras, created_at, updated_at, deleted_at
-      FROM tab_produto_grade
-    `;
-
-    return await database.query(sql);
-  }
-
-  async atualizarGradeProduto(id, dados) {
-
-    const campos = [];
-    const valores = [];
-    Object.keys(dados).forEach(campo => {
-      if (dados[campo] !== undefined && campo !== 'id') {
-        campos.push(`${campo} = ?`);
-        valores.push(dados[campo]);
-      }
-    });
-
-    if (campos.length === 0) {
-      throw new Error('Nenhum campo para atualizar')
-    }
-
-    valores.push(id);
-
-    const sql = `
-        UPDATE tab_produto_grade
-        SET ${campos.join(', ')}
-        WHERE id = ? AND deleted_at IS NULL
-      `;
-
-    const resultado = await database.query(sql, valores);
-
-    return resultado.affectedRows > 0;
-  }
-
-  async deletarGradeProduto(id) {
-    const sql = `
-      UPDATE tab_produto_grade 
-      SET deleted_at = CURRENT_TIMESTAMP 
-      WHERE id = ? AND deleted_at IS NULL
-    `;
-
-    const resultado = await database.query(sql, [id]);
-
-    return resultado.affectedRows > 0;
-  }
-
-
-
-
-
+  /**
+   * Cria um novo produto.
+   * 
+   * @method criarProduto
+   * @param {Object} dados - Dados do produto.
+   * @param {number} dados.id_categoria - ID da categoria.
+   * @param {string} dados.nom_produto - Nome.
+   * @param {string} [dados.num_sku] - SKU.
+   * @param {string} [dados.des_produto] - Descrição.
+   * @param {string} [dados.ref_produto] - Referência.
+   * @param {number} [dados.val_preco_base] - Preço base.
+   * @param {boolean} dados.ind_ativo - Ativo.
+   * @returns {Promise<number>} ID inserido.
+   */
   async criarProduto(dados) {
 
     const sql = `INSERT INTO tab_produtos(id_categoria, nom_produto, num_sku, des_produto, ref_produto, val_preco_base, ind_ativo) VALUES(?,?,?,?,?,?,?)`;
@@ -450,6 +254,13 @@ class ProdutoModel {
     return resultado.insertId;
   }
 
+  /**
+   * Busca produto por ID.
+   * 
+   * @method buscarProdutoPorId
+   * @param {number} id - ID do produto.
+   * @returns {Promise<Object|null>}
+   */
   async buscarProdutoPorId(id) {
     const sql = `
       SELECT id, id_categoria, nom_produto, num_sku, des_produto, ref_produto, val_preco_base, ind_ativo, created_at, updated_at, deleted_at
@@ -461,6 +272,12 @@ class ProdutoModel {
     return resultado[0] || null;
   }
 
+  /**
+   * Lista todos os produtos.
+   * 
+   * @method listarProdutos
+   * @returns {Promise<Array>}
+   */
   async listarProdutos() {
     const sql = `
       SELECT id, id_categoria, nom_produto, num_sku, des_produto, ref_produto, val_preco_base, ind_ativo, created_at, updated_at, deleted_at
@@ -470,6 +287,14 @@ class ProdutoModel {
     return await database.query(sql);
   }
 
+  /**
+   * Atualiza produto.
+   * 
+   * @method atualizarProduto
+   * @param {number} id - ID do produto.
+   * @param {Object} dados - Campos.
+   * @returns {Promise<boolean>}
+   */
   async atualizarProduto(id, dados) {
 
     const campos = [];
@@ -498,6 +323,13 @@ class ProdutoModel {
     return resultado.affectedRows > 0;
   }
 
+  /**
+   * Deleta produto (soft delete).
+   * 
+   * @method deletarProduto
+   * @param {number} id - ID do produto.
+   * @returns {Promise<boolean>}
+   */
   async deletarProduto(id) {
     const sql = `
       UPDATE tab_produtos 
@@ -512,377 +344,35 @@ class ProdutoModel {
 
 
 
+  // ==============================
+  // IMAGENS DE PRODUTOS
+  // ==============================
 
 
-  async criarImagemProduto(dados) {
-
-    const sql = `INSERT INTO tab_produto_imagens(id_produto_grade, id_produto, des_titulo_imagem, des_imagem, des_url_imagem, num_ordem, ind_principal) VALUES(?,?,?,?,?,?,?)`;
-
-    const valores = [
-      dados.id_produto_grade,
-      dados.id_produto,
-      dados.des_titulo_imagem,
-      dados.des_imagem,
-      dados.des_url_imagem,
-      dados.num_ordem,
-      dados.ind_principal
-    ];
-
-    const resultado = await database.query(sql, valores);
-
-    return resultado.insertId;
-  }
-
-  async listarImagemProdutos() {
-    const sql = `
-      SELECT id, id_produto_grade, id_produto, des_url_imagem, num_ordem, ind_principal, created_at, updated_at, deleted_at
-      FROM tab_produto_imagens
-    `;
-
-    return await database.query(sql);
-  }
 
-  async buscarImagemProdutoId(id) {
-    const sql = `
-      SELECT id, id_produto_grade, id_produto, des_url_imagem, num_ordem, ind_principal, created_at, updated_at, deleted_at
-      FROM tab_produto_imagens
-      WHERE id = ? AND deleted_at IS NULL
-    `;
 
-    const resultado = await database.query(sql, [id]);
-    return resultado || null;
-  }
 
-  async buscarImagemProdutoPorId(id_produto) {
-    const sql = `
-      SELECT id, id_produto_grade, id_produto, des_url_imagem, num_ordem, ind_principal, created_at, updated_at, deleted_at
-      FROM tab_produto_imagens
-      WHERE id_produto = ? AND deleted_at IS NULL
-    `;
+  // ==============================
+  // TIPOS DE SERVIÇO
+  // ==============================
 
-    const resultado = await database.query(sql, [id_produto]);
-    return resultado || null;
-  }
 
-  async buscarImagemProdutoGradeID(id_produto_grade) {
-    const sql = `
-      SELECT id, id_produto_grade, id_produto, des_url_imagem, num_ordem, ind_principal, created_at, updated_at, deleted_at
-      FROM tab_produto_imagens
-      WHERE id_produto_grade = ? AND deleted_at IS NULL
-    `;
 
-    const resultado = await database.query(sql, [id_produto_grade]);
-    return resultado || null;
-  }
 
-  async atualizarImagemProduto(id, dados) {
 
-    const campos = [];
-    const valores = [];
-    Object.keys(dados).forEach(campo => {
-      if (dados[campo] !== undefined && campo !== 'id') {
-        campos.push(`${campo} = ?`);
-        valores.push(dados[campo]);
-      }
-    });
+  // ==============================
+  // PRODUTO-SERVIÇO
+  // ==============================
 
-    if (campos.length === 0) {
-      throw new Error('Nenhum campo para atualizar')
-    }
 
-    valores.push(id);
 
-    const sql = `
-        UPDATE tab_produto_imagens
-        SET ${campos.join(', ')}
-        WHERE id = ? AND deleted_at IS NULL
-      `;
 
-    const resultado = await database.query(sql, valores);
 
-    return resultado.affectedRows > 0;
-  }
+  // ==============================
+  // PREÇOS DE PRODUTO-SERVIÇO
+  // ==============================
 
-  async deletarImagemProduto(id) {
-    const sql = `
-      UPDATE tab_produto_imagens 
-      SET deleted_at = CURRENT_TIMESTAMP 
-      WHERE id = ? AND deleted_at IS NULL
-    `;
 
-    const resultado = await database.query(sql, [id]);
-
-    return resultado.affectedRows > 0;
-  }
-
-  async desmarcarImagemPrincipalPorProduto(id_produto) {
-    const sql = `
-      UPDATE tab_produto_imagens 
-      SET ind_principal = false
-      WHERE id_produto = ? AND ind_principal = true AND deleted_at IS NULL
-    `;
-
-    const resultado = await database.query(sql, [id_produto]);
-
-    return resultado.affectedRows > 0;
-  }
-
-  async desmarcarImagemPrincipalPorGrade(id_produto_grade) {
-    const sql = `
-      UPDATE tab_produto_imagens
-      SET ind_principal = false
-      WHERE id_produto_grade = ? AND ind_principal = true AND deleted_at IS NULL
-    `;
-
-    const resultado = await database.query(sql, [id_produto_grade]);
-
-    return resultado.affectedRows > 0;
-  }
-
-
-
-
-
-  /**
-   * Tipo de Serviço
-   */
-  async criarTipoServico(dados) {
-
-    const sql = `INSERT INTO tab_tipo_servico(des_tipo_ajuste, ind_ativo) VALUES(?,?)`;
-
-    const valores = [
-      dados.des_tipo_ajuste,
-      dados.ind_ativo,
-    ];
-
-    const resultado = await database.query(sql, valores);
-
-    return resultado.insertId;
-  }
-
-  async buscarTipoServicoPorId(id) {
-    const sql = `
-      SELECT id, des_tipo_ajuste, ind_ativo, created_at, updated_at, deleted_at
-      FROM tab_tipo_servico
-      WHERE id= ? AND deleted_at IS NULL
-    `;
-
-    const resultado = await database.query(sql, [id]);
-    return resultado[0] || null;
-  }
-
-  async listarTipoServico() {
-    const sql = `
-      SELECT id, des_tipo_ajuste, ind_ativo, created_at, updated_at, deleted_at
-      FROM tab_tipo_servico
-    `;
-
-    return await database.query(sql);
-  }
-
-  async atualizarTipoServico(id, dados) {
-
-    const campos = [];
-    const valores = [];
-    Object.keys(dados).forEach(campo => {
-      if (dados[campo] !== undefined && campo !== 'id') {
-        campos.push(`${campo} = ?`);
-        valores.push(dados[campo]);
-      }
-    });
-
-    if (campos.length === 0) {
-      throw new Error('Nenhum campo para atualizar')
-    }
-
-    valores.push(id);
-
-    const sql = `
-        UPDATE tab_tipo_servico
-        SET ${campos.join(', ')}
-        WHERE id = ? AND deleted_at IS NULL
-      `;
-
-    const resultado = await database.query(sql, valores);
-
-    return resultado.affectedRows > 0;
-  }
-
-  async deletarTipoServico(id) {
-    const sql = `
-      UPDATE tab_tipo_servico 
-      SET deleted_at = CURRENT_TIMESTAMP 
-      WHERE id = ? AND deleted_at IS NULL
-    `;
-
-    const resultado = await database.query(sql, [id]);
-
-    return resultado.affectedRows > 0;
-  }
-
-
-
-
-
-  /**
-   * Produto e Tipo de Serviço
-   */
-  async criarProdutoTipoServico(dados) {
-
-    const sql = `INSERT INTO tab_produto_servico(id_produto, id_tipo_servico, ind_ativo) VALUES(?,?,?)`;
-
-    const valores = [
-      dados.id_produto,
-      dados.id_tipo_servico,
-      dados.ind_ativo
-    ];
-
-    const resultado = await database.query(sql, valores);
-
-    return resultado.insertId;
-  }
-
-  async buscarProdutoServicoPorId(id) {
-    const sql = `
-      SELECT id, id_produto, id_tipo_servico, ind_ativo, created_at, updated_at, deleted_at
-      FROM tab_produto_servico
-      WHERE id= ? AND deleted_at IS NULL
-    `;
-
-    const resultado = await database.query(sql, [id]);
-    return resultado[0] || null;
-  }
-
-  async listarProdutoServico() {
-    const sql = `
-      SELECT id, id_produto, id_tipo_servico, ind_ativo, created_at, updated_at, deleted_at
-      FROM tab_produto_servico
-    `;
-
-    return await database.query(sql);
-  }
-
-  async atualizarProdutoServico(id, dados) {
-
-    const campos = [];
-    const valores = [];
-    Object.keys(dados).forEach(campo => {
-      if (dados[campo] !== undefined && campo !== 'id') {
-        campos.push(`${campo} = ?`);
-        valores.push(dados[campo]);
-      }
-    });
-
-    if (campos.length === 0) {
-      throw new Error('Nenhum campo para atualizar')
-    }
-
-    valores.push(id);
-
-    const sql = `
-        UPDATE tab_produto_servico
-        SET ${campos.join(', ')}
-        WHERE id = ? AND deleted_at IS NULL
-      `;
-
-    const resultado = await database.query(sql, valores);
-
-    return resultado.affectedRows > 0;
-  }
-
-  async deletarProdutoServico(id) {
-    const sql = `
-      UPDATE tab_produto_servico 
-      SET deleted_at = CURRENT_TIMESTAMP 
-      WHERE id = ? AND deleted_at IS NULL
-    `;
-
-    const resultado = await database.query(sql, [id]);
-
-    return resultado.affectedRows > 0;
-  }
-
-
-
-
-
-  // /**
-  //  * Produto e Tipo de Serviço
-  //  */
-  async criarPrecoProdutoServico(dados) {
-
-    const sql = `INSERT INTO tab_preco_produto_servico(id_produto_servico, val_preco, dta_inicio) VALUES(?,?,?)`;
-
-    const valores = [
-      dados.id_produto_servico,
-      dados.val_preco,
-      dados.dta_inicio
-    ];
-
-    const resultado = await database.query(sql, valores);
-
-    return resultado.insertId;
-  }
-
-  async buscarPrecoProdutoServicoPorId(id) {
-    const sql = `
-      SELECT id, id_produto_servico, val_preco, dta_inicio, created_at, updated_at, deleted_at
-      FROM tab_preco_produto_servico
-      WHERE id= ? AND deleted_at IS NULL
-    `;
-
-    const resultado = await database.query(sql, [id]);
-    return resultado[0] || null;
-  }
-
-  async listarPrecoProdutoServico() {
-    const sql = `
-      SELECT id, id_produto_servico, val_preco, dta_inicio, created_at, updated_at, deleted_at
-      FROM tab_preco_produto_servico
-    `;
-
-    return await database.query(sql);
-  }
-
-  async atualizarPrecoProdutoServico(id, dados) {
-
-    const campos = [];
-    const valores = [];
-    Object.keys(dados).forEach(campo => {
-      if (dados[campo] !== undefined && campo !== 'id') {
-        campos.push(`${campo} = ?`);
-        valores.push(dados[campo]);
-      }
-    });
-
-    if (campos.length === 0) {
-      throw new Error('Nenhum campo para atualizar')
-    }
-
-    valores.push(id);
-
-    const sql = `
-        UPDATE tab_preco_produto_servico
-        SET ${campos.join(', ')}
-        WHERE id = ? AND deleted_at IS NULL
-      `;
-
-    const resultado = await database.query(sql, valores);
-
-    return resultado.affectedRows > 0;
-  }
-
-  async deletarPrecoProdutoServico(id) {
-    const sql = `
-      UPDATE tab_preco_produto_servico 
-      SET deleted_at = CURRENT_TIMESTAMP 
-      WHERE id = ? AND deleted_at IS NULL
-    `;
-
-    const resultado = await database.query(sql, [id]);
-
-    return resultado.affectedRows > 0;
-  }
 }
 
 

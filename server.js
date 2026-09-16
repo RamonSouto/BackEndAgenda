@@ -1,3 +1,20 @@
+// server.js
+
+/**
+ * @author Ramon David Souto
+ * @version 1.0.0
+ * @file server.js
+ * @description Ponto de entrada da aplicação. Inicializa o servidor,
+ * conecta ao banco de dados, prepara o serviço de upload e gerencia
+ * o ciclo de vida da aplicação.
+ * 
+ * @requires dotenv
+ * @requires ./src/app
+ * @requires ./src/config/database
+ * @requires ./src/services/UploadService
+ * @requires ./src/config/env
+ */
+
 require('dotenv').config();
 
 const app = require('./src/app');
@@ -5,6 +22,11 @@ const database = require('./src/config/database');
 const UploadService = require('./src/services/UploadService');
 const config = require('./src/config/env');
 
+/**
+ * Classe responsável pela inicialização e gerenciamento do servidor.
+ * 
+ * @class Server
+ */
 class Server {
     constructor() {
         this.app = app;
@@ -12,6 +34,18 @@ class Server {
         this.server = null;
     }
 
+    /**
+     * Método principal que inicia o servidor.
+     * - Limpa o console.
+     * - Conecta ao banco de dados.
+     * - Inicializa o serviço de upload.
+     * - Inicia o servidor HTTP.
+     * - Configura handlers de encerramento.
+     * 
+     * @async
+     * @returns {Promise<void>}
+     * @throws {Error} Se alguma etapa crítica falhar.
+     */
     async start() {
         try {
             console.clear();
@@ -38,6 +72,13 @@ class Server {
         }
     }
 
+    /**
+     * Conecta ao banco de dados.
+     * 
+     * @async
+     * @returns {Promise<void>}
+     * @throws {Error} Se a conexão falhar.
+     */
     async connectDatabase() {
         try {
             await database.connect();
@@ -47,6 +88,13 @@ class Server {
         }
     }
 
+    /**
+     * Inicializa o serviço de upload (criação de diretórios, etc.).
+     * 
+     * @async
+     * @returns {Promise<void>}
+     * @description Se falhar, apenas exibe um aviso, mas não interrompe a inicialização.
+     */
     async initializeUploadService() {
         try {
             await UploadService.inicializar();
@@ -56,6 +104,13 @@ class Server {
         }
     }
 
+    /**
+     * Inicia o servidor HTTP na porta configurada.
+     * 
+     * @async
+     * @returns {Promise<void>}
+     * @throws {Error} Se a porta já estiver em uso ou outro erro de socket.
+     */
     async startHttpServer() {
         return new Promise((resolve, reject) => {
             try {
@@ -78,6 +133,19 @@ class Server {
         });
     }
 
+    /**
+     * Configura os handlers para sinais de encerramento e erros não tratados.
+     * 
+     * @method setupShutdownHandlers
+     * @description Registra listeners para:
+     *   - SIGTERM, SIGINT (encerramento gracioso)
+     *   - uncaughtException
+     *   - unhandledRejection
+     * O encerramento gracioso fecha o servidor HTTP, libera a conexão com o banco
+     * e finaliza o processo. Um timeout de 10 segundos força o encerramento.
+     * 
+     * @returns {void}
+     */
     setupShutdownHandlers() {
         // Graceful shutdown
         const gracefulShutdown = async (signal) => {
@@ -121,6 +189,19 @@ class Server {
         });
     }
 
+    /**
+     * Exibe informações detalhadas do servidor e das rotas disponíveis.
+     * (Método atualmente comentado na inicialização).
+     * 
+     * @method printServerInfo
+     * @returns {void}
+     * @description Imprime um banner com:
+     *   - Ambiente, porta, URL, base de dados
+     *   - Lista de rotas principais
+     *   - Tipos de usuário
+     *   - Recursos de segurança
+     *   - Informações do desenvolvedor
+     */
     printServerInfo() {
         const info = `
 ╔═══════════════════════════════════════════════════════════════╗

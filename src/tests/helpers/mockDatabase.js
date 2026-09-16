@@ -1,3 +1,4 @@
+// src/tests/helpers/mockDatabase.js
 /**
  * Mock do banco de dados para testes unitários
  */

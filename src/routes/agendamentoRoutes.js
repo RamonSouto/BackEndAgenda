@@ -1,3 +1,4 @@
+// src/routes/agendamentoRoutes.js
 const express = require('express');
 const router = express.Router();
 const AgendamentoController = require('../controllers/AgendamentoController');
@@ -34,97 +35,15 @@ router.post(
 );
 
 /**
- * @route   GET /api/agendamentos/estatisticas
- * @desc    Estatísticas de agendamentos
- * @access  Privado - Todos autenticados
- */
-router.get('/estatisticas', AgendamentoController.estatisticas);
-
-/**
- * @route   GET /api/agendamentos/meus
- * @desc    Listar meus agendamentos (costureira)
- * @access  Privado - Costureira
- */
-router.get(
-    '/meus',
-    papelMiddleware(PAPEIS_PESSOA.COSTUREIRA),
-    AgendamentoController.listarMeus
-);
-
-/**
- * @route   GET /api/agendamentos/costureira/:id_costureira
- * @desc    Listar agendamentos de uma costureira
- * @access  Privado - Secretária, Admin
- */
-router.get(
-    '/costureira/:id_costureira',
-    validarIdMiddleware('id_costureira'),
-    secretariaOuAdminMiddleware,
-    AgendamentoController.listarPorCostureira
-);
-
-/**
  * @route   GET /api/agendamentos
  * @desc    Listar agendamentos com filtros
  * @access  Privado - Todos autenticados
  */
-router.get('/', AgendamentoController.listar);
-
-/**
- * @route   POST /api/agendamentos/tipo
- * @desc    Criar novo agendamento
- * @access  Privado - Secretária, Costureira, Admin
- */
-router.post(
-    '/tipo',
-    limiterCriacao,
-    apenasAdminMiddleware,
-    AgendamentoController.criarTipoAgendamento
-);
-
-/**
- * @route   GET /api/agendamentos/tipo
- * @desc    Listar tipo de agendamento
- * @access  Privado - Todos autenticados
- */
 router.get(
-    '/tipo',
-    apenasAdminMiddleware,
-    AgendamentoController.listarTipoAgendamento
+    '/',
+    AgendamentoController.listar
 );
 
-/**
- * @route   GET /api/agendamentos/:id
- * @desc    Buscar agendamento por ID
- * @access  Privado - Todos autenticados
- */
-router.get(
-    '/tipo/:id',
-    validarIdMiddleware(),
-    AgendamentoController.buscarTipoAgendamentoPorId
-);
-
-/**
- * @route   PUT /api/produtos/tamanho/:id
- * @desc    Atualizar categoria
- * @access  Privado - Admin
- */
-router.put(
-    '/tipo/:id',
-    apenasAdminMiddleware,
-    AgendamentoController.atualizarTipoAgendamento
-);
-
-/**
- * @route   DELETE /api/produtos/tamanho/:id
- * @desc    Deletar categoria
- * @access  Privado - Admin
- */
-router.delete(
-    '/tipo/:id',
-    apenasAdminMiddleware,
-    AgendamentoController.deletarTipoAgendamento
-);
 /**
  * @route   PUT /api/agendamentos/:id
  * @desc    Atualizar agendamento
@@ -185,6 +104,92 @@ router.delete(
     AgendamentoController.deletar
 );
 
+
+/**
+ * @route   GET /api/agendamentos/estatisticas
+ * @desc    Estatísticas de agendamentos
+ * @access  Privado - Todos autenticados
+ */
+router.get('/estatisticas', AgendamentoController.estatisticas);
+
+/**
+ * @route   GET /api/agendamentos/meus
+ * @desc    Listar meus agendamentos (costureira)
+ * @access  Privado - Costureira
+ */
+router.get(
+    '/meus',
+    papelMiddleware(PAPEIS_PESSOA.COSTUREIRA),
+    AgendamentoController.listarMeus
+);
+
+/**
+ * @route   GET /api/agendamentos/costureira/:id_costureira
+ * @desc    Listar agendamentos de uma costureira
+ * @access  Privado - Secretária, Admin
+ */
+router.get(
+    '/costureira/:id_costureira',
+    validarIdMiddleware('id_costureira'),
+    secretariaOuAdminMiddleware,
+    AgendamentoController.listarPorCostureira
+);
+
+/**
+ * @route   POST /api/agendamentos/tipo
+ * @desc    Criar novo agendamento
+ * @access  Privado - Secretária, Costureira, Admin
+ */
+router.post(
+    '/tipo',
+    limiterCriacao,
+    apenasAdminMiddleware,
+    AgendamentoController.criarTipoAgendamento
+);
+
+/**
+ * @route   GET /api/agendamentos/tipo
+ * @desc    Listar tipo de agendamento
+ * @access  Privado - Todos autenticados
+ */
+router.get(
+    '/tipo',
+    apenasAdminMiddleware,
+    AgendamentoController.listarTipoAgendamento
+);
+
+/**
+ * @route   GET /api/agendamentos/:id
+ * @desc    Buscar agendamento por ID
+ * @access  Privado - Todos autenticados
+ */
+router.get(
+    '/tipo/:id',
+    validarIdMiddleware(),
+    AgendamentoController.buscarTipoAgendamentoPorId
+);
+
+/**
+ * @route   PUT /api/produtos/tamanho/:id
+ * @desc    Atualizar categoria
+ * @access  Privado - Admin
+ */
+router.put(
+    '/tipo/:id',
+    apenasAdminMiddleware,
+    AgendamentoController.atualizarTipoAgendamento
+);
+
+/**
+ * @route   DELETE /api/produtos/tamanho/:id
+ * @desc    Deletar categoria
+ * @access  Privado - Admin
+ */
+router.delete(
+    '/tipo/:id',
+    apenasAdminMiddleware,
+    AgendamentoController.deletarTipoAgendamento
+);
 
 
 module.exports = router;

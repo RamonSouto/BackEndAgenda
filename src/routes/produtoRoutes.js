@@ -1,10 +1,28 @@
+// src/routes/produtoRoutes.js
+/**
+ * @author Ramon David Souto
+ * @version 1.0.0
+ * @file src/routes/produtoRoutes.js
+ * @description Rotas para gerenciamento de produtos, categorias, tamanhos,
+ * cores/estampas, grades, imagens, tipos de serviço, associações produto-serviço,
+ * preços e fotos de ajuste.
+ * 
+ * @requires express
+ * @requires ../controllers/ProdutoController
+ * @requires ../middlewares/authMiddleware
+ * @requires ../middlewares/permissionMiddleware
+ * @requires ../middlewares/errorMiddleware
+ * @requires ../middlewares/uploadMiddleware
+ * @requires ../middlewares/rateLimitMiddleware
+ * @requires ../utils/constants
+ */
 const express = require('express');
 const router = express.Router();
 const ProdutoController = require('../controllers/ProdutoController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const { costureiraOuAdminMiddleware, papelMiddleware, apenasAdminMiddleware } = require('../middlewares/permissionMiddleware');
 const { validarIdMiddleware, validarBodyMiddleware } = require('../middlewares/errorMiddleware');
-const { uploadSingle, uploadMultiple } = require('../middlewares/uploadMiddleware');
+const { uploadSingle, uploadMultiple, uploadSingleOptional } = require('../middlewares/uploadMiddleware');
 const { limiterUpload } = require('../middlewares/rateLimitMiddleware');
 const { PAPEIS_PESSOA } = require('../utils/constants');
 
@@ -12,13 +30,24 @@ const { PAPEIS_PESSOA } = require('../utils/constants');
 router.use(authMiddleware);
 
 /**
+ * ===========================================
  * FOTO AJUSTE
+ * ===========================================
  */
 
 /**
- * @route   GET /api/produtos/fotos/:id/download
- * @desc    Download de foto de ajuste
- * @access  Privado - Todos autenticados
+ * @route GET /api/produtos/fotos/:id/download
+ * @method GET
+ * @description Faz o download de uma foto de ajuste por ID.
+ * @access Privado – Todos os usuários autenticados
+ * @param {number} req.params.id - ID da foto (validado por `validarIdMiddleware`).
+ * @returns {Object} 200 - Arquivo de imagem.
+ * @returns {Object} 401 - Token inválido/ausente.
+ * @returns {Object} 404 - Foto não encontrada.
+ * 
+ * @example
+ * GET /api/produtos/fotos/1/download
+ * Headers: { "Authorization": "Bearer ..." }
  */
 router.get(
     '/fotos/:id/download',
@@ -27,9 +56,17 @@ router.get(
 );
 
 /**
- * @route   GET /api/produtos/fotos/:id/visualizar
- * @desc    Visualizar foto de ajuste
- * @access  Privado - Todos autenticados
+ * @route GET /api/produtos/fotos/:id/visualizar
+ * @method GET
+ * @description Visualiza (exibe inline) uma foto de ajuste.
+ * @access Privado – Todos os usuários autenticados
+ * @param {number} req.params.id - ID da foto.
+ * @returns {Object} 200 - Imagem (inline).
+ * @returns {Object} 401 - Token inválido/ausente.
+ * @returns {Object} 404 - Foto não encontrada.
+ * 
+ * @example
+ * GET /api/produtos/fotos/1/visualizar
  */
 router.get(
     '/fotos/:id/visualizar',
@@ -38,9 +75,18 @@ router.get(
 );
 
 /**
- * @route   DELETE /api/produtos/fotos/:id
- * @desc    Deletar foto de ajuste
- * @access  Privado - Costureira, Admin
+ * @route DELETE /api/produtos/fotos/:id
+ * @method DELETE
+ * @description Deleta uma foto de ajuste.
+ * @access Privado – Costureiras e Administradores (costureiraOuAdminMiddleware)
+ * @param {number} req.params.id - ID da foto.
+ * @returns {Object} 200 - Foto deletada.
+ * @returns {Object} 401 - Token inválido/ausente.
+ * @returns {Object} 403 - Papel não autorizado.
+ * @returns {Object} 404 - Foto não encontrada.
+ * 
+ * @example
+ * DELETE /api/produtos/fotos/1
  */
 router.delete(
     '/fotos/:id',
@@ -50,9 +96,22 @@ router.delete(
 );
 
 /**
- * @route   POST /api/produtos/:id_produto_agendamento/fotos
- * @desc    Upload de foto de ajuste (única)
- * @access  Privado - Costureira, Admin
+ * @route POST /api/produtos/:id_produto_agendamento/fotos
+ * @method POST
+ * @description Upload de uma única foto de ajuste para um produto de agendamento.
+ * @access Privado – Costureiras e Administradores
+ * @param {number} req.params.id_produto_agendamento - ID do produto de agendamento.
+ * @param {File} req.file - Arquivo de imagem (campo 'foto').
+ * @returns {Object} 201 - Foto cadastrada.
+ * @returns {Object} 400 - Erro de upload ou arquivo inválido.
+ * @returns {Object} 401 - Token inválido/ausente.
+ * @returns {Object} 403 - Papel não autorizado.
+ * @returns {Object} 429 - Muitos uploads (rate limit).
+ * 
+ * @example
+ * POST /api/produtos/1/fotos
+ * Headers: { "Authorization": "Bearer ..." }
+ * Body (multipart/form-data): foto: (arquivo)
  */
 router.post(
     '/:id_produto_agendamento/fotos',
@@ -64,9 +123,21 @@ router.post(
 );
 
 /**
- * @route   POST /api/produtos/:id_produto_agendamento/fotos/multiplas
- * @desc    Upload de múltiplas fotos de ajuste
- * @access  Privado - Costureira, Admin
+ * @route POST /api/produtos/:id_produto_agendamento/fotos/multiplas
+ * @method POST
+ * @description Upload de múltiplas fotos de ajuste para um produto de agendamento.
+ * @access Privado – Costureiras e Administradores
+ * @param {number} req.params.id_produto_agendamento - ID do produto de agendamento.
+ * @param {File[]} req.files - Arquivos de imagem (campo 'fotos').
+ * @returns {Object} 201 - Fotos cadastradas.
+ * @returns {Object} 400 - Erro de upload ou arquivos inválidos.
+ * @returns {Object} 401 - Token inválido/ausente.
+ * @returns {Object} 403 - Papel não autorizado.
+ * @returns {Object} 429 - Muitos uploads (rate limit).
+ * 
+ * @example
+ * POST /api/produtos/1/fotos/multiplas
+ * Body (multipart/form-data): fotos: (arquivo1), fotos: (arquivo2), ...
  */
 router.post(
     '/:id_produto_agendamento/fotos/multiplas',
@@ -78,9 +149,16 @@ router.post(
 );
 
 /**
- * @route   GET /api/produtos/:id_produto_agendamento/fotos
- * @desc    Listar fotos de ajuste
- * @access  Privado - Todos autenticados
+ * @route GET /api/produtos/:id_produto_agendamento/fotos
+ * @method GET
+ * @description Lista todas as fotos de ajuste de um produto de agendamento.
+ * @access Privado – Todos os usuários autenticados
+ * @param {number} req.params.id_produto_agendamento - ID do produto de agendamento.
+ * @returns {Object} 200 - Lista de fotos.
+ * @returns {Object} 401 - Token inválido/ausente.
+ * 
+ * @example
+ * GET /api/produtos/1/fotos
  */
 router.get(
     '/:id_produto_agendamento/fotos',
@@ -93,13 +171,25 @@ router.get(
 
 
 /**
+ * ===========================================
  * PRODUTO AGENDAMENTO
+ * ===========================================
  */
 
 /**
- * @route   POST /api/produtos/agendamento
- * @desc    Adicionar produto ao agendamento
- * @access  Privado - Secretária, Costureira, Admin
+ * @route POST /api/produtos/agendamento
+ * @method POST
+ * @description Adiciona um produto a um agendamento.
+ * @access Privado – Secretárias, Costureiras e Administradores (papelMiddleware)
+ * @param {Object} req.body - Dados do produto no agendamento.
+ * @returns {Object} 201 - Produto adicionado.
+ * @returns {Object} 400 - Corpo vazio ou dados inválidos.
+ * @returns {Object} 401 - Token inválido/ausente.
+ * @returns {Object} 403 - Papel não autorizado.
+ * 
+ * @example
+ * POST /api/produtos/agendamento
+ * Body: { id_agendamento: 1, id_produto_grade: 5, ... }
  */
 router.post(
     '/agendamento',
@@ -113,9 +203,16 @@ router.post(
 );
 
 /**
- * @route   GET /api/produtos/agendamento/:id_agendamento
- * @desc    Listar produtos de um agendamento
- * @access  Privado - Todos autenticados
+ * @route GET /api/produtos/agendamento/:id_agendamento
+ * @method GET
+ * @description Lista os produtos de um agendamento.
+ * @access Privado – Todos os usuários autenticados
+ * @param {number} req.params.id_agendamento - ID do agendamento.
+ * @returns {Object} 200 - Lista de produtos.
+ * @returns {Object} 401 - Token inválido/ausente.
+ * 
+ * @example
+ * GET /api/produtos/agendamento/1
  */
 router.get(
     '/agendamento/:id_agendamento',
@@ -124,9 +221,20 @@ router.get(
 );
 
 /**
- * @route   PATCH /api/produtos/:id/status
- * @desc    Atualizar status de produto
- * @access  Privado - Costureira, Admin
+ * @route PATCH /api/produtos/:id/status
+ * @method PATCH
+ * @description Atualiza o status de um produto de agendamento.
+ * @access Privado – Costureiras e Administradores
+ * @param {number} req.params.id - ID do produto de agendamento.
+ * @param {Object} req.body - Status (ex: { ind_status: 'concluido' }).
+ * @returns {Object} 200 - Status atualizado.
+ * @returns {Object} 400 - Corpo vazio ou status inválido.
+ * @returns {Object} 401 - Token inválido/ausente.
+ * @returns {Object} 403 - Papel não autorizado.
+ * 
+ * @example
+ * PATCH /api/produtos/1/status
+ * Body: { ind_status: 'concluido' }
  */
 router.patch(
     '/:id/status',
@@ -139,210 +247,50 @@ router.patch(
 
 
 
-
 /**
+ * ===========================================
  * CATEGORIAS
+ * ===========================================
  */
-
-/**
- * @route   GET /api/produtos/categoria
- * @desc    Listar categoria
- * @access  Privado - Admin
- */
-router.get(
-    '/categoria',
-    apenasAdminMiddleware,
-    ProdutoController.listarCategorias
-);
-
-/**
- * @route   POST /api/produtos/categoria
- * @desc    Adicionar categoria
- * @access  Privado - Admin
- */
-router.post(
-    '/categoria',
-    apenasAdminMiddleware,
-    validarBodyMiddleware,
-    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
-    ProdutoController.adicionarCategoria
-);
-
-/**
- * @route   GET /api/produtos/categoria/:id
- * @desc    Listar categoria
- * @access  Privado - Admin
- */
-router.get(
-    '/categoria/:id',
-    apenasAdminMiddleware,
-    ProdutoController.listarCategoria
-);
-
-/**
- * @route   PUT /api/produtos/categoria/:id
- * @desc    Atualizar categoria
- * @access  Privado - Admin
- */
-router.put(
-    '/categoria/:id',
-    apenasAdminMiddleware,
-    ProdutoController.atualizarCategoria
-);
-
-/**
- * @route   DELETE /api/produtos/categoria/:id
- * @desc    Deletar categoria
- * @access  Privado - Admin
- */
-router.delete(
-    '/categoria/:id',
-    apenasAdminMiddleware,
-    ProdutoController.deletarCategoria
-);
-
 
 
 
 
 /**
+ * ===========================================
  * TAMANHOS
+ * ===========================================
  */
-
-/**
- * @route   GET /api/produtos/tamanho
- * @desc    Listar tamanhos
- * @access  Privado - Admin
- */
-router.get(
-    '/tamanho',
-    apenasAdminMiddleware,
-    ProdutoController.listarTamanhos
-);
-
-/**
- * @route   POST /api/produtos/tamanho
- * @desc    Adicionar tamanho
- * @access  Privado - Admin
- */
-router.post(
-    '/tamanho',
-    apenasAdminMiddleware,
-    validarBodyMiddleware,
-    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
-    ProdutoController.adicionarTamanho
-);
-
-/**
- * @route   GET /api/produtos/tamanho/:id
- * @desc    Listar tamanho
- * @access  Privado - Admin
- */
-router.get(
-    '/tamanho/:id',
-    apenasAdminMiddleware,
-    ProdutoController.listarTamanho
-);
-
-/**
- * @route   PUT /api/produtos/tamanho/:id
- * @desc    Atualizar categoria
- * @access  Privado - Admin
- */
-router.put(
-    '/tamanho/:id',
-    apenasAdminMiddleware,
-    ProdutoController.atualizarTamanhos
-);
-
-/**
- * @route   DELETE /api/produtos/tamanho/:id
- * @desc    Deletar categoria
- * @access  Privado - Admin
- */
-router.delete(
-    '/tamanho/:id',
-    apenasAdminMiddleware,
-    ProdutoController.deletarTamanhos
-);
-
 
 
 
 
 /**
+ * ===========================================
  * COR E ESTAMPA
+ * ===========================================
  */
-
-/**
- * @route   GET /api/produtos/cor_estampa
- * @desc    Listar cor e estampa
- * @access  Privado - Admin
- */
-router.get(
-    '/cor_estampa',
-    apenasAdminMiddleware,
-    ProdutoController.listarCoresEstampas
-);
-
-/**
- * @route   POST /api/produtos/cor_estampa
- * @desc    Adicionar cor e estampa
- * @access  Privado - Admin
- */
-router.post(
-    '/cor_estampa',
-    apenasAdminMiddleware,
-    validarBodyMiddleware,
-    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
-    ProdutoController.adicionarCorEstampa
-);
-
-/**
- * @route   GET /api/produtos/cor_estampa/:id
- * @desc    Listar cor e estampa
- * @access  Privado - Admin
- */
-router.get(
-    '/cor_estampa/:id',
-    apenasAdminMiddleware,
-    ProdutoController.listarCorEstampa
-);
-
-/**
- * @route   PUT /api/produtos/cor_estampa/:id
- * @desc    Atualizar cor e estampa
- * @access  Privado - Admin
- */
-router.put(
-    '/cor_estampa/:id',
-    apenasAdminMiddleware,
-    ProdutoController.atualizarCorEstampa
-);
-
-/**
- * @route   DELETE /api/produtos/cor_estampa/:id
- * @desc    Deletar cor e estampa
- * @access  Privado - Admin
- */
-router.delete(
-    '/cor_estampa/:id',
-    apenasAdminMiddleware,
-    ProdutoController.deletarCorEstampa
-);
-
 
 
 
 
 /**
- * Produtos
+ * ===========================================
+ * PRODUTOS
+ * ===========================================
  */
 
 /**
- * @route   GET /api/produtos/produto
- * @desc    Listar produtos
- * @access  Privado - Admin
+ * @route GET /api/produtos/produto
+ * @method GET
+ * @description Lista todos os produtos (administrativo).
+ * @access Privado – Apenas Administradores
+ * @returns {Object} 200 - Lista de produtos.
+ * @returns {Object} 401 - Token inválido/ausente.
+ * @returns {Object} 403 - Papel não autorizado.
+ * 
+ * @example
+ * GET /api/produtos/produto
  */
 router.get(
     '/produto',
@@ -351,9 +299,19 @@ router.get(
 );
 
 /**
- * @route   POST /api/produtos/produto
- * @desc    Adicionar produto
- * @access  Privado - Admin
+ * @route POST /api/produtos/produto
+ * @method POST
+ * @description Cria um novo produto.
+ * @access Privado – Apenas Administradores
+ * @param {Object} req.body - Dados do produto.
+ * @returns {Object} 201 - Produto criado.
+ * @returns {Object} 400 - Corpo vazio ou dados inválidos.
+ * @returns {Object} 401 - Token inválido/ausente.
+ * @returns {Object} 403 - Papel não autorizado.
+ * 
+ * @example
+ * POST /api/produtos/produto
+ * Body: { id_categoria: 1, nom_produto: 'Camisa Polo', ... }
  */
 router.post(
     '/produto',
@@ -364,9 +322,17 @@ router.post(
 );
 
 /**
- * @route   GET /api/produtos/produto/:id
- * @desc    Listar produtos
- * @access  Privado - Admin
+ * @route GET /api/produtos/produto/:id
+ * @method GET
+ * @description Busca um produto por ID.
+ * @access Privado – Apenas Administradores
+ * @param {number} req.params.id - ID do produto.
+ * @returns {Object} 200 - Dados do produto.
+ * @returns {Object} 401 - Token inválido/ausente.
+ * @returns {Object} 403 - Papel não autorizado.
+ * 
+ * @example
+ * GET /api/produtos/produto/1
  */
 router.get(
     '/produto/:id',
@@ -375,9 +341,20 @@ router.get(
 );
 
 /**
- * @route   PUT /api/produtos/produto/:id
- * @desc    Atualizar produto
- * @access  Privado - Admin
+ * @route PUT /api/produtos/produto/:id
+ * @method PUT
+ * @description Atualiza um produto existente.
+ * @access Privado – Apenas Administradores
+ * @param {number} req.params.id - ID do produto.
+ * @param {Object} req.body - Dados para atualizar.
+ * @returns {Object} 200 - Produto atualizado.
+ * @returns {Object} 400 - Dados inválidos.
+ * @returns {Object} 401 - Token inválido/ausente.
+ * @returns {Object} 403 - Papel não autorizado.
+ * 
+ * @example
+ * PUT /api/produtos/produto/1
+ * Body: { nom_produto: 'Camisa Polo Azul' }
  */
 router.put(
     '/produto/:id',
@@ -386,9 +363,17 @@ router.put(
 );
 
 /**
- * @route   DELETE /api/produtos/produto/:id
- * @desc    Deletar produtos
- * @access  Privado - Admin
+ * @route DELETE /api/produtos/produto/:id
+ * @method DELETE
+ * @description Deleta um produto (soft delete).
+ * @access Privado – Apenas Administradores
+ * @param {number} req.params.id - ID do produto.
+ * @returns {Object} 200 - Produto deletado.
+ * @returns {Object} 401 - Token inválido/ausente.
+ * @returns {Object} 403 - Papel não autorizado.
+ * 
+ * @example
+ * DELETE /api/produtos/produto/1
  */
 router.delete(
     '/produto/:id',
@@ -401,339 +386,59 @@ router.delete(
 
 
 /**
- * Grade de Produtos
+ * ===========================================
+ * GRADE DE PRODUTOS
+ * ===========================================
  */
 
-/**
- * @route   GET /api/produtos/grade_produto
- * @desc    Listar grades de produtos
- * @access  Privado - Admin
- */
-router.get(
-    '/grade_produto',
-    apenasAdminMiddleware,
-    ProdutoController.listarGradesProdutos
-);
 
-/**
- * @route   POST /api/produtos/grade_produto
- * @desc    Adicionar grades de produtos
- * @access  Privado - Admin
- */
-router.post(
-    '/grade_produto',
-    apenasAdminMiddleware,
-    validarBodyMiddleware,
-    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
-    ProdutoController.adicionarGradeProduto
-);
-
-/**
- * @route   GET /api/produtos/grade_produto/:id
- * @desc    Listar grades de produtos
- * @access  Privado - Admin
- */
-router.get(
-    '/grade_produto/:id',
-    apenasAdminMiddleware,
-    ProdutoController.listarGradeProduto
-);
-
-/**
- * @route   PUT /api/produtos/grade_produto/:id
- * @desc    Atualizar grades de produtos
- * @access  Privado - Admin
- */
-router.put(
-    '/grade_produto/:id',
-    apenasAdminMiddleware,
-    ProdutoController.atualizarGradeProduto
-);
-
-/**
- * @route   DELETE /api/produtos/grade_produto/:id
- * @desc    Deletar grades de produtos
- * @access  Privado - Admin
- */
-router.delete(
-    '/grade_produto/:id',
-    apenasAdminMiddleware,
-    ProdutoController.deletarGradeProduto
-);
 
 
 
 
 
 /**
- * Imagem de Produtos
+ * ===========================================
+ * IMAGEM DE PRODUTOS
+ * ===========================================
  */
 
-/**
- * @route   POST /api/produtos/imagemProduto
- * @desc    Adicionar imagem de produtos
- * @access  Privado - Admin
- */
-router.post(
-    '/imagemProduto',
-    apenasAdminMiddleware,
-    // validarBodyMiddleware,
-    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
-    limiterUpload,
-    uploadSingle('foto', 'imagem_produto'),
-    ProdutoController.adicionarImagemProduto
-);
 
-/**
- * @route   GET /api/produtos/imagemProduto
- * @desc    Listar imagens de produtos
- * @access  Privado - Admin
- */
-router.get(
-    '/imagemProduto',
-    apenasAdminMiddleware,
-    ProdutoController.listarImagemProdutos
-);
-
-/**
- * @route   GET /api/produtos/imagemProduto/:id
- * @desc    Buscar imagem de produtos
- * @access  Privado - Admin
- */
-router.get(
-    '/imagemProduto/:id',
-    apenasAdminMiddleware,
-    ProdutoController.buscarImagemProdutoId
-);
-
-/**
- * @route   GET /api/produtos/imagemProdutoGrade/:id
- * @desc    Busca imagem de produtos grade
- * @access  Privado - Admin
- */
-router.get(
-    '/imagemProdutoGrade/:id',
-    apenasAdminMiddleware,
-    ProdutoController.buscarImagemProdutoGradeId
-);
-
-/**
- * @route   PUT /api/produtos/imagemProduto/:id
- * @desc    Atualizar imagem de produtos
- * @access  Privado - Admin
- */
-router.put(
-    '/imagemProduto/:id',
-    apenasAdminMiddleware,
-    ProdutoController.atualizarImagemProduto
-);
-
-/**
- * @route   DELETE /api/produtos/imagemProduto/:id
- * @desc    Deletar imagem de produtos
- * @access  Privado - Admin
- */
-router.delete(
-    '/imagemProduto/:id',
-    apenasAdminMiddleware,
-    ProdutoController.deletarImagemProduto
-);
 
 
 
 
 
 /**
- * Tipo de Serviço
+ * ===========================================
+ * TIPO DE SERVIÇO
+ * ===========================================
  */
 
-/**
- * @route   POST /api/produtos/tipoServico
- * @desc    Adicionar tipo de serviço
- * @access  Privado - Admin
- */
-router.post(
-    '/tipoServico',
-    apenasAdminMiddleware,
-    // validarBodyMiddleware,
-    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
-    ProdutoController.adicionarTipoServico
-);
 
-/**
- * @route   GET /api/produtos/tipoServico
- * @desc    Listar tipo de serviço
- * @access  Privado - Admin
- */
-router.get(
-    '/tipoServico',
-    apenasAdminMiddleware,
-    ProdutoController.listarTipoServico
-);
-
-/**
- * @route   GET /api/produtos/tipoServico/:id
- * @desc    Buscar tipo de serviço por ID
- * @access  Privado - Admin
- */
-router.get(
-    '/tipoServico/:id',
-    apenasAdminMiddleware,
-    ProdutoController.buscarTipoServicoId
-);
-
-/**
- * @route   PUT /api/produtos/tipoServico/:id
- * @desc    Atualizar tipo de serviço
- * @access  Privado - Admin
- */
-router.put(
-    '/tipoServico/:id',
-    apenasAdminMiddleware,
-    ProdutoController.atualizarTipoServico
-);
-
-/**
- * @route   DELETE /api/produtos/tipoServico/:id
- * @desc    Deletar tipo de serviço
- * @access  Privado - Admin
- */
-router.delete(
-    '/tipoServico/:id',
-    apenasAdminMiddleware,
-    ProdutoController.deletarTipoServico
-);
 
 
 
 
 
 /**
- * Produto Serviço
+ * ===========================================
+ * PRODUTO SERVIÇO
+ * ===========================================
  */
 
-/**
- * @route   POST /api/produtos/produtoServico
- * @desc    Adicionar produto por tipo de serviço
- * @access  Privado - Admin
- */
-router.post(
-    '/produtoServico',
-    apenasAdminMiddleware,
-    validarBodyMiddleware,
-    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
-    ProdutoController.adicionarProdutoServico
-);
 
-/**
- * @route   GET /api/produtos/produtoServico
- * @desc    Listar produto por tipo de serviço
- * @access  Privado - Admin
- */
-router.get(
-    '/produtoServico',
-    apenasAdminMiddleware,
-    ProdutoController.listarProdutoServico
-);
-
-/**
- * @route   GET /api/produtos/produtoServico/:id
- * @desc    Buscar produto por tipo de serviço por ID
- * @access  Privado - Admin
- */
-router.get(
-    '/produtoServico/:id',
-    apenasAdminMiddleware,
-    ProdutoController.buscarProdutoServicoId
-);
-
-/**
- * @route   PUT /api/produtos/produtoServico/:id
- * @desc    Atualizar produto por tipo de serviço
- * @access  Privado - Admin
- */
-router.put(
-    '/produtoServico/:id',
-    apenasAdminMiddleware,
-    validarBodyMiddleware,
-    ProdutoController.atualizarProdutoServico
-);
-
-/**
- * @route   DELETE /api/produtos/produtoServico/:id
- * @desc    Deletar produto por tipo de serviço
- * @access  Privado - Admin
- */
-router.delete(
-    '/produtoServico/:id',
-    apenasAdminMiddleware,
-    ProdutoController.deletarProdutoServico
-);
 
 
 
 
 
 /**
- * Preço Produto Serviço
+ * ===========================================
+ * PREÇO PRODUTO SERVIÇO
+ * ===========================================
  */
 
-/**
- * @route   POST /api/produtos/precoProdutoServico
- * @desc    Adicionar produto por tipo de serviço
- * @access  Privado - Admin
- */
-router.post(
-    '/precoProdutoServico',
-    apenasAdminMiddleware,
-    validarBodyMiddleware,
-    papelMiddleware([PAPEIS_PESSOA.ADMINISTRADOR]),
-    ProdutoController.adicionarPrecoProdutoServico
-);
 
-/**
- * @route   GET /api/produtos/precoProdutoServico
- * @desc    Listar produto por tipo de serviço
- * @access  Privado - Admin
- */
-router.get(
-    '/precoProdutoServico',
-    apenasAdminMiddleware,
-    ProdutoController.listarPrecoProdutoServico
-);
-
-/**
- * @route   GET /api/produtos/precoProdutoServico/:id
- * @desc    Buscar produto por tipo de serviço por ID
- * @access  Privado - Admin
- */
-router.get(
-    '/precoProdutoServico/:id',
-    apenasAdminMiddleware,
-    ProdutoController.buscarPrecoProdutoServicoId
-);
-
-/**
- * @route   PUT /api/produtos/precoProdutoServico/:id
- * @desc    Atualizar produto por tipo de serviço
- * @access  Privado - Admin
- */
-router.put(
-    '/precoProdutoServico/:id',
-    apenasAdminMiddleware,
-    validarBodyMiddleware,
-    ProdutoController.atualizarPrecoProdutoServico
-);
-
-/**
- * @route   DELETE /api/produtos/precoProdutoServico/:id
- * @desc    Deletar produto por tipo de serviço
- * @access  Privado - Admin
- */
-router.delete(
-    '/precoProdutoServico/:id',
-    apenasAdminMiddleware,
-    ProdutoController.deletarPrecoProdutoServico
-);
 
 module.exports = router;

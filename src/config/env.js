@@ -1,3 +1,5 @@
+// /src/config/env.js
+
 const dotenv = require('dotenv');
 const path = require('path');
 
@@ -38,5 +40,13 @@ module.exports = {
     whatsapp: {
         apiUrl: process.env.WHATSAPP_API_URL,
         apiKey: process.env.WHATSAPP_API_KEY
+    },
+    logger: {
+        level: process.env.LOG_LEVEL || 'info',          // debug | info | warn | error
+        directory: process.env.LOG_DIR || './logs',
+        maxSize: process.env.LOG_MAX_SIZE || '20m',
+        maxFiles: process.env.LOG_MAX_FILES || '14d',     // retenção de 14 dias
+        datePattern: 'YYYY-MM-DD'
     }
+
 };

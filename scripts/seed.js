@@ -1,3 +1,4 @@
+// /scripts/seed.js
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const database = require('../src/config/database');
@@ -23,17 +24,14 @@ async function seed() {
         console.log('👨‍💼 Inserindo administrador...');
         await database.query(
             `INSERT INTO tab_pessoas (
-             id_cidade, ind_status, ind_tipo_pessoa, nom_completo, num_cpf,
-             num_rg, dta_nascimento, des_logradouro, num_endereco, num_cep,
-             nom_bairro, num_celular_1, des_email_1, des_senha, ind_medico,
-             ind_secretaria, ind_costureira, ind_paciente, ind_administrador
-             )  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE nom_completo = nom_completo`,
+             id_cidade, ind_status, nom_completo, num_cpf, num_rg, dta_nascimento,
+             des_logradouro, num_endereco, des_complemento, num_cep, nom_bairro,
+             num_celular_1, ind_whatsapp_1, num_celular_2, ind_whatsapp_2, des_email_1, des_email_2, des_senha, num_tentativas_login,
+             dta_ultimo_login, dta_bloqueio_login, ind_medico, ind_secretaria,
+             ind_costureira, ind_paciente, ind_administrador, val_cor_hex)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE nom_completo = nom_completo`,
             [
-                cidadeId, 'ativo', 'administrador', 'Administrador do Sistema', '12345678909',
-                '0000000', '1980-01-01', 'Rua Principal', '100', '74000000',
-                'Centro', '62999999999', 'admin@sistema.com', senhaHash, 0,
-                0, 0, 0, 1
+                cidadeId, 'ativo', 'Administrador do Sistema', '12345678909', '0000000', '1980-01-01', 'Rua Principal', '1', NULL, '00000000', 'Centro', '62999999999', 1, NULL, 1, 'admin@sistema.com', NULL, '$2a$10$oO5ltBrEr7ZDV2td6pJd6.JstYTrnOm1qRC.X9YcEAupUT/NBBbg2', 0, '2026-09-05 16:22:00', NULL, 0, 0, 0, 1, 1, ''
             ]
         );
 
@@ -46,14 +44,14 @@ async function seed() {
         for (const [nome, cpf, rg, celular, email] of secretarias) {
             await database.query(
                 `INSERT INTO tab_pessoas (
-                id_cidade, ind_status, ind_tipo_pessoa, nom_completo, num_cpf,
+                id_cidade, ind_status, nom_completo, num_cpf,
                 num_rg, dta_nascimento, des_logradouro, num_endereco, num_cep,
                 nom_bairro, num_celular_1, des_email_1, des_senha, ind_medico,
                 ind_secretaria, ind_costureira, ind_paciente, ind_administrador
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE nom_completo = nom_completo`,
                 [
-                    cidadeId, 'ativo', 'secretaria', 'Maria Secretária Silva', '25863990139',
+                    cidadeId, 'ativo', 'Maria Secretária Silva', '25863990139',
                     '1111111', '1990-05-15', 'Rua das Flores', '200', '74100000',
                     'Setor Bueno', '62988888888', 'secretaria@sistema.com', senhaHash, 0,
                     1, 0, 0, 0

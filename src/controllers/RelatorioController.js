@@ -1,13 +1,58 @@
+// /src/controllers/sistema/RelatorioController.js
+
+/**
+ * @author Ramon David Souto
+ * @version 1.0.0
+ * @file src/controllers/sistema/RelatorioController.js
+ * @description Controlador de relatórios e dashboards.
+ * Gerencia relatórios de auditoria (logs), estatísticas de ações e usuários,
+ * relatórios de agendamentos, produtividade de costureiras e dashboard geral.
+ * 
+ * @requires ../services/LogService
+ * @requires ../services/AgendamentoService
+ * @requires ../services/PessoaService
+ * @requires ../middlewares/errorMiddleware
+ * @requires date-fns
+ */
 const LogService = require('../services/LogService');
 const AgendamentoService = require('../services/AgendamentoService');
 const PessoaService = require('../services/PessoaService');
 const { asyncHandler } = require('../middlewares/errorMiddleware');
 const { startOfMonth, endOfMonth, startOfDay, endOfDay } = require('date-fns');
 
+/**
+ * Classe RelatorioController.
+ * @class RelatorioController
+ */
 class RelatorioController {
     /**
-     * Relatório de auditoria (logs)
-     * GET /api/relatorios/auditoria
+     * ===========================================
+     * RELATÓRIOS DE AUDITORIA (LOGS)
+     * ===========================================
+     */
+
+    /**
+     * Gera relatório de auditoria com filtros.
+     * 
+     * @name auditoria
+     * @function
+     * @memberof RelatorioController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição do Express.
+     * @param {Object} req.query - Filtros para o relatório.
+     * @param {string} [req.query.id_usuario] - Filtrar por usuário.
+     * @param {string} [req.query.acao] - Filtrar por ação (des_acao).
+     * @param {string} [req.query.tabela] - Filtrar por tabela.
+     * @param {string} [req.query.data_inicio] - Data inicial (ISO).
+     * @param {string} [req.query.data_fim] - Data final (ISO).
+     * @param {number} [req.query.limite=100] - Limite de registros.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Retorna relatório com agregações e logs detalhados.
+     * 
+     * @example
+     * GET /api/relatorios/auditoria?data_inicio=2025-01-01&data_fim=2025-01-31
      */
     auditoria = asyncHandler(async (req, res) => {
         const filtros = {
@@ -28,8 +73,24 @@ class RelatorioController {
     });
 
     /**
-     * Relatório de logs por usuário
-     * GET /api/relatorios/logs/usuario/:id_usuario
+     * Lista logs de um usuário específico.
+     * 
+     * @name logsPorUsuario
+     * @function
+     * @memberof RelatorioController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros da rota.
+     * @param {number} req.params.id_usuario - ID do usuário.
+     * @param {Object} req.query - Parâmetros de consulta.
+     * @param {number} [req.query.limite=50] - Limite de registros.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Lista de logs do usuário.
+     * 
+     * @example
+     * GET /api/relatorios/logs/usuario/1?limite=20
      */
     logsPorUsuario = asyncHandler(async (req, res) => {
         const { id_usuario } = req.params;
@@ -45,8 +106,24 @@ class RelatorioController {
     });
 
     /**
-     * Relatório de logs por tabela
-     * GET /api/relatorios/logs/tabela/:tabela
+     * Lista logs por tabela e opcionalmente registro_id.
+     * 
+     * @name logsPorTabela
+     * @function
+     * @memberof RelatorioController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros da rota.
+     * @param {string} req.params.tabela - Nome da tabela.
+     * @param {Object} req.query - Parâmetros de consulta.
+     * @param {number} [req.query.registro_id] - Filtrar por ID do registro.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Lista de logs da tabela.
+     * 
+     * @example
+     * GET /api/relatorios/logs/tabela/tab_pessoas?registro_id=1
      */
     logsPorTabela = asyncHandler(async (req, res) => {
         const { tabela } = req.params;
@@ -62,8 +139,26 @@ class RelatorioController {
     });
 
     /**
-     * Estatísticas de ações
-     * GET /api/relatorios/estatisticas/acoes
+     * Estatísticas de ações por período.
+     * 
+     * @name estatisticasAcoes
+     * @function
+     * @memberof RelatorioController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.query - Parâmetros de consulta.
+     * @param {string} [req.query.data_inicio] - Data inicial (ISO).
+     * @param {string} [req.query.data_fim] - Data final (ISO).
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Estatísticas de ações.
+     * 
+     * @description
+     * - Se não fornecidas, `data_inicio` e `data_fim` são definidas como o mês atual.
+     * 
+     * @example
+     * GET /api/relatorios/estatisticas/acoes?data_inicio=2025-01-01
      */
     estatisticasAcoes = asyncHandler(async (req, res) => {
         let { data_inicio, data_fim } = req.query;
@@ -85,8 +180,23 @@ class RelatorioController {
     });
 
     /**
-     * Estatísticas de usuários
-     * GET /api/relatorios/estatisticas/usuarios
+     * Estatísticas de usuários por período.
+     * 
+     * @name estatisticasUsuarios
+     * @function
+     * @memberof RelatorioController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.query - Parâmetros de consulta.
+     * @param {string} [req.query.data_inicio] - Data inicial (ISO).
+     * @param {string} [req.query.data_fim] - Data final (ISO).
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Estatísticas de usuários.
+     * 
+     * @example
+     * GET /api/relatorios/estatisticas/usuarios?data_inicio=2025-01-01
      */
     estatisticasUsuarios = asyncHandler(async (req, res) => {
         let { data_inicio, data_fim } = req.query;
@@ -108,8 +218,36 @@ class RelatorioController {
     });
 
     /**
-     * Relatório de agendamentos
-     * GET /api/relatorios/agendamentos
+     * ===========================================
+     * RELATÓRIOS DE AGENDAMENTOS
+     * ===========================================
+     */
+
+    /**
+     * Relatório completo de agendamentos com estatísticas.
+     * 
+     * @name agendamentos
+     * @function
+     * @memberof RelatorioController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.query - Filtros para agendamentos.
+     * @param {number} [req.query.id_paciente] - ID do paciente.
+     * @param {number} [req.query.id_costureira] - ID da costureira.
+     * @param {number} [req.query.id_secretaria] - ID da secretária.
+     * @param {string} [req.query.status] - Status do agendamento.
+     * @param {string} [req.query.data_inicio] - Data inicial.
+     * @param {string} [req.query.data_fim] - Data final.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {string} req.usuario.tipo - Tipo do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Relatório com resumo (por status, costureira) e lista de agendamentos.
+     * 
+     * @example
+     * GET /api/relatorios/agendamentos?status=concluido&data_inicio=2025-01-01
      */
     agendamentos = asyncHandler(async (req, res) => {
         const filtros = {
@@ -169,8 +307,26 @@ class RelatorioController {
     });
 
     /**
-     * Relatório de produtividade por costureira
-     * GET /api/relatorios/produtividade/costureiras
+     * Relatório de produtividade por costureira.
+     * 
+     * @name produtividadeCostureiras
+     * @function
+     * @memberof RelatorioController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.query - Parâmetros de consulta.
+     * @param {string} [req.query.data_inicio] - Data inicial.
+     * @param {string} [req.query.data_fim] - Data final.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {string} req.usuario.tipo - Tipo do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Produtividade agrupada por costureira (total, concluídos, cancelados, etc.).
+     * 
+     * @example
+     * GET /api/relatorios/produtividade/costureiras?data_inicio=2025-01-01
      */
     produtividadeCostureiras = asyncHandler(async (req, res) => {
         let { data_inicio, data_fim } = req.query;
@@ -237,7 +393,33 @@ class RelatorioController {
     });
 
     /**
-     * Dashboard geral
+     * ===========================================
+     * DASHBOARD GERAL
+     * ===========================================
+     */
+
+    /**
+     * Dashboard com métricas do mês atual, dia atual e disponibilidade de costureiras.
+     * 
+     * @name dashboard
+     * @function
+     * @memberof RelatorioController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {string} req.usuario.tipo - Tipo do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Métricas do mês, dia e costureiras.
+     * 
+     * @description
+     * - **Mês atual:** total, concluídos, cancelados, ativos (status 'agendado'/'confirmado').
+     * - **Hoje:** total e lista de agendamentos do dia.
+     * - **Costureiras:** total, disponíveis, ocupadas.
+     * 
+     * @example
      * GET /api/relatorios/dashboard
      */
     dashboard = asyncHandler(async (req, res) => {

@@ -1,3 +1,4 @@
+// src/tests/unit/services/AuthService.test.js
 const AuthService = require('../../../services/AuthService');
 const PessoaModel = require('../../../models/PessoaModel');
 const LogService = require('../../../services/LogService');

@@ -1,3 +1,24 @@
+// src/services/AuthService.js
+
+/**
+ * @author Ramon David Souto
+ * @version 1.0.0
+ * @file src/services/AuthService.js
+ * @description Serviço de autenticação e segurança.
+ * Gerencia login, logout, alteração e reset de senha, verificação de token
+ * e validação de permissões.
+ * 
+ * @requires bcryptjs
+ * @requires jsonwebtoken
+ * @requires ../models/PessoaModel
+ * @requires ./LogService
+ * @requires ../config/env
+ * @requires ../utils/constants
+ * @requires date-fns/differenceInMinutes
+ * @requires ../utils/ApiError
+ * @requires ../utils/formatters
+ */
+
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const PessoaModel = require('../models/PessoaModel');
@@ -6,8 +27,30 @@ const config = require('../config/env');
 const { PAPEIS_PESSOA, MENSAGENS, ACOES_LOG, PERMISSOES } = require('../utils/constants');
 const { differenceInMinutes } = require('date-fns');
 const { UnauthorizedError } = require('../utils/ApiError');
+const { ocultarDadosSensiveis } = require('../utils/formatters');
 
+/**
+ * Classe AuthService.
+ * @class AuthService
+ */
 class AuthService {
+    /**
+     * Extrai a lista de papéis de um objeto usuário a partir de flags booleanas.
+     * 
+     * @method extrairPapeis
+     * @memberof AuthService
+     * @param {Object} usuario - Objeto do usuário (deve conter flags ind_*).
+     * @param {boolean} usuario.ind_medico - Indica se é médico.
+     * @param {boolean} usuario.ind_secretaria - Indica se é secretária.
+     * @param {boolean} usuario.ind_costureira - Indica se é costureira.
+     * @param {boolean} usuario.ind_paciente - Indica se é paciente.
+     * @param {boolean} usuario.ind_administrador - Indica se é administrador.
+     * @returns {string[]} Lista de nomes de papéis.
+     * 
+     * @example
+     * const papeis = authService.extrairPapeis({ ind_medico: true, ind_admin: false });
+     * // Retorna: ['medico']
+     */
     extrairPapeis(usuario) {
         const papeis = [];
 
@@ -34,11 +77,35 @@ class AuthService {
         return papeis;
     }
 
+    /**
+     * Verifica se o usuário possui pelo menos um dos papéis permitidos.
+     * 
+     * @method possuiAlgumPapel
+     * @memberof AuthService
+     * @param {Object} usuario - Objeto do usuário.
+     * @param {string[]} papeisPermitidos - Lista de nomes de papéis permitidos.
+     * @returns {boolean} `true` se o usuário tiver pelo menos um papel permitido.
+     * 
+     * @example
+     * const permitido = authService.possuiAlgumPapel(usuario, ['admin', 'secretaria']);
+     */
     possuiAlgumPapel(usuario, papeisPermitidos = []) {
         const papeisUsuario = this.extrairPapeis(usuario);
         return papeisUsuario.some(papel => papeisPermitidos.includes(papel));
     }
 
+    /**
+     * Obtém todas as permissões do usuário com base em seus papéis.
+     * 
+     * @method obterPermissoesUsuario
+     * @memberof AuthService
+     * @param {Object} usuario - Objeto do usuário.
+     * @returns {string[]} Lista de permissões (strings) ou ['*'] se for super usuário.
+     * 
+     * @example
+     * const permissoes = authService.obterPermissoesUsuario(usuario);
+     * // Exemplo: ['usuarios:listar', 'agendamentos:criar']
+     */
     obterPermissoesUsuario(usuario) {
         const papeisUsuario = this.extrairPapeis(usuario);
 
@@ -57,6 +124,23 @@ class AuthService {
         return Array.from(permissoes);
     }
 
+    /**
+     * Realiza o login do usuário.
+     * 
+     * @method login
+     * @memberof AuthService
+     * @async
+     * @param {string} num_cpf - CPF do usuário (com ou sem máscara).
+     * @param {string} des_senha - Senha em texto plano.
+     * @param {string} ipAddress - Endereço IP do cliente.
+     * @param {string} userAgent - User-Agent do cliente.
+     * @returns {Promise<Object>} Objeto com `token` e `usuario` (dados sanitizados).
+     * @throws {UnauthorizedError} Se credenciais inválidas, conta bloqueada ou sem permissão.
+     * @throws {Error} Se usuário inativo ou outros erros.
+     * 
+     * @example
+     * const resultado = await authService.login('11144477735', 'senha123', '192.168.1.1', 'Mozilla/5.0');
+     */
     async login(num_cpf, des_senha, ipAddress, userAgent) {
         try {
             // Buscar usuário por CPF
@@ -168,7 +252,7 @@ class AuthService {
             const token = jwt.sign(
                 {
                     id: usuario.id,
-                    cpf: usuario.num_cpf,
+                    email: usuario.email,
                     papeis
                 },
                 config.jwt.secret,
@@ -189,7 +273,7 @@ class AuthService {
             // Remover senha do objeto retornado
             delete usuario.des_senha;
 
-            return {
+            return ocultarDadosSensiveis({
                 token,
                 usuario: {
                     id: usuario.id,
@@ -205,13 +289,27 @@ class AuthService {
                         ind_administrador: !!usuario.ind_administrador
                     }
                 }
-            };
+            });
 
         } catch (error) {
             throw error;
         }
     }
 
+    /**
+     * Registra o logout do usuário (apenas log de auditoria).
+     * 
+     * @method logout
+     * @memberof AuthService
+     * @async
+     * @param {number} userId - ID do usuário.
+     * @param {string} ipAddress - Endereço IP do cliente.
+     * @param {string} userAgent - User-Agent do cliente.
+     * @returns {Promise<void>}
+     * 
+     * @example
+     * await authService.logout(1, '192.168.1.1', 'Mozilla/5.0');
+     */
     async logout(userId, ipAddress, userAgent) {
         await LogService.registrar({
             id_usuario: userId,
@@ -224,6 +322,21 @@ class AuthService {
         });
     }
 
+    /**
+     * Altera a senha do usuário autenticado.
+     * 
+     * @method alterarSenha
+     * @memberof AuthService
+     * @async
+     * @param {number} userId - ID do usuário.
+     * @param {string} senhaAtual - Senha atual em texto plano.
+     * @param {string} novaSenha - Nova senha em texto plano.
+     * @returns {Promise<boolean>} `true` se a senha foi alterada com sucesso.
+     * @throws {Error} Se usuário não encontrado, senha atual incorreta ou outro erro.
+     * 
+     * @example
+     * await authService.alterarSenha(1, '123456', '654321');
+     */
     async alterarSenha(userId, senhaAtual, novaSenha) {
         try {
             const usuario = await PessoaModel.buscarPorId(userId);
@@ -259,6 +372,21 @@ class AuthService {
         }
     }
 
+    /**
+     * Reseta a senha de um usuário (apenas administradores).
+     * 
+     * @method resetarSenha
+     * @memberof AuthService
+     * @async
+     * @param {string} cpf - CPF do usuário alvo (com ou sem máscara).
+     * @param {string} novaSenha - Nova senha em texto plano.
+     * @param {number} adminId - ID do administrador que está realizando a ação (para auditoria).
+     * @returns {Promise<boolean>} `true` se a senha foi resetada.
+     * @throws {Error} Se o usuário alvo não for encontrado.
+     * 
+     * @example
+     * await authService.resetarSenha('11144477735', 'nova123', 1);
+     */
     async resetarSenha(cpf, novaSenha, adminId) {
         try {
             const usuario = await PessoaModel.buscarPorCPF(cpf);
@@ -295,6 +423,19 @@ class AuthService {
         }
     }
 
+    /**
+     * Verifica a validade de um token JWT.
+     * 
+     * @method verificarToken
+     * @memberof AuthService
+     * @param {string} token - Token JWT a ser verificado.
+     * @returns {Object} Payload decodificado do token.
+     * @throws {Error} Se o token for inválido ou expirado.
+     * 
+     * @example
+     * const payload = authService.verificarToken('eyJhbGciOiJ...');
+     * // Retorna: { id: 1, email: '...', papeis: [...], iat: ..., exp: ... }
+     */
     verificarToken(token) {
         try {
             return jwt.verify(token, config.jwt.secret);
@@ -303,6 +444,19 @@ class AuthService {
         }
     }
 
+    /**
+     * Verifica se um usuário possui uma permissão específica.
+     * 
+     * @method verificarPermissao
+     * @memberof AuthService
+     * @async
+     * @param {number} userId - ID do usuário.
+     * @param {string} permissao - Nome da permissão (ex: 'usuarios:listar').
+     * @returns {Promise<boolean>} `true` se o usuário tem a permissão.
+     * 
+     * @example
+     * const temPermissao = await authService.verificarPermissao(1, 'agendamentos:criar');
+     */
     async verificarPermissao(userId, permissao) {
         const usuario = await PessoaModel.buscarPorId(userId);
 

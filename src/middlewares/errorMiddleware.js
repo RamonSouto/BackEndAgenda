@@ -1,7 +1,28 @@
-const { MENSAGENS } = require('../utils/constants');
+// src/middlewares/errorMiddleware.js
 
 /**
- * Middleware para tratamento de erros 404
+ * @author Ramon David Souto
+ * @version 1.0.0
+ * @module errorMiddleware
+ * @description Middlewares para tratamento de erros, validação e sanitização de entrada.
+ * Fornece: erro 404, tratamento global de exceções, wrapper assíncrono,
+ * validação de ID, validação de corpo e sanitização de strings.
+ * 
+ * @requires ../utils/constants
+ * @requires ../utils/ApiError (para verificação de instância)
+ */
+
+const { MENSAGENS } = require('../utils/constants');
+const logger = require('../config/logger');
+
+/**
+ * Middleware para rotas não encontradas (404).
+ * 
+ * @function notFoundMiddleware
+ * @param {Object} req - Objeto de requisição do Express.
+ * @param {Object} res - Objeto de resposta do Express.
+ * @param {Function} next - Função next (não usada, mas mantida por padrão).
+ * @returns {void} - Envia resposta JSON com status 404.
  */
 const notFoundMiddleware = (req, res, next) => {
     return res.status(404).json({
@@ -12,11 +33,30 @@ const notFoundMiddleware = (req, res, next) => {
 };
 
 /**
- * Middleware para tratamento global de erros
+ * Middleware global de tratamento de erros.
+ * Identifica diferentes tipos de erro e retorna resposta padronizada.
+ * 
+ * @function errorMiddleware
+ * @param {Error} err - Objeto de erro capturado.
+ * @param {Object} req - Objeto de requisição do Express.
+ * @param {Object} res - Objeto de resposta do Express.
+ * @param {Function} next - Função next (não usada, mas necessária).
+ * @returns {void} - Envia resposta JSON com status apropriado.
+ * 
+ * @example
+ * // Uso no app principal:
+ * app.use(errorMiddleware);
  */
 const errorMiddleware = (err, req, res, next) => {
-    console.log(err.statusCode);
-    console.error('❌ Erro capturado:', err);
+    // console.log(err.statusCode);
+    // console.error('❌ Erro capturado:', err);
+    logger.error('Erro capturado pelo errorMiddleware', {
+        mensagem: err.message,
+        stack: err.stack,
+        codigo: err.code,
+        rota: req.originalUrl,
+        metodo: req.method
+    });
 
     // Erro de validação do Joi
     if (err.isJoi) {
@@ -90,8 +130,17 @@ const errorMiddleware = (err, req, res, next) => {
 };
 
 /**
- * Middleware para tratamento de erros assíncronos
- * Envolve funções async/await para capturar erros automaticamente
+ * Wrapper para capturar erros em funções assíncronas async/await (controllers).
+ * 
+ * @function asyncHandler
+ * @param {Function} fn - Função assíncrona (controller) a ser envolvida.
+ * @returns {Function} Middleware que executa fn e repassa erros para next.
+ * 
+ * @example
+ * router.get('/usuarios', asyncHandler(async (req, res) => {
+ *   const usuarios = await Usuario.findAll();
+ *   res.json(usuarios);
+ * }));
  */
 const asyncHandler = (fn) => {
     return (req, res, next) => {
@@ -100,7 +149,16 @@ const asyncHandler = (fn) => {
 };
 
 /**
- * Middleware para validação de ID numérico
+ * Factory para middleware que valida parâmetros de rota como números inteiros positivos.
+ * 
+ * @function validarIdMiddleware
+ * @param {string} [paramName='id'] - Nome do parâmetro na rota (ex: 'id', 'userId').
+ * @returns {Function} Middleware que valida e converte o parâmetro.
+ * 
+ * @example
+ * router.get('/usuario/:id', validarIdMiddleware('id'), (req, res) => {
+ *   // req.params.id é um número
+ * });
  */
 const validarIdMiddleware = (paramName = 'id') => {
     return (req, res, next) => {
@@ -120,7 +178,13 @@ const validarIdMiddleware = (paramName = 'id') => {
 };
 
 /**
- * Middleware para validar body da requisição
+ * Middleware que valida se o corpo da requisição não está vazio para métodos POST, PUT e PATCH.
+ * 
+ * @function validarBodyMiddleware
+ * @param {Object} req - Objeto de requisição do Express.
+ * @param {Object} res - Objeto de resposta do Express.
+ * @param {Function} next - Função next.
+ * @returns {void} - Se vazio, retorna 400; caso contrário, chama next().
  */
 const validarBodyMiddleware = (req, res, next) => {
     if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
@@ -136,7 +200,18 @@ const validarBodyMiddleware = (req, res, next) => {
 };
 
 /**
- * Middleware para sanitizar entrada de dados
+ * Middleware que sanitiza campos string em req.body e req.query,
+ * removendo espaços em branco no início e fim (trim).
+ * 
+ * @function sanitizarInputMiddleware
+ * @param {Object} req - Objeto de requisição do Express.
+ * @param {Object} res - Objeto de resposta do Express.
+ * @param {Function} next - Função next.
+ * @returns {void} - Modifica req.body e req.query, depois chama next().
+ * 
+ * @note A sanitização é aplicada recursivamente a objetos e arrays.
+ * @warning Em alguns casos, pode ser desejável não aplicar trim a todos os campos;
+ * considere aplicar apenas em campos específicos via schema de validação.
  */
 const sanitizarInputMiddleware = (req, res, next) => {
     // Sanitizar strings removendo caracteres perigosos

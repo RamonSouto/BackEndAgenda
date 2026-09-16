@@ -1,3 +1,4 @@
+// /scripts/cleanUploads.js
 require('dotenv').config();
 const UploadService = require('../src/services/UploadService');
 

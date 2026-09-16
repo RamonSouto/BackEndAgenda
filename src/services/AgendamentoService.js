@@ -1,9 +1,10 @@
+// src/services/AgendamentoService.js
 const AgendamentoModel = require('../models/AgendamentoModel');
 const PessoaModel = require('../models/PessoaModel');
 const ProdutoModel = require('../models/ProdutoModel');
 const LogService = require('./LogService');
 const NotificacaoService = require('./NotificacaoService');
-const { STATUS_AGENDAMENTO, TIPO_PESSOA, MENSAGENS, ACOES_LOG } = require('../utils/constants');
+const { STATUS_AGENDAMENTO, TIPO_PESSOA, MENSAGENS, ACOES_LOG, PAPEIS_PESSOA } = require('../utils/constants');
 const { differenceInHours, parseISO, format, parse } = require('date-fns');
 const database = require('../config/database');
 
@@ -121,16 +122,17 @@ class AgendamentoService {
     }
 
     async listar(filtros = {}, usuarioLogadoId, tipoUsuario) {
+        console.log({ Filtros: filtros, Usuario: usuarioLogadoId, Tipo: tipoUsuario })
         try {
             // Se for costureira, filtrar apenas seus agendamentos
-            if (tipoUsuario === TIPO_PESSOA.COSTUREIRA) {
+            if (tipoUsuario === PAPEIS_PESSOA.COSTUREIRA) {
                 filtros.id_costureira = usuarioLogadoId;
             }
 
             const agendamentos = await AgendamentoModel.listar(filtros);
 
             // Secretária não pode ver observações da costureira
-            if (tipoUsuario === TIPO_PESSOA.SECRETARIA) {
+            if (tipoUsuario === PAPEIS_PESSOA.SECRETARIA) {
                 agendamentos.forEach(agendamento => {
                     delete agendamento.des_observacoes_costureira;
                 });
@@ -428,8 +430,9 @@ class AgendamentoService {
                     ind_ativo: dados.ind_ativo,
                 }
             });
+            const tipoAgendamento = await AgendamentoModel.buscarTipoAgendamentoPorId(tipoAgendamentoId);
 
-            return tipoAgendamentoId;
+            return tipoAgendamento;
 
         } catch (error) {
             throw error;

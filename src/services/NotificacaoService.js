@@ -1,10 +1,52 @@
+// src/services/NotificacaoService.js
+
+/**
+ * @author Ramon David Souto
+ * @version 1.0.0
+ * @file NotificacaoService.js
+ * @description Serviço de notificações para envio de mensagens via WhatsApp.
+ * Gerencia envio de notificações relacionadas a agendamentos (criação, confirmação,
+ * alteração, cancelamento, lembrete) e lembretes automáticos para agendamentos do dia seguinte.
+ * 
+ * @requires ../models/AgendamentoModel
+ * @requires ../models/PessoaModel
+ * @requires ../utils/formatters
+ * @requires axios
+ * @requires ../config/env
+ */
+
 const AgendamentoModel = require('../models/AgendamentoModel');
 const PessoaModel = require('../models/PessoaModel');
 const { formatarDataHora } = require('../utils/formatters');
 const axios = require('axios');
 const config = require('../config/env');
 
+/**
+ * Classe NotificacaoService.
+ * @class NotificacaoService
+ */
 class NotificacaoService {
+    /**
+     * Envia uma notificação para um agendamento específico, conforme o tipo.
+     * 
+     * @method enviarNotificacaoAgendamento
+     * @memberof NotificacaoService
+     * @async
+     * @param {number} id_agendamento - ID do agendamento.
+     * @param {string} tipo - Tipo de notificação ('criacao', 'confirmacao', 'alteracao', 'cancelamento', 'lembrete').
+     * @returns {Promise<boolean>} `true` se a notificação foi enviada com sucesso, `false` caso contrário.
+     * @throws {Error} Se o agendamento ou paciente não for encontrado, ou tipo inválido.
+     * 
+     * @description
+     * - Busca o agendamento e o paciente associado.
+     * - Verifica se o paciente tem WhatsApp habilitado (`ind_whatsapp_1`).
+     * - Monta a mensagem conforme o tipo.
+     * - Envia via API do WhatsApp.
+     * - Loga erros sem interromper o fluxo principal.
+     * 
+     * @example
+     * await notificacaoService.enviarNotificacaoAgendamento(1, 'criacao');
+     */
     async enviarNotificacaoAgendamento(id_agendamento, tipo) {
         try {
             const agendamento = await AgendamentoModel.buscarPorId(id_agendamento);
@@ -59,6 +101,15 @@ class NotificacaoService {
         }
     }
 
+    /**
+     * Monta a mensagem de criação de agendamento.
+     * 
+     * @method montarMensagemCriacao
+     * @memberof NotificacaoService
+     * @param {Object} agendamento - Dados do agendamento.
+     * @param {Object} paciente - Dados do paciente.
+     * @returns {string} Mensagem formatada.
+     */
     montarMensagemCriacao(agendamento, paciente) {
         return `
 Olá, ${paciente.nom_completo}! 👋
@@ -79,6 +130,15 @@ Equipe de Ajustes
     `.trim();
     }
 
+    /**
+     * Monta a mensagem de confirmação de agendamento.
+     * 
+     * @method montarMensagemConfirmacao
+     * @memberof NotificacaoService
+     * @param {Object} agendamento - Dados do agendamento.
+     * @param {Object} paciente - Dados do paciente.
+     * @returns {string} Mensagem formatada.
+     */
     montarMensagemConfirmacao(agendamento, paciente) {
         return `
 Olá, ${paciente.nom_completo}! 👋
@@ -95,6 +155,15 @@ Equipe de Ajustes
     `.trim();
     }
 
+    /**
+     * Monta a mensagem de alteração de agendamento.
+     * 
+     * @method montarMensagemAlteracao
+     * @memberof NotificacaoService
+     * @param {Object} agendamento - Dados do agendamento.
+     * @param {Object} paciente - Dados do paciente.
+     * @returns {string} Mensagem formatada.
+     */
     montarMensagemAlteracao(agendamento, paciente) {
         return `
 Olá, ${paciente.nom_completo}! 👋
@@ -113,6 +182,15 @@ Equipe de Ajustes
     `.trim();
     }
 
+    /**
+     * Monta a mensagem de cancelamento de agendamento.
+     * 
+     * @method montarMensagemCancelamento
+     * @memberof NotificacaoService
+     * @param {Object} agendamento - Dados do agendamento.
+     * @param {Object} paciente - Dados do paciente.
+     * @returns {string} Mensagem formatada.
+     */
     montarMensagemCancelamento(agendamento, paciente) {
         return `
 Olá, ${paciente.nom_completo}! 👋
@@ -128,6 +206,15 @@ Equipe de Ajustes
     `.trim();
     }
 
+    /**
+     * Monta a mensagem de lembrete de agendamento.
+     * 
+     * @method montarMensagemLembrete
+     * @memberof NotificacaoService
+     * @param {Object} agendamento - Dados do agendamento.
+     * @param {Object} paciente - Dados do paciente.
+     * @returns {string} Mensagem formatada.
+     */
     montarMensagemLembrete(agendamento, paciente) {
         return `
 Olá, ${paciente.nom_completo}! 👋
@@ -144,6 +231,22 @@ Equipe de Ajustes
     `.trim();
     }
 
+    /**
+     * Envia uma mensagem via API do WhatsApp.
+     * 
+     * @method enviarWhatsApp
+     * @memberof NotificacaoService
+     * @async
+     * @param {string} numero - Número de telefone (com DDD, sem formatação).
+     * @param {string} mensagem - Texto da mensagem.
+     * @returns {Promise<boolean>} `true` se enviado com sucesso, `false` em caso de erro ou configuração ausente.
+     * 
+     * @description
+     * - Verifica se a API do WhatsApp está configurada (`config.whatsapp.apiUrl` e `apiKey`).
+     * - Se não estiver, loga a mensagem e retorna `false`.
+     * - Faz uma requisição POST para o endpoint de envio.
+     * - Captura erros e retorna `false`.
+     */
     async enviarWhatsApp(numero, mensagem) {
         try {
             // Verificar se API do WhatsApp está configurada
@@ -177,6 +280,24 @@ Equipe de Ajustes
         }
     }
 
+    /**
+     * Envia lembretes automáticos para agendamentos confirmados do dia seguinte.
+     * 
+     * @method enviarLembretesAutomaticos
+     * @memberof NotificacaoService
+     * @async
+     * @returns {Promise<void>}
+     * 
+     * @description
+     * - Calcula a data de amanhã (00:00:00 até 23:59:59).
+     * - Busca agendamentos com status 'confirmado' para essa data.
+     * - Para cada agendamento, chama `enviarNotificacaoAgendamento` com tipo 'lembrete'.
+     * - Loga o progresso e erros.
+     * 
+     * @example
+     * // Pode ser executado como um job agendado (cron)
+     * await notificacaoService.enviarLembretesAutomaticos();
+     */
     async enviarLembretesAutomaticos() {
         try {
             // Buscar agendamentos para amanhã
@@ -206,6 +327,20 @@ Equipe de Ajustes
         }
     }
 
+    /**
+     * Envia uma notificação personalizada para uma pessoa (paciente, costureira, etc.).
+     * 
+     * @method enviarNotificacaoCustomizada
+     * @memberof NotificacaoService
+     * @async
+     * @param {number} id_pessoa - ID da pessoa (destinatário).
+     * @param {string} mensagem - Mensagem personalizada a ser enviada.
+     * @returns {Promise<boolean>} `true` se enviado com sucesso.
+     * @throws {Error} Se a pessoa não for encontrada ou não tiver WhatsApp habilitado.
+     * 
+     * @example
+     * await notificacaoService.enviarNotificacaoCustomizada(1, 'Sua consulta foi remarcada para amanhã.');
+     */
     async enviarNotificacaoCustomizada(id_pessoa, mensagem) {
         try {
             const pessoa = await PessoaModel.buscarPorId(id_pessoa);

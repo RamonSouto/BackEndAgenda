@@ -1,3 +1,4 @@
+// src/tests/setup.js
 // Configuração global dos testes
 require('dotenv').config({ path: '.env.test' });
 

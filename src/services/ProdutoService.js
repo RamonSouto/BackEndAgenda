@@ -1,11 +1,57 @@
+// src/services/ProdutoService.js
+
+/**
+ * @author Ramon David Souto
+ * @version 1.0.0
+ * @file src/service/ProdutoService.js
+ * @description Serviço de gerenciamento completo de produtos.
+ * Gerencia produtos em agendamentos, fotos de ajuste, categorias, tamanhos,
+ * cores/estampas, grades, produtos, imagens, tipos de serviço,
+ * associações produto-serviço e preços, com validação, logs e upload.
+ * 
+ * @requires ../models/ProdutoModel
+ * @requires ../models/AgendamentoModel
+ * @requires ./LogService
+ * @requires ../utils/constants
+ * @requires ../utils/validators
+ * @requires ../utils/ApiError
+ * @requires ./UploadService
+ */
 const ProdutoModel = require('../models/ProdutoModel');
 const AgendamentoModel = require('../models/AgendamentoModel');
 const LogService = require('./LogService');
 const { ACOES_LOG, MENSAGENS } = require('../utils/constants');
 const validators = require('../utils/validators');
 const { NotFoundError } = require('../utils/ApiError');
+const UploadService = require('./UploadService');
 
+/**
+ * Classe ProdutoService.
+ * @class ProdutoService
+ */
 class ProdutoService {
+    /**
+     * ===========================================
+     * PRODUTOS EM AGENDAMENTO
+     * ===========================================
+     */
+
+    /**
+     * Adiciona um produto a um agendamento.
+     * 
+     * @method adicionarProdutoAgendamento
+     * @memberof ProdutoService
+     * @async
+     * @param {Object} dados - Dados do produto no agendamento.
+     * @param {number} dados.id_agendamento - ID do agendamento.
+     * @param {number} dados.id_produto_grade - ID da grade do produto.
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<number>} ID do produto de agendamento criado.
+     * @throws {Error} Se o agendamento não existir.
+     * 
+     * @example
+     * const id = await produtoService.adicionarProdutoAgendamento({ id_agendamento: 1, id_produto_grade: 5 }, 1);
+     */
     async adicionarProdutoAgendamento(dados, usuarioLogadoId) {
         try {
             // Verificar se agendamento existe
@@ -38,6 +84,19 @@ class ProdutoService {
         }
     }
 
+    /**
+     * Lista todos os produtos de um agendamento (inclui fotos).
+     * 
+     * @method listarProdutosAgendamento
+     * @memberof ProdutoService
+     * @async
+     * @param {number} id_agendamento - ID do agendamento.
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<Array<Object>>} Lista de produtos com fotos.
+     * 
+     * @example
+     * const produtos = await produtoService.listarProdutosAgendamento(1, 1);
+     */
     async listarProdutosAgendamento(id_agendamento, usuarioLogadoId) {
         try {
             const produtos = await ProdutoModel.listarProdutosAgendamento(id_agendamento);
@@ -66,6 +125,21 @@ class ProdutoService {
         }
     }
 
+    /**
+     * Atualiza o status de um produto de agendamento.
+     * 
+     * @method atualizarStatusProduto
+     * @memberof ProdutoService
+     * @async
+     * @param {number} id - ID do produto de agendamento.
+     * @param {string} status - Novo status.
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<boolean>} `true` se atualizado.
+     * @throws {Error} Se a atualização falhar.
+     * 
+     * @example
+     * await produtoService.atualizarStatusProduto(1, 'concluido', 1);
+     */
     async atualizarStatusProduto(id, status, usuarioLogadoId) {
         try {
             const atualizado = await ProdutoModel.atualizarStatusProduto(id, status);
@@ -92,6 +166,32 @@ class ProdutoService {
         }
     }
 
+
+
+
+    /**
+     * ===========================================
+     * FOTOS DE AJUSTE
+     * ===========================================
+     */
+
+    /**
+     * Adiciona uma foto de ajuste.
+     * 
+     * @method adicionarFotoAjuste
+     * @memberof ProdutoService
+     * @async
+     * @param {Object} dados - Dados da foto.
+     * @param {number} dados.id_produto_agendamento - ID do produto de agendamento.
+     * @param {string} dados.des_caminho_arquivo - Caminho do arquivo.
+     * @param {string} dados.nom_original - Nome original do arquivo.
+     * @param {number} dados.num_tamanho_bytes - Tamanho em bytes.
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<number>} ID da foto inserida.
+     * 
+     * @example
+     * const id = await produtoService.adicionarFotoAjuste({ id_produto_agendamento: 1, ... }, 1);
+     */
     async adicionarFotoAjuste(dados, usuarioLogadoId) {
         try {
             const fotoId = await ProdutoModel.adicionarFotoAjuste(dados);
@@ -116,6 +216,19 @@ class ProdutoService {
         }
     }
 
+    /**
+     * Lista fotos de ajuste de um produto de agendamento.
+     * 
+     * @method listarFotosAjuste
+     * @memberof ProdutoService
+     * @async
+     * @param {number} id_produto_agendamento - ID do produto de agendamento.
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<Array<Object>>} Lista de fotos.
+     * 
+     * @example
+     * const fotos = await produtoService.listarFotosAjuste(1, 1);
+     */
     async listarFotosAjuste(id_produto_agendamento, usuarioLogadoId) {
         try {
             const fotos = await ProdutoModel.listarFotosAjuste(id_produto_agendamento);
@@ -139,6 +252,20 @@ class ProdutoService {
         }
     }
 
+    /**
+     * Deleta uma foto de ajuste (registro no banco, arquivo deletado no controller).
+     * 
+     * @method deletarFoto
+     * @memberof ProdutoService
+     * @async
+     * @param {number} id - ID da foto.
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<boolean>} `true` se deletado.
+     * @throws {Error} Se a foto não existir ou falha na exclusão.
+     * 
+     * @example
+     * await produtoService.deletarFoto(1, 1);
+     */
     async deletarFoto(id, usuarioLogadoId) {
         try {
             const foto = await ProdutoModel.buscarFotoPorId(id);
@@ -172,6 +299,19 @@ class ProdutoService {
         }
     }
 
+    /**
+     * Busca uma foto por ID.
+     * 
+     * @method buscarFotoPorId
+     * @memberof ProdutoService
+     * @async
+     * @param {number} id - ID da foto.
+     * @returns {Promise<Object>} Dados da foto.
+     * @throws {Error} Se a foto não existir.
+     * 
+     * @example
+     * const foto = await produtoService.buscarFotoPorId(1);
+     */
     async buscarFotoPorId(id) {
         try {
             const foto = await ProdutoModel.buscarFotoPorId(id);
@@ -188,640 +328,71 @@ class ProdutoService {
     }
 
 
-    async adicionarCategoria(dados, usuarioLogadoId) {
-        try {
 
-            //Validar dados
-            const { error, value } = validators.categoriaProdutoSchema.validate(dados);
+    /**
+     * ===========================================
+     * CATEGORIAS
+     * ===========================================
+     */
 
-            if (error) {
-                throw new Error(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
-            }
 
-            if (value.id_pai) {
-                const existeCategoriaPai = await ProdutoModel.buscarCategoriaPorId(value.id_pai);
 
-                if (!existeCategoriaPai) {
-                    throw new Error(MENSAGENS.ERRO.CATEGORIA_PAI);
-                }
-            }
 
-            const categoriaId = await ProdutoModel.criarCategoriaProduto(value);
 
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CRIAR,
-                des_tabela: 'tab_categorias_produtos',
-                num_registro_id: categoriaId,
-                des_detalhes: {
-                    nom_categoria: value.nom_categoria,
-                    id_pai: value.id_pai
-                }
-            });
 
-            const categoriaProduto = await ProdutoModel.buscarCategoriaPorId(categoriaId)
+    /**
+     * ===========================================
+     * TAMANHOS
+     * ===========================================
+     */
 
-            return categoriaProduto;
 
-        } catch (error) {
-            throw error;
-        }
-    }
 
-    async listarCategorias(usuarioLogadoId) {
-        try {
-            const categorias = await ProdutoModel.listarCategorias();
 
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_categorias_produtos',
-                des_detalhes: {
-                    tipo_consulta: 'listar',
-                    total_registros: categorias.length
-                }
-            });
 
-            return categorias;
-        } catch (error) {
-            throw error;
-        }
-    }
 
-    async listarCategoria(id, usuarioLogadoId) {
-        // try {
-        const categoria = await ProdutoModel.buscarCategoriaPorId(id);
+    /**
+     * ===========================================
+     * CORES E ESTAMPAS
+     * ===========================================
+     */
 
-        if (!categoria) {
-            // throw new Error('Categoria não encontrada');
-            throw new NotFoundError('Categoria não encontrada');
-        }
 
-        await LogService.registrar({
-            id_usuario: usuarioLogadoId,
-            des_acao: ACOES_LOG.CONSULTAR,
-            des_tabela: 'tab_categorias_produtos',
-            des_detalhes: {
-                tipo_consulta: 'busca_por_id',
-                categoria_consultada: categoria.nom_categoria
-            }
-        });
 
-        return categoria;
-        // } catch (error) {
-        //     throw error;
-        // }
-    }
 
-    async atualizarCategoria(id, dados, usuarioLogadoId) {
-        try {
-            const categoriaExiste = await ProdutoModel.buscarCategoriaPorId(id);
 
-            if (!categoriaExiste) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO)
-            }
 
-            const atualizado = await ProdutoModel.atualizarCategoria(id, dados);
+    /**
+     * ===========================================
+     * GRADES DE PRODUTOS
+     * ===========================================
+     */
 
-            if (!atualizado) {
-                throw new Error('Erro ao atualizar categoria');
-            }
 
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.EDITAR,
-                des_tabela: 'tab_categorias_produtos',
-                des_detalhes: {
-                    categoria: categoriaExiste.nom_categoria,
-                    campos_alterados: Object.keys(dados)
-                }
-            });
 
-            const categoriaAtualizada = await ProdutoModel.buscarCategoriaPorId(id);
 
-            return categoriaAtualizada;
-        } catch (error) {
-            throw error;
-        }
-    }
 
-    async deletarCategoria(id, usuarioLogadoId) {
-        try {
-            const categoria = await ProdutoModel.buscarCategoriaPorId(id);
 
-            if (!categoria) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
-            }
+    /**
+     * ===========================================
+     * PRODUTOS
+     * ===========================================
+     */
 
-            const temFilho = await ProdutoModel.buscarCategoriaFilho(id);
-
-            console.log(temFilho.length);
-
-            if (temFilho) {
-                throw new Error(MENSAGENS.ERRO.CATEGORIA_FILHO);
-            }
-
-            // Soft delete
-            const deletado = await ProdutoModel.deletarCategoria(id);
-
-            if (!deletado) {
-                throw new Error('Erro ao deletar pessoa');
-            }
-
-            // Registrar log
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.DELETAR,
-                des_tabela: 'tab_categorias_produtos',
-                num_registro_id: id,
-                des_detalhes: {
-                    categoria: categoria.nom_categoria,
-                }
-            });
-
-            return true;
-
-        } catch (error) {
-            throw error;
-        }
-    }
-
-
-
-
-
-    async listarTamanhos(usuarioLogadoId) {
-        try {
-            const tamanhos = await ProdutoModel.listarTamanhos();
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_tamanhos',
-                des_detalhes: {
-                    tipo_consulta: 'listar',
-                    total_registros: tamanhos.length
-                }
-            });
-
-            return tamanhos;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async adicionarTamanho(dados, usuarioLogadoId) {
-        try {
-
-            //Validar dados
-            const { error, value } = validators.tamanhoProdutoSchema.validate(dados);
-
-            if (error) {
-                throw new Error(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
-            }
-
-            const tamanhoId = await ProdutoModel.criarTamanhoProduto(value);
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CRIAR,
-                des_tabela: 'tab_tamanhos',
-                num_registro_id: tamanhoId,
-                des_detalhes: {
-                    cod_tamanho: value.cod_tamanho,
-                    des_tamanho: value.des_tamanho,
-                    des_categoria_tamanho: value.des_categoria_tamanho,
-                    num_ordem_exibicao: value.num_ordem_exibicao
-                }
-            });
-
-            const tamanhoProduto = await ProdutoModel.buscarTamanhoPorId(tamanhoId)
-
-            return tamanhoProduto;
-
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async listarTamanho(id, usuarioLogadoId) {
-
-        const tamanho = await ProdutoModel.buscarTamanhoPorId(id);
-
-        if (!tamanho) {
-            throw new NotFoundError('Tamanho não encontrada');
-        }
-
-        await LogService.registrar({
-            id_usuario: usuarioLogadoId,
-            des_acao: ACOES_LOG.CONSULTAR,
-            des_tabela: 'tab_tamanhos',
-            des_detalhes: {
-                tipo_consulta: 'busca_por_id',
-                cod_tamanho: tamanho.cod_tamanho,
-                des_tamanho: tamanho.des_tamanho,
-                des_categoria_tamanho: tamanho.des_categoria_tamanho,
-                num_ordem_exibicao: tamanho.num_ordem_exibicao
-            }
-        });
-
-        return tamanho;
-    }
-
-    async atualizarTamanhos(id, dados, usuarioLogadoId) {
-        try {
-            const tamanhoExiste = await ProdutoModel.buscarTamanhoPorId(id);
-
-
-            if (!tamanhoExiste) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO)
-            }
-
-            const atualizado = await ProdutoModel.atualizarTamanho(id, dados);
-
-            if (!atualizado) {
-                throw new Error('Erro ao atualizar categoria');
-            }
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.EDITAR,
-                des_tabela: 'tab_tamanhos',
-                des_detalhes: {
-                    cod_tamanho: tamanhoExiste.cod_tamanho,
-                    des_tamanho: tamanhoExiste.des_tamanho,
-                    campos_alterados: Object.keys(dados)
-                }
-            });
-
-            const tamanhoAtualizada = await ProdutoModel.buscarTamanhoPorId(id);
-
-            return tamanhoAtualizada;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async deletarTamanhos(id, usuarioLogadoId) {
-        try {
-            const tamanho = await ProdutoModel.buscarTamanhoPorId(id);
-
-            if (!tamanho) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
-            }
-
-            // Soft delete
-            const deletado = await ProdutoModel.deletarTamanho(id);
-
-            if (!deletado) {
-                throw new Error('Erro ao deletar pessoa');
-            }
-
-            // Registrar log
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.DELETAR,
-                des_tabela: 'tab_tamanhos',
-                num_registro_id: id,
-                des_detalhes: {
-                    tamanho: deletado.cod_tamanho,
-                    des_tamanho: deletado.des_tamanho
-                }
-            });
-
-            return true;
-
-        } catch (error) {
-            throw error;
-        }
-    }
-
-
-
-
-
-    async listarCoresEstampas(usuarioLogadoId) {
-        try {
-            const coresEstampas = await ProdutoModel.listarCoresEstampas();
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_variacoes_cor_estampa',
-                des_detalhes: {
-                    tipo_consulta: 'listar',
-                    total_registros: coresEstampas.length
-                }
-            });
-
-            return coresEstampas;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async adicionarCorEstampa(dados, usuarioLogadoId) {
-        try {
-
-            //Validar dados
-            const { error, value } = validators.corEstampaProdutoSchema.validate(dados);
-
-            if (error) {
-                throw new Error(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
-            }
-
-            const corEstampaId = await ProdutoModel.criarCorEstampaProduto(value);
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CRIAR,
-                des_tabela: 'tab_variacoes_cor_estampa',
-                num_registro_id: corEstampaId,
-                des_detalhes: {
-                    nom_cor_estampa: value.nom_cor_estampa,
-                    ind_tipo: value.ind_tipo,
-                    val_codigo_hex: value.val_codigo_hex,
-                    des_imagem_url: value.des_imagem_url,
-                    num_ordem_exibicao: value.num_ordem_exibicao
-                }
-            });
-
-            const corEstampaProduto = await ProdutoModel.buscarCorEstampaPorId(corEstampaId)
-
-            return corEstampaProduto;
-
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async listarCorEstampa(id, usuarioLogadoId) {
-
-        const corEstampa = await ProdutoModel.buscarCorEstampaPorId(id);
-
-        if (!corEstampa) {
-            throw new NotFoundError('Cor e Estampa não encontrada');
-        }
-
-        await LogService.registrar({
-            id_usuario: usuarioLogadoId,
-            des_acao: ACOES_LOG.CONSULTAR,
-            des_tabela: 'tab_variacoes_cor_estampa',
-            des_detalhes: {
-                tipo_consulta: 'busca_por_id',
-                nom_cor_estampa: corEstampa.nom_cor_estampa,
-                ind_tipo: corEstampa.ind_tipo,
-                val_codigo_hex: corEstampa.val_codigo_hex,
-                des_imagem_url: corEstampa.des_imagem_url,
-                num_ordem_exibicao: corEstampa.num_ordem_exibicao
-            }
-        });
-
-        return corEstampa;
-    }
-
-    async atualizarCorEstampa(id, dados, usuarioLogadoId) {
-        try {
-
-            const corEstampaExiste = await ProdutoModel.buscarCorEstampaPorId(id);
-
-
-            if (!corEstampaExiste) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO)
-            }
-
-            const atualizado = await ProdutoModel.atualizarCorEstampa(id, dados);
-
-            if (!atualizado) {
-                throw new Error('Erro ao atualizar categoria');
-            }
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.EDITAR,
-                des_tabela: 'tab_variacoes_cor_estampa',
-                des_detalhes: {
-                    nom_cor_estampa: corEstampaExiste.nom_cor_estampa,
-                    ind_tipo: corEstampaExiste.ind_tipo,
-                    campos_alterados: Object.keys(dados)
-                }
-            });
-
-            const corEstampaAtualizada = await ProdutoModel.buscarCorEstampaPorId(id);
-
-            return corEstampaAtualizada;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async deletarCorEstampa(id, usuarioLogadoId) {
-        try {
-            const corEstampa = await ProdutoModel.buscarCorEstampaPorId(id);
-
-            if (!corEstampa) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
-            }
-
-            // Soft delete
-            const deletado = await ProdutoModel.deletarCorEstampa(id);
-
-            if (!deletado) {
-                throw new Error('Erro ao deletar pessoa');
-            }
-
-            // Registrar log
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.DELETAR,
-                des_tabela: 'tab_variacoes_cor_estampa',
-                num_registro_id: id,
-                des_detalhes: {
-                    id: deletado.id,
-                    nom_cor_estampa: deletado.nom_cor_estampa,
-                    ind_tipo: deletado.ind_tipo
-                }
-            });
-
-            return true;
-
-        } catch (error) {
-            throw error;
-        }
-    }
-
-
-
-
-
-    async listarGradesProdutos(usuarioLogadoId) {
-        try {
-            const gradesProdutos = await ProdutoModel.listarGradesProdutos();
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_produto_grade',
-                des_detalhes: {
-                    tipo_consulta: 'listar',
-                    total_registros: gradesProdutos.length
-                }
-            });
-
-            return gradesProdutos;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async adicionarGradeProduto(dados, usuarioLogadoId) {
-        try {
-
-            //Validar dados
-            const { error, value } = validators.gradeProdutoSchema.validate(dados);
-
-            if (error) {
-                throw new Error(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
-            }
-
-            const gradeProdutoId = await ProdutoModel.criarGradeProduto(value);
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CRIAR,
-                des_tabela: 'tab_produto_grade',
-                num_registro_id: gradeProdutoId,
-                des_detalhes: {
-                    id_produto: value.id_produto,
-                    id_variacao_cor_estampa: value.id_variacao_cor_estampa,
-                    id_tamanho: value.id_tamanho,
-                    num_sku: value.num_sku,
-                    val_preco_variacao: value.val_preco_variacao,
-                    ind_ativo: value.ind_ativo,
-                    num_codigo_barras: value.num_codigo_barras
-                }
-            });
-
-            const gradeProduto = await ProdutoModel.buscarGradeProdutoPorId(gradeProdutoId)
-
-            return gradeProduto;
-
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async listarGradeProduto(id, usuarioLogadoId) {
-
-        const gradeProduto = await ProdutoModel.buscarGradeProdutoPorId(id);
-
-        if (!gradeProduto) {
-            throw new NotFoundError('Cor e Estampa não encontrada');
-        }
-
-        await LogService.registrar({
-            id_usuario: usuarioLogadoId,
-            des_acao: ACOES_LOG.CONSULTAR,
-            des_tabela: 'tab_produto_grade',
-            des_detalhes: {
-                tipo_consulta: 'busca_por_id',
-                id_produto: gradeProduto.id_produto,
-                id_variacao_cor_estampa: gradeProduto.id_variacao_cor_estampa,
-                id_tamanho: gradeProduto.id_tamanho,
-                num_sku: gradeProduto.num_sku,
-                val_preco_variacao: gradeProduto.val_preco_variacao,
-                ind_ativo: gradeProduto.ind_ativo,
-                num_codigo_barras: gradeProduto.num_codigo_barras
-            }
-        });
-
-        return gradeProduto;
-    }
-
-    async atualizarGradeProduto(id, dados, usuarioLogadoId) {
-        try {
-
-            const gradeProduto = await ProdutoModel.buscarGradeProdutoPorId(id);
-
-
-            if (!gradeProduto) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO)
-            }
-
-            const atualizado = await ProdutoModel.atualizarGradeProduto(id, dados);
-
-            if (!atualizado) {
-                throw new Error('Erro ao atualizar categoria');
-            }
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.EDITAR,
-                des_tabela: 'tab_produto_grade',
-                des_detalhes: {
-                    id_produto: gradeProduto.id_produto,
-                    id_variacao_cor_estampa: gradeProduto.id_variacao_cor_estampa,
-                    id_tamanho: gradeProduto.id_tamanho,
-                    num_sku: gradeProduto.num_sku,
-                    val_preco_variacao: gradeProduto.val_preco_variacao,
-                    ind_ativo: gradeProduto.ind_ativo,
-                    num_codigo_barras: gradeProduto.num_codigo_barras,
-                    campos_alterados: Object.keys(dados)
-                }
-            });
-
-            const gradeProdutoAtualizada = await ProdutoModel.buscarGradeProdutoPorId(id);
-
-            return gradeProdutoAtualizada;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async deletarGradeProduto(id, usuarioLogadoId) {
-        try {
-            const gradeProduto = await ProdutoModel.buscarGradeProdutoPorId(id);
-
-            if (!gradeProduto) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
-            }
-
-            // Soft delete
-            const deletado = await ProdutoModel.deletarGradeProduto(id);
-
-            if (!deletado) {
-                throw new Error('Erro ao deletar pessoa');
-            }
-
-            // Registrar log
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.DELETAR,
-                des_tabela: 'tab_produto_grade',
-                num_registro_id: id,
-                des_detalhes: {
-                    id: deletado.id,
-                    id_produto: deletado.id_produto,
-                    id_variacao_cor_estampa: deletado.id_variacao_cor_estampa,
-                    id_tamanho: deletado.id_tamanho,
-                    num_sku: deletado.num_sku,
-                    val_preco_variacao: deletado.val_preco_variacao,
-                    ind_ativo: deletado.ind_ativo,
-                    num_codigo_barras: deletado.num_codigo_barras
-                }
-            });
-
-            return true;
-
-        } catch (error) {
-            throw error;
-        }
-    }
-
-
-
-
-
+    /**
+     * Cria um novo produto.
+     * 
+     * @method adicionarProduto
+     * @memberof ProdutoService
+     * @async
+     * @param {Object} dados - Dados do produto.
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<Object>} Produto criado.
+     * @throws {Error} Se validação falhar.
+     * 
+     * @example
+     * await produtoService.adicionarProduto({ id_categoria: 1, nom_produto: 'Camisa' }, 1);
+     */
     async adicionarProduto(dados, usuarioLogadoId) {
         try {
 
@@ -859,6 +430,18 @@ class ProdutoService {
         }
     }
 
+    /**
+     * Lista todos os produtos.
+     * 
+     * @method listarProdutos
+     * @memberof ProdutoService
+     * @async
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<Array<Object>>} Lista de produtos.
+     * 
+     * @example
+     * const produtos = await produtoService.listarProdutos(1);
+     */
     async listarProdutos(usuarioLogadoId) {
         try {
             const produtos = await ProdutoModel.listarProdutos();
@@ -879,6 +462,20 @@ class ProdutoService {
         }
     }
 
+    /**
+     * Busca um produto por ID.
+     * 
+     * @method listarProduto
+     * @memberof ProdutoService
+     * @async
+     * @param {number} id - ID do produto.
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<Object>} Dados do produto.
+     * @throws {NotFoundError} Se não encontrado.
+     * 
+     * @example
+     * const prod = await produtoService.listarProduto(1, 1);
+     */
     async listarProduto(id, usuarioLogadoId) {
 
         const produto = await ProdutoModel.buscarProdutoPorId(id);
@@ -906,6 +503,21 @@ class ProdutoService {
         return produto;
     }
 
+    /**
+     * Atualiza um produto.
+     * 
+     * @method atualizarProduto
+     * @memberof ProdutoService
+     * @async
+     * @param {number} id - ID do produto.
+     * @param {Object} dados - Dados a atualizar.
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<Object>} Produto atualizado.
+     * @throws {Error} Se não encontrado ou falha na atualização.
+     * 
+     * @example
+     * await produtoService.atualizarProduto(1, { nom_produto: 'Novo Nome' }, 1);
+     */
     async atualizarProduto(id, dados, usuarioLogadoId) {
         try {
 
@@ -946,6 +558,20 @@ class ProdutoService {
         }
     }
 
+    /**
+     * Deleta (soft delete) um produto.
+     * 
+     * @method deletarProduto
+     * @memberof ProdutoService
+     * @async
+     * @param {number} id - ID do produto.
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<boolean>} `true` se deletado.
+     * @throws {Error} Se não encontrado ou falha na exclusão.
+     * 
+     * @example
+     * await produtoService.deletarProduto(1, 1);
+     */
     async deletarProduto(id, usuarioLogadoId) {
         try {
             const produto = await ProdutoModel.buscarProdutoPorId(id);
@@ -989,701 +615,49 @@ class ProdutoService {
 
 
 
+    /**
+     * ===========================================
+     * IMAGENS DE PRODUTOS
+     * ===========================================
+     */
 
-    async listarImagemProdutos(usuarioLogadoId) {
-        try {
-            const imagemProdutos = await ProdutoModel.listarImagemProdutos();
 
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_produto_imagens',
-                des_detalhes: {
-                    tipo_consulta: 'listar',
-                    total_registros: imagemProdutos.length
-                }
-            });
-
-            return imagemProdutos;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async adicionarImagemProduto(dados, usuarioLogadoId) {
-        try {
-
-            dados.id_produto = (dados.id_produto && dados.id_produto !== '' && dados.id_produto !== 'null') ? parseInt(dados.id_produto) : null;
-
-            dados.id_produto_grade = (dados.id_produto_grade && dados.id_produto_grade !== '' && dados.id_produto_grade !== 'null') ? parseInt(dados.id_produto_grade) : null;
-
-            const { error, value } = validators.imagemProdutoSchema.validate(dados);
-
-            if (error) {
-                throw new Error(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
-            }
-
-            const isPrincipal = value.ind_principal == true || value.ind_principal === 'true' || value.ind_principal === 1;
-
-            if (isPrincipal) {
-                if (value.id_produto) {
-                    await ProdutoModel.desmarcarImagemPrincipalPorProduto(value.id_produto)
-                } else if (value.id_produto_grade) {
-                    await ProdutoModel.desmarcarImagemPrincipalPorGrade(value.id_produto_grade)
-                }
-            }
-
-            const imagemProdutoId = await ProdutoModel.criarImagemProduto(value);
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CRIAR,
-                des_tabela: 'tab_produto_imagens',
-                num_registro_id: imagemProdutoId,
-                des_detalhes: {
-                    id_produto_grade: imagemProdutoId.id_produto_grade,
-                    id_produto: imagemProdutoId.id_produto,
-                    des_url_imagem: imagemProdutoId.des_url_imagem,
-                    num_ordem: imagemProdutoId.num_ordem,
-                    ind_principal: imagemProdutoId.ind_principal
-                }
-            });
-
-            const imagemProduto = await ProdutoModel.buscarImagemProdutoPorId(imagemProdutoId)
-
-            return imagemProduto;
-
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async buscarImagemProdutoID(id_produto, usuarioLogadoId) {
-
-        const imagemProduto = await ProdutoModel.buscarImagemProdutoPorId(id_produto);
-
-        if (!imagemProduto) {
-            throw new NotFoundError('Produto não encontrada');
-        }
-
-        await LogService.registrar({
-            id_usuario: usuarioLogadoId,
-            des_acao: ACOES_LOG.CONSULTAR,
-            des_tabela: 'tab_produto_imagens',
-            des_detalhes: {
-                tipo_consulta: 'busca_por_id',
-                id_produto_grade: imagemProduto.id_produto_grade,
-                id_produto: imagemProduto.id_produto,
-                des_url_imagem: imagemProduto.des_url_imagem,
-                num_ordem: imagemProduto.num_ordem,
-                ind_principal: imagemProduto.ind_principal
-            }
-        });
-
-        return imagemProduto;
-    }
-
-    async buscarImagemProdutoGradeID(id_produto_grade, usuarioLogadoId) {
-
-        const imagemProduto = await ProdutoModel.buscarImagemProdutoGradeID(id_produto_grade);
-
-        if (!imagemProduto) {
-            throw new NotFoundError('Produto não encontrada');
-        }
-
-        await LogService.registrar({
-            id_usuario: usuarioLogadoId,
-            des_acao: ACOES_LOG.CONSULTAR,
-            des_tabela: 'tab_produto_imagens',
-            des_detalhes: {
-                tipo_consulta: 'busca_por_id',
-                id_produto_grade: imagemProduto.id_produto_grade,
-                id_produto: imagemProduto.id_produto,
-                des_url_imagem: imagemProduto.des_url_imagem,
-                num_ordem: imagemProduto.num_ordem,
-                ind_principal: imagemProduto.ind_principal
-            }
-        });
-
-        return imagemProduto;
-    }
-
-    async atualizarImagemProduto(id, dados, usuarioLogadoId) {
-        try {
-
-            dados.id_produto = (dados.id_produto && dados.id_produto !== '' && dados.id_produto !== 'null') ? parseInt(dados.id_produto) : null;
-
-            dados.id_produto_grade = (dados.id_produto_grade && dados.id_produto_grade !== '' && dados.id_produto_grade !== 'null') ? parseInt(dados.id_produto_grade) : null;
-
-            const imagemProduto = await ProdutoModel.buscarImagemProdutoId(id);
-
-            if (!imagemProduto) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO)
-            }
-
-            const isPrincipal = dados.ind_principal == true || dados.ind_principal === 'true' || dados.ind_principal === 1;
-
-            if (isPrincipal) {
-                if (dados.id_produto) {
-                    await ProdutoModel.desmarcarImagemPrincipalPorProduto(dados.id_produto)
-                } else if (dados.id_produto_grade) {
-                    await ProdutoModel.desmarcarImagemPrincipalPorGrade(dados.id_produto_grade)
-                }
-            }
-
-            const atualizado = await ProdutoModel.atualizarImagemProduto(id, dados);
-
-            if (!atualizado) {
-                throw new Error('Erro ao atualizar');
-            }
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.EDITAR,
-                des_tabela: 'tab_produto_imagens',
-                des_detalhes: {
-                    id_produto_grade: imagemProduto.id_produto_grade,
-                    id_produto: imagemProduto.id_produto,
-                    des_url_imagem: imagemProduto.des_url_imagem,
-                    num_ordem: imagemProduto.num_ordem,
-                    ind_principal: imagemProduto.ind_principal,
-                    campos_alterados: Object.keys(dados)
-                }
-            });
-
-            const imagemProdutoAtualizada = await ProdutoModel.buscarImagemProdutoPorId(id);
-
-            return imagemProdutoAtualizada;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async deletarImagemProduto(id, usuarioLogadoId) {
-        try {
-            const imagemProduto = await ProdutoModel.buscarImagemProdutoId(id);
-
-            if (!imagemProduto) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
-            }
-
-            const isPrincipal = imagemProduto[0].ind_principal == true || imagemProduto[0].ind_principal === 'true' || imagemProduto[0].ind_principal === 1;
-
-            // console.log({ imagemProduto, isPrincipal });
-            // console.log(imagemProduto[0].id_produto);
-            // console.log(imagemProduto[0].id_produto_grade);
-
-            if (isPrincipal) {
-                if (imagemProduto[0].id_produto) {
-
-                    const produto = await ProdutoModel.buscarImagemProdutoPorId(imagemProduto[0].id_produto);
-
-                    if (produto.length > 0) {
-                        await ProdutoModel.desmarcarImagemPrincipalPorProduto(imagemProduto[0].id_produto)
-                        await ProdutoModel.atualizarImagemProduto(produto[0].id, { ind_principal: 1 })
-                    }
-                } else if (imagemProduto[0].id_produto_grade) {
-                    const produto = await ProdutoModel.buscarImagemProdutoGradeID(imagemProduto[0].id_produto_grade);
-                    console.log(produto.length)
-                    if (produto.length > 0) {
-                        await ProdutoModel.desmarcarImagemPrincipalPorGrade(imagemProduto[0].id_produto_grade)
-                        await ProdutoModel.atualizarImagemProduto(produto[0].id, { ind_principal: 1 })
-                    }
-                }
-            }
-            // Soft delete
-            const deletado = await ProdutoModel.deletarImagemProduto(id);
-
-            if (!deletado) {
-                throw new Error('Erro ao deletar pessoa');
-            }
-
-            // Registrar log
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.DELETAR,
-                des_tabela: 'tab_produto_imagens',
-                num_registro_id: id,
-                des_detalhes: {
-                    id_produto_grade: imagemProduto.id_produto_grade,
-                    id_produto: imagemProduto.id_produto,
-                    des_url_imagem: imagemProduto.des_url_imagem,
-                    num_ordem: imagemProduto.num_ordem,
-                    ind_principal: imagemProduto.ind_principal,
-                }
-            });
-
-            return true;
-
-        } catch (error) {
-            throw error;
-        }
-    }
 
 
 
 
 
     /**
-     * Tipo de Serviço
+     * ===========================================
+     * TIPOS DE SERVIÇO
+     * ===========================================
      */
-    async adicionarTipoServico(dados, usuarioLogadoId) {
-        try {
-
-            //Validar dados
-            const { error, value } = validators.tipoServicoSchema.validate(dados);
-
-            if (error) {
-                throw new Error(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
-            }
-
-            const tipoServicoId = await ProdutoModel.criarTipoServico(value);
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CRIAR,
-                des_tabela: 'tab_tipo_servico',
-                num_registro_id: tipoServicoId,
-                des_detalhes: {
-                    des_tipo_ajuste: value.des_tipo_ajuste,
-                    ind_ativo: value.ind_ativo,
-                }
-            });
-
-            const tipoServico = await ProdutoModel.buscarTipoServicoPorId(tipoServicoId)
-
-            return tipoServico;
-
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async listarTipoServico(usuarioLogadoId) {
-        try {
-            const tipoServico = await ProdutoModel.listarTipoServico();
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_tipo_servico',
-                des_detalhes: {
-                    tipo_consulta: 'listar',
-                    total_registros: tipoServico.length
-                }
-            });
-
-            return tipoServico;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async buscarTipoServicoId(id, usuarioLogadoId) {
-
-        const tipoServico = await ProdutoModel.buscarTipoServicoPorId(id);
-
-        if (!tipoServico) {
-            throw new NotFoundError('Tipo de serviço não encontrado');
-        }
-
-        await LogService.registrar({
-            id_usuario: usuarioLogadoId,
-            des_acao: ACOES_LOG.CONSULTAR,
-            des_tabela: 'tab_tipo_servico',
-            des_detalhes: {
-                tipo_consulta: 'busca_por_id',
-                id: tipoServico.id,
-                des_tipo_ajuste: tipoServico.des_tipo_ajuste,
-                ind_ativo: tipoServico.ind_ativo,
-            }
-        });
-
-        return tipoServico;
-    }
-
-    async atualizarTipoServico(id, dados, usuarioLogadoId) {
-        try {
-
-            const tipoServico = await ProdutoModel.buscarTipoServicoPorId(id);
 
 
-            if (!tipoServico) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO)
-            }
-
-            const atualizado = await ProdutoModel.atualizarTipoServico(id, dados);
-
-            if (!atualizado) {
-                throw new Error('Erro ao atualizar tipo de Serviço');
-            }
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.EDITAR,
-                des_tabela: 'tab_tipo_servico',
-                des_detalhes: {
-                    id: tipoServico.id_categoria,
-                    des_tipo_ajuste: tipoServico.nom_produto,
-                    ind_ativo: tipoServico.num_sku,
-                    campos_alterados: Object.keys(dados)
-                }
-            });
-
-            const tipoServicoAtualizada = await ProdutoModel.buscarTipoServicoPorId(id);
-
-            return tipoServicoAtualizada;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async deletarTipoServico(id, usuarioLogadoId) {
-        try {
-            const tipoServico = await ProdutoModel.buscarTipoServicoPorId(id);
-
-            if (!tipoServico) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
-            }
-
-            // Soft delete
-            const deletado = await ProdutoModel.deletarTipoServico(id);
-
-            if (!deletado) {
-                throw new Error('Erro ao deletar pessoa');
-            }
-
-            // Registrar log
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.DELETAR,
-                des_tabela: 'tab_tipo_servico',
-                num_registro_id: id,
-                des_detalhes: {
-                    id: deletado.id,
-                    des_tipo_ajuste: deletado.des_tipo_ajuste,
-                    ind_ativo: deletado.ind_ativo
-                }
-            });
-
-            return true;
-
-        } catch (error) {
-            throw error;
-        }
-    }
 
 
 
 
 
     /**
-     * Produto por Tipo de Serviço
+     * ===========================================
+     * PRODUTO-SERVIÇO
+     * ===========================================
      */
-    async adicionarProdutoServico(dados, usuarioLogadoId) {
-        try {
-
-            //Validar dados
-            const { error, value } = validators.produtoServicoSchema.validate(dados);
-
-            if (error) {
-                throw new Error(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
-            }
-
-            const produtoServicoId = await ProdutoModel.criarProdutoTipoServico(value);
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CRIAR,
-                des_tabela: 'tab_produto_servico',
-                num_registro_id: produtoServicoId,
-                des_detalhes: {
-                    id_produto: value.id_produto,
-                    id_tipo_servico: value.id_tipo_servico,
-                    ind_ativo: value.ind_ativo,
-                }
-            });
-
-            const produtoServico = await ProdutoModel.buscarProdutoServicoPorId(produtoServicoId)
-
-            return produtoServico;
-
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async listarProdutoServico(usuarioLogadoId) {
-        try {
-            const produtoServico = await ProdutoModel.listarProdutoServico();
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_produto_servico',
-                des_detalhes: {
-                    tipo_consulta: 'listar',
-                    total_registros: produtoServico.length
-                }
-            });
-
-            return produtoServico;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async buscarProdutoServicoId(id, usuarioLogadoId) {
-
-        const produtoServico = await ProdutoModel.buscarProdutoServicoPorId(id);
-
-        if (!produtoServico) {
-            throw new NotFoundError('Tipo de serviço não encontrado');
-        }
-
-        await LogService.registrar({
-            id_usuario: usuarioLogadoId,
-            des_acao: ACOES_LOG.CONSULTAR,
-            des_tabela: 'tab_produto_servico',
-            des_detalhes: {
-                tipo_consulta: 'busca_por_id',
-                id: produtoServico.id,
-                des_tipo_ajuste: produtoServico.des_tipo_ajuste,
-                ind_ativo: produtoServico.ind_ativo,
-            }
-        });
-
-        return produtoServico;
-    }
-
-    async atualizarProdutoServico(id, dados, usuarioLogadoId) {
-        try {
-
-            const produtoServico = await ProdutoModel.buscarProdutoServicoPorId(id);
 
 
-            if (!produtoServico) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO)
-            }
-
-            const atualizado = await ProdutoModel.atualizarProdutoServico(id, dados);
-
-            if (!atualizado) {
-                throw new Error('Erro ao atualizar tipo de Serviço');
-            }
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.EDITAR,
-                des_tabela: 'tab_produto_servico',
-                des_detalhes: {
-                    id: produtoServico.id_categoria,
-                    des_tipo_ajuste: produtoServico.nom_produto,
-                    ind_ativo: produtoServico.num_sku,
-                    campos_alterados: Object.keys(dados)
-                }
-            });
-
-            const tipoServicoAtualizada = await ProdutoModel.buscarProdutoServicoPorId(id);
-
-            return tipoServicoAtualizada;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async deletarProdutoServico(id, usuarioLogadoId) {
-        try {
-            const produtoServico = await ProdutoModel.buscarProdutoServicoPorId(id);
-
-            if (!produtoServico) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
-            }
-
-            // Soft delete
-            const deletado = await ProdutoModel.deletarProdutoServico(id);
-
-            if (!deletado) {
-                throw new Error('Erro ao deletar pessoa');
-            }
-
-            // Registrar log
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.DELETAR,
-                des_tabela: 'tab_produto_servico',
-                num_registro_id: id,
-                des_detalhes: {
-                    id: deletado.id,
-                    id_produto: deletado.id_produto,
-                    id_tipo_servico: deletado.id_tipo_servico,
-                    ind_ativo: deletado.ind_ativo
-                }
-            });
-
-            return true;
-
-        } catch (error) {
-            throw error;
-        }
-    }
 
 
 
 
 
     /**
-     * Preço Produto por Tipo de Serviço
+     * ===========================================
+     * PREÇOS DE PRODUTO-SERVIÇO
+     * ===========================================
      */
-    async adicionarPrecoProdutoServico(dados, usuarioLogadoId) {
-        try {
-
-            //Validar dados
-            const { error, value } = validators.precoProdutoServicoSchema.validate(dados);
-
-            if (error) {
-                throw new Error(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
-            }
-
-            const precoProdutoServicoId = await ProdutoModel.criarPrecoProdutoServico(value);
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CRIAR,
-                des_tabela: 'tab_preco_produto_servico',
-                num_registro_id: precoProdutoServicoId,
-                des_detalhes: {
-                    id_produto_servico: value.id_produto_servico,
-                    val_preco: value.val_preco,
-                    dta_inicio: value.dta_inicio,
-                }
-            });
-
-            const precoProdutoServico = await ProdutoModel.buscarPrecoProdutoServicoPorId(precoProdutoServicoId)
-
-            return precoProdutoServicoId;
-
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async listarPrecoProdutoServico(usuarioLogadoId) {
-        try {
-            const precoProdutoServico = await ProdutoModel.listarPrecoProdutoServico();
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_preco_produto_servico',
-                des_detalhes: {
-                    tipo_consulta: 'listar',
-                    total_registros: precoProdutoServico.length
-                }
-            });
-
-            return precoProdutoServico;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async buscarPrecoProdutoServicoPorId(id, usuarioLogadoId) {
-
-        const precoProdutoServico = await ProdutoModel.buscarPrecoProdutoServicoPorId(id);
-
-        if (!precoProdutoServico) {
-            throw new NotFoundError('Tipo de serviço não encontrado');
-        }
-
-        await LogService.registrar({
-            id_usuario: usuarioLogadoId,
-            des_acao: ACOES_LOG.CONSULTAR,
-            des_tabela: 'tab_preco_produto_servico',
-            des_detalhes: {
-                tipo_consulta: 'busca_por_id',
-                id: precoProdutoServico.id,
-                id_produto_servico: precoProdutoServico.id_produto_servico,
-                val_preco: precoProdutoServico.val_preco,
-                dta_inicio: precoProdutoServico.dta_inicio,
-            }
-        });
-
-        return precoProdutoServico;
-    }
-
-    async atualizarPrecoProdutoServico(id, dados, usuarioLogadoId) {
-        try {
-
-            const precoProdutoServico = await ProdutoModel.buscarPrecoProdutoServicoPorId(id);
 
 
-            if (!precoProdutoServico) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO)
-            }
-
-            const atualizado = await ProdutoModel.atualizarPrecoProdutoServico(id, dados);
-
-            if (!atualizado) {
-                throw new Error('Erro ao atualizar tipo de Serviço');
-            }
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.EDITAR,
-                des_tabela: 'tab_preco_produto_servico',
-                des_detalhes: {
-                    id: precoProdutoServico.id,
-                    id_produto_servico: precoProdutoServico.id_produto_servico,
-                    val_preco: precoProdutoServico.val_preco,
-                    dta_inicio: precoProdutoServico.dta_inicio,
-                    campos_alterados: Object.keys(dados)
-                }
-            });
-
-            const precoProdutoServicoAtualizada = await ProdutoModel.buscarPrecoProdutoServicoPorId(id);
-
-            return precoProdutoServicoAtualizada;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async deletarPrecoProdutoServico(id, usuarioLogadoId) {
-        try {
-            const precoProdutoServico = await ProdutoModel.buscarPrecoProdutoServicoPorId(id);
-
-            if (!precoProdutoServico) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO);
-            }
-
-            // Soft delete
-            const deletado = await ProdutoModel.deletarPrecoProdutoServico(id);
-
-            if (!deletado) {
-                throw new Error('Erro ao deletar pessoa');
-            }
-
-            // Registrar log
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.DELETAR,
-                des_tabela: 'tab_preco_produto_servico',
-                num_registro_id: id,
-                des_detalhes: {
-                    id: precoProdutoServico.id,
-                    id_produto_servico: precoProdutoServico.id_produto_servico,
-                    val_preco: precoProdutoServico.val_preco,
-                    dta_inicio: precoProdutoServico.dta_inicio,
-                }
-            });
-
-            return true;
-
-        } catch (error) {
-            throw error;
-        }
-    }
 }
 
 module.exports = new ProdutoService();

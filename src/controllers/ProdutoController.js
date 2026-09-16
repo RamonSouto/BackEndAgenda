@@ -1,13 +1,57 @@
+// /src/controllers/ProdutoController.js
+/**
+ * @author Ramon David Souto
+ * @version 1.0.0
+ * @file src/controllers/ProdutoController.js
+ * @description Controlador de operações relacionadas a produtos,
+ * incluindo gerenciamento de produtos em agendamentos, upload de fotos,
+ * CRUD de categorias, tamanhos, cores/estampas, grades, imagens,
+ * tipos de serviço, associações produto-serviço e preços.
+ * 
+ * @requires ../services/ProdutoService
+ * @requires ../services/UploadService
+ * @requires ../utils/constants
+ * @requires ../middlewares/errorMiddleware
+ * @requires path
+ */
 const ProdutoService = require('../services/ProdutoService');
 const UploadService = require('../services/UploadService');
 const { MENSAGENS } = require('../utils/constants');
 const { asyncHandler } = require('../middlewares/errorMiddleware');
 const path = require('path');
 
+/**
+ * Classe ProdutoController.
+ * @class ProdutoController
+ */
 class ProdutoController {
     /**
-     * Adicionar produto ao agendamento
+     * ===========================================
+     * PRODUTOS EM AGENDAMENTO
+     * ===========================================
+     */
+
+    /**
+     * Adiciona um produto a um agendamento.
+     * 
+     * @name adicionarProdutoAgendamento
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição do Express.
+     * @param {Object} req.body - Dados do produto no agendamento.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Envia resposta 201 com ID do produto.
+     * 
+     * @throws {Error} - Repassa erros ao middleware via asyncHandler.
+     * 
+     * @example
      * POST /api/produtos/agendamento
+     * Body: { id_agendamento: 1, id_produto_grade: 5, ... }
      */
     adicionarProdutoAgendamento = asyncHandler(async (req, res) => {
         const produtoId = await ProdutoService.adicionarProdutoAgendamento(
@@ -23,8 +67,24 @@ class ProdutoController {
     });
 
     /**
-     * Listar produtos de um agendamento
-     * GET /api/produtos/agendamento/:id_agendamento
+     * Lista os produtos de um agendamento.
+     * 
+     * @name listarProdutosAgendamento
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros da rota.
+     * @param {number} req.params.id_agendamento - ID do agendamento.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Envia lista de produtos com total.
+     * 
+     * @example
+     * GET /api/produtos/agendamento/1
      */
     listarProdutosAgendamento = asyncHandler(async (req, res) => {
         const { id_agendamento } = req.params;
@@ -41,8 +101,29 @@ class ProdutoController {
     });
 
     /**
-     * Atualizar status de produto
-     * PATCH /api/produtos/:id/status
+     * Atualiza o status de um produto de agendamento.
+     * 
+     * @name atualizarStatus
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros.
+     * @param {number} req.params.id - ID do produto de agendamento.
+     * @param {Object} req.body - Corpo da requisição.
+     * @param {string} req.body.status - Novo status.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Mensagem de sucesso.
+     * 
+     * @throws {Error} 400 - Se o campo status não for fornecido.
+     * 
+     * @example
+     * PATCH /api/produtos/1/status
+     * Body: { status: 'concluido' }
      */
     atualizarStatus = asyncHandler(async (req, res) => {
         const { id } = req.params;
@@ -64,9 +145,37 @@ class ProdutoController {
         });
     });
 
+
+
     /**
-     * Upload de foto de ajuste
-     * POST /api/produtos/:id_produto_agendamento/fotos
+     * ===========================================
+     * FOTOS DE AJUSTE
+     * ===========================================
+     */
+
+    /**
+     * Faz upload de uma única foto de ajuste para um produto de agendamento.
+     * 
+     * @name uploadFoto
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros.
+     * @param {number} req.params.id_produto_agendamento - ID do produto de agendamento.
+     * @param {Object} req.file - Arquivo enviado (campo 'foto').
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Resposta 201 com dados da foto.
+     * 
+     * @throws {Error} 400 - Se nenhum arquivo for enviado.
+     * 
+     * @example
+     * POST /api/produtos/1/fotos
+     * Body (multipart/form-data): foto: (arquivo)
      */
     uploadFoto = asyncHandler(async (req, res) => {
         const { id_produto_agendamento } = req.params;
@@ -100,8 +209,28 @@ class ProdutoController {
     });
 
     /**
-     * Upload múltiplo de fotos de ajuste
-     * POST /api/produtos/:id_produto_agendamento/fotos/multiplas
+     * Faz upload de múltiplas fotos de ajuste para um produto de agendamento.
+     * 
+     * @name uploadFotosMultiplas
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros.
+     * @param {number} req.params.id_produto_agendamento - ID do produto de agendamento.
+     * @param {Object[]} req.files - Arquivos enviados (campo 'fotos').
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Resposta 201 com lista de IDs e informações.
+     * 
+     * @throws {Error} 400 - Se nenhum arquivo for enviado.
+     * 
+     * @example
+     * POST /api/produtos/1/fotos/multiplas
+     * Body (multipart/form-data): fotos: (arquivo1), fotos: (arquivo2)
      */
     uploadFotosMultiplas = asyncHandler(async (req, res) => {
         const { id_produto_agendamento } = req.params;
@@ -139,8 +268,24 @@ class ProdutoController {
     });
 
     /**
-     * Listar fotos de ajuste
-     * GET /api/produtos/:id_produto_agendamento/fotos
+     * Lista todas as fotos de ajuste de um produto de agendamento.
+     * 
+     * @name listarFotos
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros.
+     * @param {number} req.params.id_produto_agendamento - ID do produto de agendamento.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Lista de fotos com total.
+     * 
+     * @example
+     * GET /api/produtos/1/fotos
      */
     listarFotos = asyncHandler(async (req, res) => {
         const { id_produto_agendamento } = req.params;
@@ -157,8 +302,24 @@ class ProdutoController {
     });
 
     /**
-     * Deletar foto de ajuste
-     * DELETE /api/produtos/fotos/:id
+     * Deleta uma foto de ajuste (registro e arquivo físico).
+     * 
+     * @name deletarFoto
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros.
+     * @param {number} req.params.id - ID da foto.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Mensagem de sucesso.
+     * 
+     * @example
+     * DELETE /api/produtos/fotos/1
      */
     deletarFoto = asyncHandler(async (req, res) => {
         const { id } = req.params;
@@ -179,8 +340,24 @@ class ProdutoController {
     });
 
     /**
-     * Download de foto de ajuste
-     * GET /api/produtos/fotos/:id/download
+     * Faz o download de uma foto de ajuste.
+     * 
+     * @name downloadFoto
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros.
+     * @param {number} req.params.id - ID da foto.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Envia o arquivo para download.
+     * 
+     * @throws {Error} 404 - Se o arquivo não existir.
+     * 
+     * @example
+     * GET /api/produtos/fotos/1/download
      */
     downloadFoto = asyncHandler(async (req, res) => {
         const { id } = req.params;
@@ -202,8 +379,24 @@ class ProdutoController {
     });
 
     /**
-     * Visualizar foto de ajuste
-     * GET /api/produtos/fotos/:id/visualizar
+     * Visualiza (exibe inline) uma foto de ajuste.
+     * 
+     * @name visualizarFoto
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros.
+     * @param {number} req.params.id - ID da foto.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Envia o arquivo para visualização.
+     * 
+     * @throws {Error} 404 - Se o arquivo não existir.
+     * 
+     * @example
+     * GET /api/produtos/fotos/1/visualizar
      */
     visualizarFoto = asyncHandler(async (req, res) => {
         const { id } = req.params;
@@ -224,358 +417,67 @@ class ProdutoController {
         return res.sendFile(caminhoCompleto);
     });
 
-    /** CATEGORIA DE PRODUTOS */
+
+
+
     /**
-     * Adicionar categoria
-     * POST /api/produtos/categoria
+     * ===========================================
+     * CATEGORIAS DE PRODUTOS
+     * ===========================================
      */
-    adicionarCategoria = asyncHandler(async (req, res) => {
-        const categoriaId = await ProdutoService.adicionarCategoria(
-            req.body,
-            req.usuario.id
-        );
 
-        return res.status(201).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.CRIADO,
-            dados: { id: categoriaId }
-        })
-    });
 
 
     /**
-     * Listar categorias
-     * GET /api/produtos/categoria
+     * ===========================================
+     * TAMANHOS
+     * ===========================================
      */
-    listarCategorias = asyncHandler(async (req, res) => {
 
-        const categorias = await ProdutoService.listarCategorias(req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            total: categorias.length,
-            dados: categorias
-        });
-    });
 
     /**
-     * Listar categoria
-     * GET /api/produtos/categoria/:id
+     * ===========================================
+     * CORES E ESTAMPAS
+     * ===========================================
      */
-    listarCategoria = asyncHandler(async (req, res) => {
 
-        const { id } = req.params;
 
-        const categoria = await ProdutoService.listarCategoria(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            dados: categoria
-        });
-    });
 
     /**
-     * Atualizar categoriaa
-     * PUT /api/produtos/categoria/:id
+     * ===========================================
+     * GRADES DE PRODUTOS
+     * ===========================================
      */
-    atualizarCategoria = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        const categoria = await ProdutoService.atualizarCategoria(id, req.body, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
-            dados: categoria
-        });
-    });
-
-    /**
-     * Deletar categoriaa(soft delete)
-     * DELETE /api/produtos/categoria/:id
-     */
-    deletarCategoria = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        await ProdutoService.deletarCategoria(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.DELETADO,
-        });
-    });
 
 
 
 
 
     /**
-     * Adicionar tamanho
-     * POST /api/produtos/tamanho
-     */
-    adicionarTamanho = asyncHandler(async (req, res) => {
-        const categoriaId = await ProdutoService.adicionarTamanho(
-            req.body,
-            req.usuario.id
-        );
-
-        return res.status(201).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.CRIADO,
-            dados: { id: categoriaId }
-        })
-    });
-
-
-    /**
-     * Listar categorias
-     * GET /api/produtos/categoria
-     */
-    listarTamanhos = asyncHandler(async (req, res) => {
-
-        const categorias = await ProdutoService.listarTamanhos(req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            total: categorias.length,
-            dados: categorias
-        });
-    });
-
-    /**
-     * Listar categoria
-     * GET /api/produtos/categoria/:id
-     */
-    listarTamanho = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        const tamanho = await ProdutoService.listarTamanho(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            dados: tamanho
-        });
-    });
-
-    /**
-     * Atualizar categoriaa
-     * PUT /api/produtos/categoria/:id
-     */
-    atualizarTamanhos = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        const tamanho = await ProdutoService.atualizarTamanhos(id, req.body, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
-            dados: tamanho
-        });
-    });
-
-    /**
-     * Deletar categoriaa(soft delete)
-     * DELETE /api/produtos/categoria/:id
-     */
-    deletarTamanhos = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        await ProdutoService.deletarTamanhos(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.DELETADO,
-        });
-    });
-
-
-
-
-
-    /**
-     * Adicionar cor e estampa
-     * POST /api/produtos/cor_estampa
-     */
-    adicionarCorEstampa = asyncHandler(async (req, res) => {
-        const corEstampaId = await ProdutoService.adicionarCorEstampa(
-            req.body,
-            req.usuario.id
-        );
-
-        return res.status(201).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.CRIADO,
-            dados: { id: corEstampaId }
-        })
-    });
-
-
-    /**
-     * Listar Cores e Estampas
-     * GET /api/produtos/cor_estampa
-     */
-    listarCoresEstampas = asyncHandler(async (req, res) => {
-
-        const corEstampa = await ProdutoService.listarCoresEstampas(req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            total: corEstampa.length,
-            dados: corEstampa
-        });
-    });
-
-    /**
-     * Listar Cor e Estampa
-     * GET /api/produtos/cor_estampa/:id
-     */
-    listarCorEstampa = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        const tamanho = await ProdutoService.listarCorEstampa(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            dados: tamanho
-        });
-    });
-
-    /**
-     * Atualizar Cor e Estampa
-     * PUT /api/produtos/cor_estampa/:id
-     */
-    atualizarCorEstampa = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        const corEstampa = await ProdutoService.atualizarCorEstampa(id, req.body, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
-            dados: corEstampa
-        });
-    });
-
-    /**
-     * Deletar Cor e Estampa(soft delete)
-     * DELETE /api/produtos/cor_estampa/:id
-     */
-    deletarCorEstampa = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        await ProdutoService.deletarCorEstampa(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.DELETADO,
-        });
-    });
-
-
-
-
-
-    /**
-     * Adicionar Grade de Produto
-     * POST /api/produtos/grade_produto
-     */
-    adicionarGradeProduto = asyncHandler(async (req, res) => {
-        const gradeProdutoId = await ProdutoService.adicionarGradeProduto(
-            req.body,
-            req.usuario.id
-        );
-
-        return res.status(201).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.CRIADO,
-            dados: { id: gradeProdutoId }
-        })
-    });
-
-
-    /**
-     * Listar Grades de Produtos
-     * GET /api/produtos/grade_produto
-     */
-    listarGradesProdutos = asyncHandler(async (req, res) => {
-
-        const gradesProdutos = await ProdutoService.listarGradesProdutos(req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            total: gradesProdutos.length,
-            dados: gradesProdutos
-        });
-    });
-
-    /**
-     * Listar Grade de Produto
-     * GET /api/produtos/grade_produto/:id
-     */
-    listarGradeProduto = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        const gradeProduto = await ProdutoService.listarGradeProduto(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            dados: gradeProduto
-        });
-    });
-
-    /**
-     * Atualizar Grade de Produto
-     * PUT /api/produtos/grade_produto/:id
-     */
-    atualizarGradeProduto = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        const gradeProduto = await ProdutoService.atualizarGradeProduto(id, req.body, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
-            dados: gradeProduto
-        });
-    });
-
-    /**
-     * Deletar Grade de Produto(soft delete)
-     * DELETE /api/produtos/grade_produto/:id
-     */
-    deletarGradeProduto = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        await ProdutoService.deletarGradeProduto(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.DELETADO,
-        });
-    });
-
-
-
-
-
-    /**
-     * Produto
+     * ===========================================
+     * PRODUTOS
+     * ===========================================
      */
 
     /**
-     * Adicionar Produto
+     * Adiciona um produto.
+     * 
+     * @name adicionarProduto
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.body - Dados do produto.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Resposta 201 com ID.
+     * 
+     * @example
      * POST /api/produtos/produto
+     * Body: { id_categoria: 1, nom_produto: 'Camisa Polo', ... }
      */
     adicionarProduto = asyncHandler(async (req, res) => {
 
@@ -593,7 +495,21 @@ class ProdutoController {
 
 
     /**
-     * Listar Produtos
+     * Lista todos os produtos.
+     * 
+     * @name listarProdutos
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Lista de produtos com total.
+     * 
+     * @example
      * GET /api/produtos/produto
      */
     listarProdutos = asyncHandler(async (req, res) => {
@@ -608,8 +524,24 @@ class ProdutoController {
     });
 
     /**
-     * Listar Produto
-     * GET /api/produtos/produto/:id
+     * Busca um produto por ID.
+     * 
+     * @name listarProduto
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros.
+     * @param {number} req.params.id - ID do produto.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Dados do produto.
+     * 
+     * @example
+     * GET /api/produtos/produto/1
      */
     listarProduto = asyncHandler(async (req, res) => {
 
@@ -624,8 +556,26 @@ class ProdutoController {
     });
 
     /**
-     * Atualizar Produto
-     * PUT /api/produtos/produto/:id
+     * Atualiza um produto.
+     * 
+     * @name atualizarProduto
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros.
+     * @param {number} req.params.id - ID do produto.
+     * @param {Object} req.body - Dados para atualizar.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Produto atualizado.
+     * 
+     * @example
+     * PUT /api/produtos/produto/1
+     * Body: { nom_produto: 'Camisa Polo Azul' }
      */
     atualizarProduto = asyncHandler(async (req, res) => {
 
@@ -641,8 +591,24 @@ class ProdutoController {
     });
 
     /**
-     * Deletar Produto(soft delete)
-     * DELETE /api/produtos/produto/:id
+     * Deleta (soft delete) um produto.
+     * 
+     * @name deletarProduto
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros.
+     * @param {number} req.params.id - ID do produto.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Mensagem de sucesso.
+     * 
+     * @example
+     * DELETE /api/produtos/produto/1
      */
     deletarProduto = asyncHandler(async (req, res) => {
 
@@ -661,15 +627,37 @@ class ProdutoController {
 
 
     /**
-     * Imagem Produto
+     * ===========================================
+     * IMAGENS DE PRODUTOS
+     * ===========================================
      */
 
     /**
-     * Adicionar Imagem Produto
+     * Adiciona uma imagem a um produto ou grade.
+     * 
+     * @name adicionarImagemProduto
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.body - Dados da imagem (id_produto_grade ou id_produto).
+     * @param {Object} req.file - Arquivo enviado (campo 'foto').
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Resposta 201 com ID da imagem.
+     * 
+     * @throws {Error} 400 - Se nenhum arquivo for enviado.
+     * @throws {Error} 500 - Se não for informado produto ou grade ou ambos.
+     * 
+     * @example
      * POST /api/produtos/imagemProduto
+     * Body (multipart/form-data): foto: (arquivo), id_produto: 1
      */
     adicionarImagemProduto = asyncHandler(async (req, res) => {
-
+        console.log(req.body);
         if (!req.file) {
             return res.status(400).json({
                 sucesso: false,
@@ -699,10 +687,7 @@ class ProdutoController {
             })
         }
 
-        const produtoId = await ProdutoService.adicionarImagemProduto(
-            req.body,
-            req.usuario.id
-        );
+        const produtoId = await ProdutoService.adicionarImagemProduto(req.body, req.usuario.id);
 
         return res.status(201).json({
             sucesso: true,
@@ -712,7 +697,21 @@ class ProdutoController {
     });
 
     /**
-     * Listar Imagens Produtos
+     * Lista todas as imagens de produtos.
+     * 
+     * @name listarImagemProdutos
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Lista de imagens com total.
+     * 
+     * @example
      * GET /api/produtos/imagemProduto
      */
     listarImagemProdutos = asyncHandler(async (req, res) => {
@@ -727,8 +726,24 @@ class ProdutoController {
     });
 
     /**
-     * Buscar Imagem Produto ID
-     * GET /api/produtos/imagemProduto/:id
+     * Busca uma imagem por ID.
+     * 
+     * @name buscarImagemProdutoId
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros.
+     * @param {number} req.params.id - ID da imagem.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Dados da imagem.
+     * 
+     * @example
+     * GET /api/produtos/imagemProduto/1
      */
     buscarImagemProdutoId = asyncHandler(async (req, res) => {
 
@@ -743,8 +758,24 @@ class ProdutoController {
     });
 
     /**
-     * Buscar Imagem Produto Grade ID
-     * GET /api/produtos/imagemProdutoGrade/:id
+     * Busca imagens associadas a uma grade de produto.
+     * 
+     * @name buscarImagemProdutoGradeId
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros.
+     * @param {number} req.params.id - ID da grade.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Lista de imagens da grade.
+     * 
+     * @example
+     * GET /api/produtos/imagemProdutoGrade/1
      */
     buscarImagemProdutoGradeId = asyncHandler(async (req, res) => {
 
@@ -759,12 +790,37 @@ class ProdutoController {
     });
 
     /**
-     * Atualizar Imagem Produto
-     * PUT /api/produtos/imagemProduto/:id
+     * Atualiza uma imagem de produto.
+     * 
+     * @name atualizarImagemProduto
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros.
+     * @param {number} req.params.id - ID da imagem.
+     * @param {Object} req.body - Dados para atualizar.
+     * @param {Object} req.file - Novo arquivo (opcional).
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Imagem atualizada.
+     * 
+     * @example
+     * PUT /api/produtos/imagemProduto/1
+     * Body (multipart/form-data): foto: (novo arquivo), ind_principal: true
      */
     atualizarImagemProduto = asyncHandler(async (req, res) => {
-
         const { id } = req.params;
+
+        // Se um novo arquivo foi enviado, sobrescreve o campo des_url_imagem
+        // vindo do form-data (que chega como string em req.body).
+        if (req.file) {
+            req.body.des_url_imagem = req.file.path.replace(/\\/g, '/'); // normaliza path Windows/Linux
+        }
+
         const produto = await ProdutoService.atualizarImagemProduto(id, req.body, req.usuario.id);
 
         return res.status(200).json({
@@ -773,10 +829,37 @@ class ProdutoController {
             dados: produto
         });
     });
+    // atualizarImagemProduto = asyncHandler(async (req, res) => {
+    //     console.log(req.body);
+    //     const { id } = req.params;
+    //     const produto = await ProdutoService.atualizarImagemProduto(id, req.body, req.usuario.id);
+
+    //     return res.status(200).json({
+    //         sucesso: true,
+    //         mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
+    //         dados: produto
+    //     });
+    // });
 
     /**
-     * Deletar Imagem Produto(soft delete)
-     * DELETE /api/produtos/imagemProduto/:id
+     * Deleta (soft delete) uma imagem de produto.
+     * 
+     * @name deletarImagemProduto
+     * @function
+     * @memberof ProdutoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.params - Parâmetros.
+     * @param {number} req.params.id - ID da imagem.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Mensagem de sucesso.
+     * 
+     * @example
+     * DELETE /api/produtos/imagemProduto/1
      */
     deletarImagemProduto = asyncHandler(async (req, res) => {
 
@@ -795,264 +878,37 @@ class ProdutoController {
 
 
     /**
-     * Tipo de Serviço
+     * ===========================================
+     * TIPOS DE SERVIÇO
+     * ===========================================
      */
 
-    /**
-     * Adicionar tipo de serviço
-     * POST /api/produtos/tipoServico
-     */
-    adicionarTipoServico = asyncHandler(async (req, res) => {
 
-        const tipoServicoId = await ProdutoService.adicionarTipoServico(req.body, req.usuario.id);
-
-        return res.status(201).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.CRIADO,
-            dados: { id: tipoServicoId }
-        })
-    });
-
-
-    /**
-     * Listar tipo de serviço
-     * GET /api/produtos/tipoServico
-     */
-    listarTipoServico = asyncHandler(async (req, res) => {
-
-        const tipoServico = await ProdutoService.listarTipoServico(req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            total: tipoServico.length,
-            dados: tipoServico
-        });
-    });
-
-    /**
-     * Buscar tipo de serviço por ID
-     * GET /api/produtos/tipoServico/:id
-     */
-    buscarTipoServicoId = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        const tipoServico = await ProdutoService.buscarTipoServicoId(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            dados: tipoServico
-        });
-    });
-
-    /**
-     * Atualizar Produto
-     * PUT /api/produtos/produto/:id
-     */
-    atualizarTipoServico = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        const tipoServico = await ProdutoService.atualizarTipoServico(id, req.body, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
-            dados: tipoServico
-        });
-    });
-
-    /**
-     * Deletar Produto(soft delete)
-     * DELETE /api/produtos/tipoServico/:id
-     */
-    deletarTipoServico = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        await ProdutoService.deletarTipoServico(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.DELETADO,
-        });
-    });
 
 
 
 
 
     /**
-     * Produto por Tipo de Serviço
+     * ===========================================
+     * PRODUTO-SERVIÇO
+     * ===========================================
      */
 
-    /**
-     * Adicionar Produto por Tipo de Serviço
-     * POST /api/produtos/produtoServico
-     */
-    adicionarProdutoServico = asyncHandler(async (req, res) => {
 
-        const produtoTipoServicoId = await ProdutoService.adicionarProdutoServico(req.body, req.usuario.id);
-
-        return res.status(201).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.CRIADO,
-            dados: { id: produtoTipoServicoId }
-        })
-    });
-
-
-    /**
-     * Listar Produto por Tipo de Serviço
-     * GET /api/produtos/produtoServico
-     */
-    listarProdutoServico = asyncHandler(async (req, res) => {
-
-        const produtoTipoServico = await ProdutoService.listarProdutoServico(req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            total: produtoTipoServico.length,
-            dados: produtoTipoServico
-        });
-    });
-
-    /**
-     * Buscar Produto por Tipo de Serviço por ID
-     * GET /api/produtos/produtoServico/:id
-     */
-    buscarProdutoServicoId = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        const produtoTipoServico = await ProdutoService.buscarProdutoServicoId(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            dados: produtoTipoServico
-        });
-    });
-
-    /**
-     * Atualizar Produto por Tipo de Serviço
-     * PUT /api/produtos/produtoServico/:id
-     */
-    atualizarProdutoServico = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        const produtoTipoServico = await ProdutoService.atualizarProdutoServico(id, req.body, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
-            dados: produtoTipoServico
-        });
-    });
-
-    /**
-     * Deletar Produto por Tipo de Serviço(soft delete)
-     * DELETE /api/produtos/produtoServico/:id
-     */
-    deletarProdutoServico = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        await ProdutoService.deletarProdutoServico(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.DELETADO,
-        });
-    });
 
 
 
 
 
     /**
-     * Preço Produto por Tipo de Serviço
+     * ===========================================
+     * PREÇOS DE PRODUTO-SERVIÇO
+     * ===========================================
      */
 
-    /**
-     * Adicionar Produto por Tipo de Serviço
-     * POST /api/produtos/precoProdutoServico
-     */
-    adicionarPrecoProdutoServico = asyncHandler(async (req, res) => {
-
-        const precoProdutoServicoId = await ProdutoService.adicionarPrecoProdutoServico(req.body, req.usuario.id);
-
-        return res.status(201).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.CRIADO,
-            dados: { id: precoProdutoServicoId }
-        })
-    });
 
 
-    /**
-     * Listar Produto por Tipo de Serviço
-     * GET /api/produtos/precoProdutoServico
-     */
-    listarPrecoProdutoServico = asyncHandler(async (req, res) => {
-
-        const precoProdutoServico = await ProdutoService.listarPrecoProdutoServico(req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            total: precoProdutoServico.length,
-            dados: precoProdutoServico
-        });
-    });
-
-    /**
-     * Buscar Produto por Tipo de Serviço por ID
-     * GET /api/produtos/precoProdutoServico/:id
-     */
-    buscarPrecoProdutoServicoId = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        const precoProdutoServico = await ProdutoService.buscarPrecoProdutoServicoPorId(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            dados: precoProdutoServico
-        });
-    });
-
-    /**
-     * Atualizar Produto por Tipo de Serviço
-     * PUT /api/produtos/precoProdutoServico/:id
-     */
-    atualizarPrecoProdutoServico = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        const precoProdutoServico = await ProdutoService.atualizarPrecoProdutoServico(id, req.body, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
-            dados: precoProdutoServico
-        });
-    });
-
-    /**
-     * Deletar Produto por Tipo de Serviço(soft delete)
-     * DELETE /api/produtos/precoProdutoServico/:id
-     */
-    deletarPrecoProdutoServico = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        await ProdutoService.deletarPrecoProdutoServico(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.DELETADO,
-        });
-    });
 }
 
 module.exports = new ProdutoController();

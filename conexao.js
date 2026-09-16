@@ -1,4 +1,4 @@
-
+// conexao.js
 const bcrypt = require('bcryptjs/dist/bcrypt');
 // const db = require('./src/config/database');
 // const PessoaModel = require('./src/models/PessoaModel');

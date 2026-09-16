@@ -1,332 +1,251 @@
+// src/controllers/AgendamentoController.js
 const AgendamentoService = require('../services/AgendamentoService');
-const { MENSAGENS, STATUS_AGENDAMENTO } = require('../utils/constants');
-const { asyncHandler } = require('../middlewares/errorMiddleware');
+const { formatarDataHora } = require('../utils/formatters');
 
 class AgendamentoController {
-    /**
-     * Criar novo agendamento
-     * POST /api/agendamentos
-     */
-    criar = asyncHandler(async (req, res) => {
+    // ==========================
+    // AGENDAMENTO
+    // ==========================
 
-        const agendamento = await AgendamentoService.criar(req.body, req.usuario.id);
-
-        return res.status(201).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.CRIADO,
-            dados: agendamento
-        });
-    });
-
-    /**
-     * Buscar agendamento por ID
-     * GET /api/agendamentos/:id
-     */
-    buscarPorId = asyncHandler(async (req, res) => {
-        const { id } = req.params;
-        const agendamento = await AgendamentoService.buscarPorId(
-            id,
-            req.usuario.id,
-            req.usuario.tipo
-        );
-
-        return res.status(200).json({
-            sucesso: true,
-            dados: agendamento
-        });
-    });
-
-    /**
-     * Listar agendamentos com filtros
-     * GET /api/agendamentos
-     */
-    listar = asyncHandler(async (req, res) => {
-        const filtros = {
-            id_paciente: req.query.id_paciente,
-            id_costureira: req.query.id_costureira,
-            id_secretaria: req.query.id_secretaria,
-            ind_status: req.query.status,
-            data_inicio: req.query.data_inicio,
-            data_fim: req.query.data_fim,
-            limite: req.query.limite
-        };
-
-        const agendamentos = await AgendamentoService.listar(
-            filtros,
-            req.usuario.id,
-            req.usuario.tipo
-        );
-
-        return res.status(200).json({
-            sucesso: true,
-            total: agendamentos.length,
-            dados: agendamentos
-        });
-    });
-
-    /**
-     * Atualizar agendamento
-     * PUT /api/agendamentos/:id
-     */
-    atualizar = asyncHandler(async (req, res) => {
-        const { id } = req.params;
-        const agendamento = await AgendamentoService.atualizar(
-            id,
-            req.body,
-            req.usuario.id,
-            req.usuario.tipo
-        );
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
-            dados: agendamento
-        });
-    });
-
-    /**
-     * Cancelar agendamento
-     * PATCH /api/agendamentos/:id/cancelar
-     */
-    cancelar = asyncHandler(async (req, res) => {
-        const { id } = req.params;
-        await AgendamentoService.cancelar(id, req.usuario.id, req.usuario.tipo);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: 'Agendamento cancelado com sucesso'
-        });
-    });
-
-    /**
-     * Confirmar agendamento
-     * PATCH /api/agendamentos/:id/confirmar
-     */
-    confirmar = asyncHandler(async (req, res) => {
-        const { id } = req.params;
-        await AgendamentoService.confirmar(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: 'Agendamento confirmado com sucesso'
-        });
-    });
-
-    /**
-     * Deletar agendamento (soft delete)
-     * DELETE /api/agendamentos/:id
-     */
-    deletar = asyncHandler(async (req, res) => {
-        const { id } = req.params;
-        await AgendamentoService.deletar(id, req.usuario.id, req.usuario.tipo);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.DELETADO
-        });
-    });
-
-    /**
-     * Registrar comparecimento do paciente
-     * POST /api/agendamentos/:id/comparecimento
-     */
-    registrarComparecimento = asyncHandler(async (req, res) => {
-        const { id } = req.params;
-        const { ind_paciente_compareceu, des_observacoes_costureira } = req.body;
-
-        if (ind_paciente_compareceu === undefined) {
-            return res.status(400).json({
-                sucesso: false,
-                mensagem: MENSAGENS.ERRO.VALIDACAO,
-                erro: 'Campo ind_paciente_compareceu é obrigatório'
+    async criar(req, res, next) {
+        try {
+            const agendamento = await AgendamentoService.criar(req.body, req.usuario);
+            res.status(201).json({
+                sucesso: true,
+                mensagem: 'Agendamento criado com sucesso',
+                dados: agendamento
             });
+        } catch (error) {
+            next(error);
         }
+    }
 
-        const agendamento = await AgendamentoService.registrarComparecimento(
-            id,
-            ind_paciente_compareceu,
-            des_observacoes_costureira,
-            req.usuario.id
-        );
+    async listar(req, res, next) {
+        try {
+            const filtros = {
+                id_paciente: req.query.id_paciente,
+                id_costureira: req.query.id_costureira,
+                ind_status: req.query.ind_status,
+                dta_inicio: req.query.dta_inicio,
+                dta_fim: req.query.dta_fim,
+                limit: req.query.limit,
+                offset: req.query.offset
+            };
 
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: 'Comparecimento registrado com sucesso',
-            dados: agendamento
-        });
-    });
+            const agendamentos = await AgendamentoService.listar(filtros);
+            res.status(200).json({
+                sucesso: true,
+                total: agendamentos.length,
+                dados: agendamentos
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 
-    /**
-     * Listar agendamentos de uma costureira
-     * GET /api/agendamentos/costureira/:id_costureira
-     */
-    listarPorCostureira = asyncHandler(async (req, res) => {
-        const { id_costureira } = req.params;
-        const apenas_ativos = req.query.apenas_ativos === 'true';
+    async buscarPorId(req, res, next) {
+        try {
+            const agendamento = await AgendamentoService.buscarPorId(req.params.id);
+            res.status(200).json({ sucesso: true, dados: agendamento });
+        } catch (error) {
+            next(error);
+        }
+    }
 
-        const agendamentos = await AgendamentoService.listarPorCostureira(
-            id_costureira,
-            apenas_ativos,
-            req.usuario.id
-        );
+    async atualizar(req, res, next) {
+        try {
+            const agendamento = await AgendamentoService.atualizar(
+                req.params.id,
+                req.body,
+                req.usuario
+            );
+            res.status(200).json({
+                sucesso: true,
+                mensagem: 'Agendamento atualizado com sucesso',
+                dados: agendamento
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 
-        return res.status(200).json({
-            sucesso: true,
-            total: agendamentos.length,
-            dados: agendamentos
-        });
-    });
+    async confirmar(req, res, next) {
+        try {
+            const agendamento = await AgendamentoService.confirmar(req.params.id, req.usuario);
+            res.status(200).json({
+                sucesso: true,
+                mensagem: 'Agendamento confirmado com sucesso',
+                dados: agendamento
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 
-    /**
-     * Listar meus agendamentos (costureira)
-     * GET /api/agendamentos/meus
-     */
-    listarMeus = asyncHandler(async (req, res) => {
-        const apenas_ativos = req.query.apenas_ativos === 'true';
+    async registrarComparecimento(req, res, next) {
+        try {
+            const { compareceu } = req.body;
+            const agendamento = await AgendamentoService.registrarComparecimento(
+                req.params.id,
+                Boolean(compareceu),
+                req.usuario
+            );
+            res.status(200).json({
+                sucesso: true,
+                mensagem: 'Comparecimento registrado com sucesso',
+                dados: agendamento
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 
-        const agendamentos = await AgendamentoService.listarPorCostureira(
-            req.usuario.id,
-            apenas_ativos,
-            req.usuario.id
-        );
+    async cancelar(req, res, next) {
+        try {
+            const resultado = await AgendamentoService.cancelar(req.params.id, req.usuario);
+            res.status(200).json(resultado);
+        } catch (error) {
+            next(error);
+        }
+    }
 
-        return res.status(200).json({
-            sucesso: true,
-            total: agendamentos.length,
-            dados: agendamentos
-        });
-    });
+    // ==========================
+    // PRODUTO AGENDADO
+    // ==========================
 
-    /**
-     * Estatísticas de agendamentos
-     * GET /api/agendamentos/estatisticas
-     */
-    estatisticas = asyncHandler(async (req, res) => {
-        const { data_inicio, data_fim } = req.query;
+    async adicionarProduto(req, res, next) {
+        try {
+            const agendamento = await AgendamentoService.adicionarProduto(
+                req.params.id,
+                req.body,
+                req.usuario
+            );
+            res.status(201).json({
+                sucesso: true,
+                mensagem: 'Produto adicionado ao agendamento com sucesso',
+                dados: agendamento
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 
-        const filtros = {};
-        if (data_inicio) filtros.data_inicio = data_inicio;
-        if (data_fim) filtros.data_fim = data_fim;
+    async atualizarProduto(req, res, next) {
+        try {
+            const produto = await AgendamentoService.atualizarProduto(
+                req.params.idProduto,
+                req.body,
+                req.usuario
+            );
+            res.status(200).json({
+                sucesso: true,
+                mensagem: 'Produto atualizado com sucesso',
+                dados: produto
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 
-        const agendamentos = await AgendamentoService.listar(
-            filtros,
-            req.usuario.id,
-            req.usuario.tipo
-        );
+    async atualizarStatusProduto(req, res, next) {
+        try {
+            const { status } = req.body;
+            const produto = await AgendamentoService.atualizarStatusProduto(
+                req.params.idProduto,
+                status,
+                req.usuario
+            );
+            res.status(200).json({
+                sucesso: true,
+                mensagem: 'Status do produto atualizado com sucesso',
+                dados: produto
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 
-        // Calcular estatísticas
-        const total = agendamentos.length;
-        const porStatus = agendamentos.reduce((acc, ag) => {
-            acc[ag.ind_status] = (acc[ag.ind_status] || 0) + 1;
-            return acc;
-        }, {});
+    async removerProduto(req, res, next) {
+        try {
+            const resultado = await AgendamentoService.removerProduto(
+                req.params.idProduto,
+                req.usuario
+            );
+            res.status(200).json(resultado);
+        } catch (error) {
+            next(error);
+        }
+    }
 
-        const comparecimentos = agendamentos.filter(ag => ag.ind_paciente_compareceu !== null).length;
-        const compareceram = agendamentos.filter(ag => ag.ind_paciente_compareceu === true).length;
-        const faltas = agendamentos.filter(ag => ag.ind_paciente_compareceu === false).length;
+    // ==========================
+    // FOTOS DE AJUSTE
+    // ==========================
 
-        const taxaComparecimento = comparecimentos > 0
-            ? ((compareceram / comparecimentos) * 100).toFixed(2)
-            : 0;
-
-        return res.status(200).json({
-            sucesso: true,
-            dados: {
-                total,
-                por_status: porStatus,
-                comparecimentos: {
-                    total: comparecimentos,
-                    compareceram,
-                    faltas,
-                    taxa_comparecimento: `${taxaComparecimento}%`
-                }
+    async uploadFotos(req, res, next) {
+        try {
+            if (!req.files || req.files.length === 0) {
+                return res.status(400).json({
+                    sucesso: false,
+                    mensagem: 'Nenhum arquivo enviado'
+                });
             }
-        });
-    });
 
+            const { ind_tipo_foto } = req.body;
 
+            const fotos = await AgendamentoService.salvarFotos(
+                req.params.idProduto,
+                req.files,
+                ind_tipo_foto,
+                req.usuario
+            );
 
-    /** TIPO DE AGENDAMENTO */
-    /**
-     * Criar novo tipo agendamento
-     * POST /api/agendamentos/tipo
-     */
-    criarTipoAgendamento = asyncHandler(async (req, res) => {
+            res.status(201).json({
+                sucesso: true,
+                mensagem: 'Fotos enviadas com sucesso',
+                dados: fotos
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 
-        const agendamentoTipo = await AgendamentoService.criarTipoAgendamento(req.body, req.usuario.id);
+    async listarFotos(req, res, next) {
+        try {
+            const fotos = await AgendamentoService.listarFotos(req.params.idProduto);
+            res.status(200).json({
+                sucesso: true,
+                total: fotos.length,
+                dados: fotos
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 
-        return res.status(201).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.CRIADO,
-            dados: agendamentoTipo
-        });
-    });
+    async removerFoto(req, res, next) {
+        try {
+            const resultado = await AgendamentoService.removerFoto(
+                req.params.idFoto,
+                req.usuario
+            );
+            res.status(200).json(resultado);
+        } catch (error) {
+            next(error);
+        }
+    }
 
-    /**
-     * Listar tipo de agendamento
-     * GET /api/agendamentos/tipo
-     */
-    listarTipoAgendamento = asyncHandler(async (req, res) => {
+    // ==========================
+    // RELATÓRIOS
+    // ==========================
 
-        const tipoAgendamento = await AgendamentoService.listarTipoAgendamento(req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            total: tipoAgendamento.length,
-            dados: tipoAgendamento
-        });
-    });
-
-    /**
-     * Buscar tipo de agendamento
-     * GET /api/agendamentos/tipo/:id
-     */
-    buscarTipoAgendamentoPorId = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        const tipoAgendamento = await AgendamentoService.buscarTipoAgendamentoPorId(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            total: tipoAgendamento.length,
-            dados: tipoAgendamento
-        });
-    });
-
-    /**
-     * Atualizar tipo de agendamento
-     * PUT /api/agendamentos/tipo/:id
-     */
-    atualizarTipoAgendamento = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        const tipoAgendamento = await AgendamentoService.atualizarTipoAgendamento(id, req.body, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
-            dados: tipoAgendamento
-        });
-    });
-
-    /**
-     * Deletar categoriaa(soft delete)
-     * DELETE /api/agendamentos/tipo/:id
-     */
-    deletarTipoAgendamento = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        await AgendamentoService.deletarTipoAgendamento(id, req.usuario.id);
-
-        return res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.DELETADO,
-        });
-    });
-
+    async dashboard(req, res, next) {
+        try {
+            const dados = await AgendamentoService.contarPorStatus();
+            res.status(200).json({ sucesso: true, dados });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 module.exports = new AgendamentoController();

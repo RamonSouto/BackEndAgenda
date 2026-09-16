@@ -156,7 +156,7 @@ class AgendamentoModel {
             sql += ' LIMIT ?';
             valores.push(parseInt(filtros.limite));
         }
-
+        console.log({ sql: sql, valores: valores });
         return await database.query(sql, valores);
     }
 

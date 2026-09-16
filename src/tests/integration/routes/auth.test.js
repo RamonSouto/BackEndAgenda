@@ -1,3 +1,4 @@
+// src/tests/integration/routes/auth.test.js
 const request = require('supertest');
 const app = require('../../../app');
 const database = require('../../../config/database');
