@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS tab_pessoas (
     CONSTRAINT chk_cep_length CHECK (LENGTH(num_cep) = 8)
 ) ENGINE = InnoDB;
 
-CREATE TABLE IF NOT EXISTS tab_agendamentos (
+CREATE TABLE IF NOT EXISTS tab_agendamento (
     id INT PRIMARY KEY AUTO_INCREMENT,
     id_paciente INT NOT NULL,
     id_costureira INT NOT NULL,
@@ -131,13 +131,13 @@ CREATE TABLE IF NOT EXISTS tab_agendamentos (
 ) ENGINE = InnoDB;
 
 CREATE TRIGGER before_insert_agendamento_validar_costureira_ativa
-BEFORE INSERT ON tab_agendamentos
+BEFORE INSERT ON tab_agendamento
 FOR EACH ROW BEGIN
     DECLARE v_count_agendamentos INT;
     
     -- Verificar se costureira já tem agendamento ativo
     SELECT COUNT(*) INTO v_count_agendamentos
-    FROM tab_agendamentos
+    FROM tab_agendamento
     WHERE id_costureira = NEW.id_costureira
     AND ind_status IN ('agendado', 'confirmado')
     AND deleted_at IS NULL;
@@ -149,7 +149,7 @@ FOR EACH ROW BEGIN
 END;
 
 CREATE TRIGGER before_update_agendamento_validar_costureira_ativa
-BEFORE UPDATE ON tab_agendamentos
+BEFORE UPDATE ON tab_agendamento
 FOR EACH ROW BEGIN
     DECLARE v_count_agendamentos INT;
     
@@ -158,7 +158,7 @@ FOR EACH ROW BEGIN
        AND NEW.ind_status IN ('agendado', 'confirmado') THEN
         
         SELECT COUNT(*) INTO v_count_agendamentos
-        FROM tab_agendamentos
+        FROM tab_agendamento
         WHERE id_costureira = NEW.id_costureira
         AND id != NEW.id
         AND ind_status IN ('agendado', 'confirmado')
@@ -171,7 +171,7 @@ FOR EACH ROW BEGIN
     END IF;
 END;
 
-CREATE TABLE IF NOT EXISTS tab_logs (
+CREATE TABLE IF NOT EXISTS tab_log (
     id INT PRIMARY KEY AUTO_INCREMENT,
     id_usuario INT,
     des_acao VARCHAR(100) NOT NULL,
@@ -426,11 +426,11 @@ CREATE TABLE IF NOT EXISTS tab_produto_agendamento (
     INDEX idx_agendamento (id_agendamento),
     INDEX idx_produto_grade (id_produto_grade),
     INDEX idx_status (ind_status),
-    FOREIGN KEY (id_agendamento) REFERENCES tab_agendamentos (id),
+    FOREIGN KEY (id_agendamento) REFERENCES tab_agendamento (id),
     FOREIGN KEY (id_produto_grade) REFERENCES tab_produto_grade (id)
 ) ENGINE = InnoDB;
 
-CREATE TABLE IF NOT EXISTS tab_fotos_ajustes (
+CREATE TABLE IF NOT EXISTS tab_agendamento_item_fotos (
     id INT PRIMARY KEY AUTO_INCREMENT,
     id_produto_agendamento INT NOT NULL,
     des_caminho_arquivo VARCHAR(500) NOT NULL,
@@ -448,7 +448,7 @@ CREATE TABLE IF NOT EXISTS tab_fotos_ajustes (
 
 -- Validar tipos de pessoa em agendamentos
 CREATE TRIGGER before_insert_agendamento_validar_tipos
-BEFORE INSERT ON tab_agendamentos
+BEFORE INSERT ON tab_agendamento
 FOR EACH ROW BEGIN
     DECLARE v_tipo_paciente VARCHAR(20);
     DECLARE v_tipo_costureira VARCHAR(20);
@@ -482,7 +482,7 @@ FOR EACH ROW BEGIN
     
     -- Validar regra: apenas um agendamento ativo por costureira
     SELECT COUNT(*) INTO v_count_agendamentos
-    FROM tab_agendamentos
+    FROM tab_agendamento
     WHERE id_costureira = NEW.id_costureira
     AND ind_status IN ('agendado', 'confirmado')
     AND deleted_at IS NULL;
@@ -494,7 +494,7 @@ FOR EACH ROW BEGIN
 END;
 
 CREATE TRIGGER before_update_agendamento_validar_costureira
-BEFORE UPDATE ON tab_agendamentos
+BEFORE UPDATE ON tab_agendamento
 FOR EACH ROW BEGIN
     DECLARE v_count_agendamentos INT;
     
@@ -502,7 +502,7 @@ FOR EACH ROW BEGIN
     IF NEW.id_costureira != OLD.id_costureira OR NEW.ind_status != OLD.ind_status THEN
         IF NEW.ind_status IN ('agendado', 'confirmado') THEN
             SELECT COUNT(*) INTO v_count_agendamentos
-            FROM tab_agendamentos
+            FROM tab_agendamento
             WHERE id_costureira = NEW.id_costureira
             AND id != NEW.id
             AND ind_status IN ('agendado', 'confirmado')
@@ -569,7 +569,7 @@ SELECT
     a.created_at,
     a.updated_at
 FROM
-    tab_agendamentos a
+    tab_agendamento a
     INNER JOIN tab_pessoas p ON a.id_paciente = p.id
     INNER JOIN tab_pessoas c ON a.id_costureira = c.id
     INNER JOIN tab_pessoas s ON a.id_secretaria = s.id

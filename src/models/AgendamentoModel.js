@@ -88,7 +88,7 @@ class AgendamentoModel {
 
     async criar(dados) {
         const sql = `
-      INSERT INTO tab_agendamentos (
+      INSERT INTO tab_agendamento (
         id_paciente, id_costureira, id_secretaria, dta_agendamento,
         des_observacoes_geral, ind_status
       ) VALUES (?, ?, ?, ?, ?, ?)
@@ -163,7 +163,7 @@ class AgendamentoModel {
     async verificarCostureiraDisponivel(id_costureira, id_agendamento_atual = null) {
         let sql = `
       SELECT COUNT(*) as total
-      FROM tab_agendamentos
+      FROM tab_agendamento
       WHERE id_costureira = ?
       AND ind_status IN ('agendado', 'confirmado')
       AND deleted_at IS NULL
@@ -183,7 +183,7 @@ class AgendamentoModel {
     async verificarDisponibilidadeCostureira(dados) {
         let sql = `
       SELECT COUNT(id) as total
-      FROM tab_agendamentos
+      FROM tab_agendamento
       WHERE id_costureira = ?
       AND deleted_at IS NULL
       AND ind_status IN ('agendado', 'confirmado')
@@ -222,7 +222,7 @@ class AgendamentoModel {
         valores.push(id);
 
         const sql = `
-      UPDATE tab_agendamentos 
+      UPDATE tab_agendamento 
       SET ${campos.join(', ')}
       WHERE id = ? AND deleted_at IS NULL
     `;
@@ -233,7 +233,7 @@ class AgendamentoModel {
 
     async registrarComparecimento(id, compareceu, observacoes = null) {
         const sql = `
-      UPDATE tab_agendamentos 
+      UPDATE tab_agendamento 
       SET ind_paciente_compareceu = ?,
           des_observacoes_costureira = ?,
           ind_status = ?
@@ -249,7 +249,7 @@ class AgendamentoModel {
 
     async cancelar(id) {
         const sql = `
-      UPDATE tab_agendamentos 
+      UPDATE tab_agendamento 
       SET ind_status = 'cancelado',
           dta_cancelamento = CURRENT_TIMESTAMP
       WHERE id = ? AND deleted_at IS NULL
@@ -261,7 +261,7 @@ class AgendamentoModel {
 
     async confirmar(id) {
         const sql = `
-      UPDATE tab_agendamentos 
+      UPDATE tab_agendamento 
       SET ind_status = 'confirmado',
           dta_confirmacao = CURRENT_TIMESTAMP
       WHERE id = ? AND deleted_at IS NULL
@@ -273,7 +273,7 @@ class AgendamentoModel {
 
     async deletar(id) {
         const sql = `
-      UPDATE tab_agendamentos 
+      UPDATE tab_agendamento 
       SET deleted_at = CURRENT_TIMESTAMP 
       WHERE id = ? AND deleted_at IS NULL
     `;

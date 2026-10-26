@@ -44,7 +44,7 @@ else É Costureira ou Admin
     Service -> Model: buscarPorId(id_agendamento)
     activate Model
     
-    Model -> DB: SELECT * FROM tab_agendamentos\nWHERE id = ?
+    Model -> DB: SELECT * FROM tab_agendamento\nWHERE id = ?
     activate DB
     DB --> Model: agendamento
     deactivate DB
@@ -86,7 +86,7 @@ else É Costureira ou Admin
                     Service -> Model: registrarComparecimento(\n  id,\n  {\n    ind_paciente_compareceu: true,\n    ind_status: 'concluido',\n    des_observacoes_costureira\n  }\n)
                     activate Model
                     
-                    Model -> DB: UPDATE tab_agendamentos\nSET ind_paciente_compareceu = true,\n    ind_status = 'concluido',\n    des_observacoes_costureira = ?\nWHERE id = ?
+                    Model -> DB: UPDATE tab_agendamento\nSET ind_paciente_compareceu = true,\n    ind_status = 'concluido',\n    des_observacoes_costureira = ?\nWHERE id = ?
                     DB --> Model: affected_rows
                     
                     Model --> Service: true
@@ -97,7 +97,7 @@ else É Costureira ou Admin
                     Service -> Model: registrarComparecimento(\n  id,\n  {\n    ind_paciente_compareceu: false,\n    ind_status: 'falta',\n    des_observacoes_costureira\n  }\n)
                     activate Model
                     
-                    Model -> DB: UPDATE tab_agendamentos\nSET ind_paciente_compareceu = false,\n    ind_status = 'falta',\n    des_observacoes_costureira = ?\nWHERE id = ?
+                    Model -> DB: UPDATE tab_agendamento\nSET ind_paciente_compareceu = false,\n    ind_status = 'falta',\n    des_observacoes_costureira = ?\nWHERE id = ?
                     DB --> Model: affected_rows
                     
                     Model --> Service: true
@@ -107,7 +107,7 @@ else É Costureira ou Admin
                 
                 == Registrar Log ==
                 
-                Service -> LogSvc: registrar({\n  id_usuario,\n  acao: 'registrar_comparecimento',\n  tabela: 'tab_agendamentos',\n  registro_id\n})
+                Service -> LogSvc: registrar({\n  id_usuario,\n  acao: 'registrar_comparecimento',\n  tabela: 'tab_agendamento',\n  registro_id\n})
                 activate LogSvc
                 
                 LogSvc -> DB: INSERT INTO tab_logs

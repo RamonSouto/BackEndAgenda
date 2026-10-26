@@ -200,7 +200,7 @@ class ProdutoService {
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.UPLOAD,
-                des_tabela: 'tab_fotos_ajustes',
+                des_tabela: 'tab_agendamento_item_fotos',
                 num_registro_id: fotoId,
                 des_detalhes: {
                     produto_agendamento_id: dados.id_produto_agendamento,
@@ -237,7 +237,7 @@ class ProdutoService {
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_fotos_ajustes',
+                des_tabela: 'tab_agendamento_item_fotos',
                 des_detalhes: {
                     tipo_consulta: 'listar_fotos_ajuste',
                     produto_agendamento_id: id_produto_agendamento,
@@ -284,7 +284,7 @@ class ProdutoService {
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.DELETAR,
-                des_tabela: 'tab_fotos_ajustes',
+                des_tabela: 'tab_agendamento_item_fotos',
                 num_registro_id: id,
                 des_detalhes: {
                     caminho_arquivo: foto.des_caminho_arquivo,

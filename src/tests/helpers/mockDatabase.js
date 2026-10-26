@@ -48,7 +48,7 @@ class MockDatabase {
             ]];
         }
 
-        if (sql.includes('tab_agendamentos')) {
+        if (sql.includes('tab_agendamento')) {
             return [[
                 {
                     id: 1,

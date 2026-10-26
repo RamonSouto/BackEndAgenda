@@ -127,7 +127,7 @@ else Token Válido
                         Service -> AgendModel: verificarConflito(id_costureira)
                         activate AgendModel
                         
-                        AgendModel -> DB: SELECT COUNT(*) FROM tab_agendamentos\nWHERE id_costureira = ?\nAND ind_status IN ('agendado', 'confirmado')
+                        AgendModel -> DB: SELECT COUNT(*) FROM tab_agendamento\nWHERE id_costureira = ?\nAND ind_status IN ('agendado', 'confirmado')
                         activate DB
                         DB --> AgendModel: count
                         deactivate DB
@@ -188,7 +188,7 @@ else Token Válido
                                 Service -> AgendModel: criar(dados_agendamento)
                                 activate AgendModel
                                 
-                                AgendModel -> DB: INSERT INTO tab_agendamentos
+                                AgendModel -> DB: INSERT INTO tab_agendamento
                                 DB --> AgendModel: id_agendamento
                                 
                                 AgendModel --> Service: id_agendamento
@@ -227,7 +227,7 @@ else Token Válido
                                 Service -> AgendModel: buscarPorId(id_agendamento)
                                 activate AgendModel
                                 
-                                AgendModel -> DB: SELECT agendamento.*, paciente.nom_completo,\ncostureira.nom_completo, produtos...\nFROM tab_agendamentos JOIN...
+                                AgendModel -> DB: SELECT agendamento.*, paciente.nom_completo,\ncostureira.nom_completo, produtos...\nFROM tab_agendamento JOIN...
                                 activate DB
                                 DB --> AgendModel: agendamento_completo
                                 deactivate DB

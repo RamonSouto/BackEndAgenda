@@ -140,6 +140,43 @@ class ProdutoServicoService {
     }
 
     /**
+     * Busca uma associação produto-serviço por ID.
+     * 
+     * @method buscarProdutoServicoId
+     * @memberof ProdutoServicoService
+     * @async
+     * @param {number} id - ID da associação.
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<Object>} Dados da associação.
+     * @throws {NotFoundError} Se não encontrada.
+     * 
+     * @example
+     * const assoc = await produtoServicoService.buscarProdutoServicoId(1, 1);
+     */
+    async buscarServicoPorIdEIdGrade(idServico, idGrade, usuarioLogadoId) {
+
+        const produtoServicoGrade = await ProdutoServicoModel.buscarServicoPorIdEIdGrade(idServico, idGrade);
+
+        if (!produtoServicoGrade) {
+            throw new NotFoundError('Tipo de serviço do produto não encontrado');
+        }
+
+        await LogService.registrar({
+            id_usuario: usuarioLogadoId,
+            des_acao: ACOES_LOG.CONSULTAR,
+            des_tabela: 'tab_produto_servico',
+            des_detalhes: {
+                tipo_consulta: 'busca_por_id',
+                id: produtoServicoGrade.id_produto_servico,
+                des_tipo_ajuste: produtoServicoGrade.des_tipo_ajuste,
+                val_preco: produtoServicoGrade.val_preco
+            }
+        });
+
+        return produtoServicoGrade;
+    }
+
+    /**
      * Atualiza uma associação produto-serviço.
      * 
      * @method atualizarProdutoServico

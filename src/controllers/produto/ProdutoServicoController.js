@@ -21,25 +21,25 @@ const { asyncHandler } = require('../../middlewares/errorMiddleware');
  */
 class ProdutoServicoController {
     /**
-         * Adiciona uma associação produto-serviço.
-         * 
-         * @name adicionarProdutoServico
-         * @function
-         * @memberof ProdutoServicoController
-         * @async
-         * 
-         * @param {Object} req - Objeto de requisição.
-         * @param {Object} req.body - Dados da associação.
-         * @param {Object} req.usuario - Usuário autenticado.
-         * @param {number} req.usuario.id - ID do usuário.
-         * @param {Object} res - Objeto de resposta.
-         * 
-         * @returns {Promise<void>} - Resposta 201 com ID.
-         * 
-         * @example
-         * POST /api/produtos/produtoServico
-         * Body: { id_produto: 1, id_tipo_servico: 2 }
-         */
+     * Adiciona uma associação produto-serviço.
+     * 
+     * @name adicionarProdutoServico
+     * @function
+     * @memberof ProdutoServicoController
+     * @async
+     * 
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.body - Dados da associação.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     * 
+     * @returns {Promise<void>} - Resposta 201 com ID.
+     * 
+     * @example
+     * POST /api/produtos/produtoServico
+     * Body: { id_produto: 1, id_tipo_servico: 2 }
+     */
     adicionarProdutoServico = asyncHandler(async (req, res) => {
 
         const produtoTipoServicoId = await ProdutoServicoService.adicionarProdutoServico(req.body, req.usuario.id);

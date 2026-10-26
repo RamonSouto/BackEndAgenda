@@ -1,9 +1,9 @@
-// src/services/ParametrizacaoService.js
+// src/services/sistema/ParametrizacaoService.js
 
 /**
  * @author Ramon David Souto
  * @version 1.0.0
- * @file src/services/ParametrizacaoService.js
+ * @file src/services/sistema/ParametrizacaoService.js
  * @description Serviço de gerenciamento de parametrizações.
  * Gerencia criação, listagem, busca, atualização e exclusão (soft delete)
  * de parametrizações, com validação Joi e regras de negócio para garantir

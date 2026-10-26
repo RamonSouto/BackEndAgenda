@@ -60,6 +60,40 @@ class ProdutoServicoModel {
     }
 
     /**
+     * Busca Serviço por ID da Grade do Produto ID do Servico.
+     * 
+     * @method buscarProdutoGradeIdServicoPorId
+     * @param {number} id - ID da associação.
+     * @returns {Promise<Object|null>}
+     */
+    async buscarServicoPorIdEIdGrade(idServico, idGrade) {
+        const sql = `
+          SELECT tps.id as id_produto_servico,
+                 tts.des_tipo_ajuste as des_tipo_ajuste_servico,
+                 tpps.val_preco
+          FROM tab_produto_servico tps
+          LEFT JOIN tab_tipo_servico tts ON (tps.id_tipo_servico = tts.id)
+          LEFT JOIN tab_preco_produto_servico tpps ON (tps.id = tpps.id_produto_servico)
+          LEFT JOIN tab_produtos tp ON (tps.id_produto  = tp.id)
+          LEFT JOIN tab_produto_grade tpg ON (tp.id = tpg.id_produto)
+          WHERE tps.id = ?
+          AND   tpg.id = ?
+          AND   tps.ind_ativo = 1
+          AND   tps.deleted_at is null
+          AND   tts.ind_ativo = 1
+          AND   tts.deleted_at is null
+          AND   tpps.deleted_at is null
+          AND   tpps.dta_inicio = (SELECT MAX(tpps2.dta_inicio)
+                                  FROM tab_preco_produto_servico tpps2
+                                  WHERE tpps2.id_produto_servico = tps.id
+                                  AND tpps2.deleted_at is null)
+        `;
+
+        const resultado = await database.query(sql, [idServico, idGrade]);
+        return resultado[0] || null;
+    }
+
+    /**
      * Lista todas as associações.
      * 
      * @method listarProdutoServico

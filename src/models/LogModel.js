@@ -5,7 +5,7 @@
  * @version 1.0.0
  * @file src/models/LogModel.js
  * @description Modelo de dados para logs de auditoria.
- * Gerencia operações CRUD e consultas estatísticas na tabela `tab_logs`.
+ * Gerencia operações CRUD e consultas estatísticas na tabela `tab_log`.
  * 
  * @requires ../config/database
  */
@@ -17,7 +17,7 @@ const database = require('../config/database');
  */
 class LogModel {
     /**
-     * Insere um novo log na tabela `tab_logs`.
+     * Insere um novo log na tabela `tab_log`.
      * 
      * @method criar
      * @memberof LogModel
@@ -44,7 +44,7 @@ class LogModel {
      */
     async criar(dados) {
         const sql = `
-      INSERT INTO tab_logs (
+      INSERT INTO tab_log (
         id_usuario, des_acao, des_tabela, num_registro_id,
         des_detalhes, num_ip_address, des_user_agent
       ) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -102,7 +102,7 @@ class LogModel {
                 p.ind_secretaria as usuario_secretaria,
                 p.ind_medico as usuario_medico,
                 p.ind_paciente as usuario_paciente
-            FROM tab_logs l
+            FROM tab_log l
             LEFT JOIN tab_pessoas p ON l.id_usuario = p.id
             WHERE 1=1
         `;
@@ -161,7 +161,7 @@ class LogModel {
      */
     async buscarPorUsuario(id_usuario, limite = 50) {
         const sql = `
-      SELECT * FROM tab_logs
+      SELECT * FROM tab_log
       WHERE id_usuario = ?
       ORDER BY created_at DESC
       LIMIT ?
@@ -189,7 +189,7 @@ class LogModel {
       SELECT 
         l.*,
         p.nom_completo as usuario_nome
-      FROM tab_logs l
+      FROM tab_log l
       LEFT JOIN tab_pessoas p ON l.id_usuario = p.id
       WHERE l.des_tabela = ?
     `;
@@ -226,7 +226,7 @@ class LogModel {
         des_acao,
         COUNT(*) as total,
         COUNT(DISTINCT id_usuario) as usuarios_unicos
-      FROM tab_logs
+      FROM tab_log
       WHERE created_at BETWEEN ? AND ?
       GROUP BY des_acao
       ORDER BY total DESC
@@ -262,7 +262,7 @@ class LogModel {
         p.ind_tipo_pessoa,
         COUNT(l.id) as total_acoes
       FROM tab_pessoas p
-      INNER JOIN tab_logs l ON p.id = l.id_usuario
+      INNER JOIN tab_log l ON p.id = l.id_usuario
       WHERE l.created_at BETWEEN ? AND ?
       GROUP BY p.id, p.nom_completo, p.ind_tipo_pessoa
       ORDER BY total_acoes DESC

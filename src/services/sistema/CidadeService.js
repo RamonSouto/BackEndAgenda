@@ -1,8 +1,8 @@
-// src/services/PessoaService.js
+// src/services/sistema/CidadeService.js
 /**
  * @author Ramon David Souto
  * @version 1.0.0
- * @file src/services/PessoaService.js
+ * @file src/services/sistema/CidadeService.js
  * @description Serviço de gerenciamento de pessoas.
  * Gerencia criação, listagem, busca (por ID, CPF, papel), atualização,
  * exclusão (soft delete), ativação/desativação, além de consultas auxiliares

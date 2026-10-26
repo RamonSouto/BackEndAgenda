@@ -11,6 +11,7 @@
 const Joi = require('joi');
 
 const validators = {
+
     /**
      * Valida um CPF (com ou sem máscara).
      * 
@@ -55,59 +56,6 @@ const validators = {
         return true;
     },
 
-    // cpfValido(cpf) {
-
-    //     cpf = cpf.replace(/[^\d]/g, '');
-
-    //     if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) {
-    //         return false;
-    //     }
-
-    //     let soma = 0;
-    //     let resto;
-
-    //     for (let i = 1; i <= 9; i++) {
-    //         soma += parseInt(cpf.substring(i - 1, i)) * (11 - i);
-    //     }
-
-    //     resto = (soma * 10) % 11;
-    //     if (resto === 10 || resto === 11) resto = 0;
-    //     if (resto !== parseInt(cpf.substring(9, 10))) return false;
-
-    //     soma = 0;
-    //     for (let i = 1; i <= 10; i++) {
-    //         soma += parseInt(cpf.substring(i - 1, i)) * (12 - i);
-    //     }
-
-    //     resto = (soma * 10) % 11;
-    //     if (resto === 10 || resto === 11) resto = 0;
-    //     if (resto !== parseInt(cpf.substring(10, 11))) return false;
-
-    //     return true;
-    // },
-
-    // validarCPF(cpf) {
-    //     if (!cpf || cpf.length !== 11) return false;
-    //     if (/^(\d)\1+$/.test(cpf)) return false;
-
-    //     let soma = 0;
-    //     for (let i = 0; i < 9; i++) {
-    //         soma += parseInt(cpf.charAt(i)) * (10 - i);
-    //     }
-    //     let resto = (soma * 10) % 11;
-    //     if (resto === 10 || resto === 11) resto = 0;
-    //     if (resto !== parseInt(cpf.charAt(9))) return false;
-
-    //     soma = 0;
-    //     for (let i = 0; i < 10; i++) {
-    //         soma += parseInt(cpf.charAt(i)) * (11 - i);
-    //     }
-    //     resto = (soma * 10) % 11;
-    //     if (resto === 10 || resto === 11) resto = 0;
-    //     if (resto !== parseInt(cpf.charAt(10))) return false;
-
-    //     return true;
-    // },
 
     /**
      * Valida um CNPJ (com ou sem máscara).
@@ -157,41 +105,57 @@ const validators = {
 
         return true;
     },
-    // cnpjValido(cnpj) {
-    //     cnpj = cnpj.replace(/[^\d]/g, '');
-    //     if (cnpj.length !== 14) return false;
-    //     return this.validarCNPJ(cnpj);
-    // },
 
-    // validarCNPJ(cnpj) {
-    //     if (cnpj.length !== 14) return false;
-    //     // Rejeita sequências com todos os dígitos iguais
-    //     if (/^(\d)\1+$/.test(cnpj)) return false;
 
-    //     let soma = 0;
-    //     let peso = 5;
-    //     for (let i = 0; i < 12; i++) {
-    //         soma += parseInt(cnpj.charAt(i)) * peso;
-    //         peso--;
-    //         if (peso < 2) peso = 9;
-    //     }
-    //     let resto = soma % 11;
-    //     let digito1 = resto < 2 ? 0 : 11 - resto;
-    //     if (parseInt(cnpj.charAt(12)) !== digito1) return false;
+    valoresIguais(a, b) {
+        // Normaliza null/undefined
+        const na = a === undefined ? null : a;
+        const nb = b === undefined ? null : b;
 
-    //     soma = 0;
-    //     peso = 6;
-    //     for (let i = 0; i < 13; i++) {
-    //         soma += parseInt(cnpj.charAt(i)) * peso;
-    //         peso--;
-    //         if (peso < 2) peso = 9;
-    //     }
-    //     resto = soma % 11;
-    //     let digito2 = resto < 2 ? 0 : 11 - resto;
-    //     if (parseInt(cnpj.charAt(13)) !== digito2) return false;
+        if (na === nb) return true;
 
-    //     return true;
-    // },
+        // Datas
+        if (na instanceof Date || nb instanceof Date) {
+            const da = na ? new Date(na).getTime() : null;
+            const db = nb ? new Date(nb).getTime() : null;
+            return da === db;
+        }
+
+        // Números (request costuma vir string)
+        if (
+            (typeof na === 'number' || !isNaN(Number(na))) &&
+            (typeof nb === 'number' || !isNaN(Number(nb))) &&
+            na !== '' && nb !== '' && na !== null && nb !== null
+        ) {
+            return Number(na) === Number(nb);
+        }
+
+        // Booleanos
+        if (typeof na === 'boolean' || typeof nb === 'boolean') {
+            return Boolean(na) === Boolean(nb);
+        }
+
+        // Objetos/arrays
+        if (typeof na === 'object' && typeof nb === 'object') {
+            return JSON.stringify(na) === JSON.stringify(nb);
+        }
+
+        // Strings
+        return String(na) === String(nb);
+    },
+
+    /**
+     * Sistema
+     */
+    /**
+     * Schema para validação de login (CPF + senha).
+     * 
+     * @type {Joi.ObjectSchema}
+     */
+    loginSchema: Joi.object({
+        num_cpf: Joi.string().length(11).required(),
+        des_senha: Joi.string().required()
+    }),
 
     /**
      * Schema para validação de dados de empresa.
@@ -259,115 +223,23 @@ const validators = {
     }),
 
     /**
-     * Schema para validação de dados de pessoa (física).
-     * Possui validações condicionais: pelo menos um papel, senha obrigatória
-     * para certos papéis, e cor obrigatória para costureira.
+     * Schema para validação de parametrização de horários.
      * 
      * @type {Joi.ObjectSchema}
      */
-    pessoaSchema: Joi.object({
-        id_cidade: Joi.number().integer().required(),
-        ind_status: Joi.string().valid('ativo', 'inativo').default('ativo'),
-
-        ind_medico: Joi.boolean().default(false),
-        ind_secretaria: Joi.boolean().default(false),
-        ind_costureira: Joi.boolean().default(false),
-        ind_paciente: Joi.boolean().default(false),
-        ind_administrador: Joi.boolean().default(false),
-        nom_completo: Joi.string().max(255).required(),
-        num_cpf: Joi.string().length(11).required().custom((value, helpers) => {
-            if (!validators.validarCPF(value)) {
-                return helpers.error('any.invalid', { message: 'CPF inválido' });
-            }
-            return value;
-        }),
-        num_rg: Joi.string().max(20).required(),
-        dta_nascimento: Joi.date().max('now').required(),
-        des_logradouro: Joi.string().max(255).required(),
-        num_endereco: Joi.string().max(10).required(),
-        des_complemento: Joi.string().max(100).allow('', null),
-        num_cep: Joi.string().length(8).required(),
-        nom_bairro: Joi.string().max(100).required(),
-        num_celular_1: Joi.string().max(15).required(),
-        ind_whatsapp_1: Joi.boolean().default(true),
-        num_celular_2: Joi.string().max(15).allow('', null),
-        ind_whatsapp_2: Joi.boolean().default(true),
-        des_email_1: Joi.string().email().max(255).required(),
-        des_email_2: Joi.string().email().max(255).allow('', null),
-        des_senha: Joi.string().min(6).allow('', null),
-        val_cor_hex: Joi.string().min(6).max(6).allow('', null)
-    }).custom((value, helpers) => {
-        const possuiAlgumPapel =
-            value.ind_medico ||
-            value.ind_secretaria ||
-            value.ind_costureira ||
-            value.ind_paciente ||
-            value.ind_administrador;
-
-        if (!possuiAlgumPapel) {
-            return helpers.error('any.invalid', {
-                message: 'É necessário informar pelo menos um papel para a pessoa.'
-            });
-        }
-
-        const exigeSenha =
-            value.ind_medico ||
-            value.ind_secretaria ||
-            value.ind_costureira ||
-            value.ind_administrador;
-
-        if (exigeSenha && !value.des_senha) {
-            return helpers.error('any.invalid', {
-                message: 'Senha é obrigatória para médico, secretária, costureira ou administrador.'
-            });
-        }
-
-        const exigeCor = value.ind_costureira;
-
-        if (exigeCor && !value.val_cor_hex) {
-            return helpers.error('any.invalid', { message: 'É necessário informar uma cor para a costureira' })
-        }
-
-        return value;
+    parametrizacaoSchema: Joi.object({
+        des_tipo_dia: Joi.string().trim().uppercase().required().valid('UTIL', 'SABADO'),
+        hra_inicio: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/).message('O campo tem que estar no formato váido HH:MM:SS').required(),
+        hra_fim: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/).message('O campo tem que estar no formato váido HH:MM:SS').required(),
+        qtd_minutos_intervalo: Joi.number().integer().required(),
+        ind_ativo: Joi.boolean().required(),
     }),
+
+
 
     /**
-     * Schema para validação de agendamento.
-     * 
-     * @type {Joi.ObjectSchema}
-     * @property {number} id_paciente - ID do paciente.
-     * @property {number} id_costureira - ID da costureira.
-     * @property {number} id_secretaria - ID da secretária.
-     * @property {Date} dta_agendamento - Data do agendamento (futura).
-     * @property {string} des_observacoes_geral - Observações gerais.
-     * @property {string} des_observacoes_costureira - Observações da costureira.
-     * @property {Array} produtos - Lista de produtos (mínimo 1).
+     * Produto
      */
-    agendamentoSchema: Joi.object({
-        id_paciente: Joi.number().integer().required(),
-        id_costureira: Joi.number().integer().required(),
-        id_secretaria: Joi.number().integer().required(),
-        dta_agendamento: Joi.date().greater('now').required(),
-        des_observacoes_geral: Joi.string().allow('', null),
-        des_observacoes_costureira: Joi.string().allow('', null),
-        produtos: Joi.array().items(
-            Joi.object({
-                id_produto_grade: Joi.number().integer().required(),
-                des_ajuste_produto: Joi.string().allow('', null)
-            })
-        ).min(1)
-    }),
-
-    /**
-     * Schema para validação de tipo de agendamento.
-     * 
-     * @type {Joi.ObjectSchema}
-     */
-    tipoAgendamentoSchema: Joi.object({
-        des_tipo_agendamento: Joi.string().min(3).max(50).required(),
-        ind_ativo: Joi.boolean().default(true).required()
-    }),
-
     /**
      * Schema para validação de produto.
      * 
@@ -500,38 +372,196 @@ const validators = {
         return value;
     }),
 
+
+
     /**
-     * Schema para validação de login (CPF + senha).
+     * Pessoa
+     */
+    /**
+     * Schema para validação de dados de pessoa (física).
+     * Possui validações condicionais: pelo menos um papel, senha obrigatória
+     * para certos papéis, e cor obrigatória para costureira.
      * 
      * @type {Joi.ObjectSchema}
      */
-    loginSchema: Joi.object({
-        num_cpf: Joi.string().length(11).required(),
-        des_senha: Joi.string().required()
+    pessoaSchema: Joi.object({
+        id_cidade: Joi.number().integer().required(),
+        ind_status: Joi.string().valid('ativo', 'inativo').default('ativo'),
+
+        ind_medico: Joi.boolean().default(false),
+        ind_secretaria: Joi.boolean().default(false),
+        ind_costureira: Joi.boolean().default(false),
+        ind_paciente: Joi.boolean().default(false),
+        ind_administrador: Joi.boolean().default(false),
+        nom_completo: Joi.string().max(255).required(),
+        num_cpf: Joi.string().length(11).required().custom((value, helpers) => {
+            if (!validators.validarCPF(value)) {
+                return helpers.error('any.invalid', { message: 'CPF inválido' });
+            }
+            return value;
+        }),
+        num_rg: Joi.string().max(20).required(),
+        dta_nascimento: Joi.date().max('now').required(),
+        des_logradouro: Joi.string().max(255).required(),
+        num_endereco: Joi.string().max(10).required(),
+        des_complemento: Joi.string().max(100).allow('', null),
+        num_cep: Joi.string().length(8).required(),
+        nom_bairro: Joi.string().max(100).required(),
+        num_celular_1: Joi.string().max(15).required(),
+        ind_whatsapp_1: Joi.boolean().default(true),
+        num_celular_2: Joi.string().max(15).allow('', null),
+        ind_whatsapp_2: Joi.boolean().default(true),
+        des_email_1: Joi.string().email().max(255).required(),
+        des_email_2: Joi.string().email().max(255).allow('', null),
+        des_senha: Joi.string().min(6).allow('', null),
+        val_cor_hex: Joi.string().min(6).max(6).allow('', null)
+    }).custom((value, helpers) => {
+        const possuiAlgumPapel =
+            value.ind_medico ||
+            value.ind_secretaria ||
+            value.ind_costureira ||
+            value.ind_paciente ||
+            value.ind_administrador;
+
+        if (!possuiAlgumPapel) {
+            return helpers.error('any.invalid', {
+                message: 'É necessário informar pelo menos um papel para a pessoa.'
+            });
+        }
+
+        const exigeSenha =
+            value.ind_medico ||
+            value.ind_secretaria ||
+            value.ind_costureira ||
+            value.ind_administrador;
+
+        if (exigeSenha && !value.des_senha) {
+            return helpers.error('any.invalid', {
+                message: 'Senha é obrigatória para médico, secretária, costureira ou administrador.'
+            });
+        }
+
+        const exigeCor = value.ind_costureira;
+
+        if (exigeCor && !value.val_cor_hex) {
+            return helpers.error('any.invalid', { message: 'É necessário informar uma cor para a costureira' })
+        }
+
+        return value;
+    }),
+
+
+
+    /**
+     * Agendamento
+     */
+    // Adicionar dentro do objeto `validators`, junto aos demais schemas de Produto/Sistema
+
+    /**
+     * Item de serviço dentro de um agendamento (produto + serviço + tipo).
+     * Reutilizado tanto no agendamento completo quanto na adição unitária de item.
+     */
+    itemAgendamentoSchema: Joi.object({
+        id_produto_grade: Joi.number().integer().required(),
+        id_produto_servico: Joi.number().integer().required(),
+        id_tipo_agendamento: Joi.number().integer().required(),
+        des_ajuste_produto: Joi.string().max(1000).allow('', null),
+        val_desconto_servico: Joi.number().min(0).precision(2).default(0)
     }),
 
     /**
-     * Schema para validação de comparecimento.
-     * 
+     * Schema para criação de agendamento completo (cabeçalho + itens).
+     * Uso: rota interna POST /api/agendamentos
+     *
      * @type {Joi.ObjectSchema}
      */
-    comparecimentoSchema: Joi.object({
-        ind_paciente_compareceu: Joi.boolean().required(),
-        des_observacoes_costureira: Joi.string().allow('', null)
+    agendamentoSchema: Joi.object({
+        id_paciente: Joi.number().integer().required(),
+        id_costureira: Joi.number().integer().required(),
+        id_secretaria: Joi.number().integer().allow(null),
+        dta_agendamento: Joi.date().greater('now').required()
+            .messages({ 'date.greater': 'A data do agendamento deve ser futura' }),
+        des_observacoes_geral: Joi.string().max(2000).allow('', null),
+        des_observacoes_costureira: Joi.string().max(2000).allow('', null)
     }),
 
     /**
-     * Schema para validação de parametrização de horários.
-     * 
+     * Schema para adicionar/atualizar um item isolado (tab_produto_agendamento)
+     * em um agendamento já existente.
+     *
      * @type {Joi.ObjectSchema}
      */
-    parametrizacaoSchema: Joi.object({
-        des_tipo_dia: Joi.string().trim().uppercase().required().valid('UTIL', 'SABADO'),
-        hra_inicio: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/).message('O campo tem que estar no formato váido HH:MM:SS').required(),
-        hra_fim: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/).message('O campo tem que estar no formato váido HH:MM:SS').required(),
-        qtd_minutos_intervalo: Joi.number().integer().required(),
-        ind_ativo: Joi.boolean().required(),
-    })
+    produtoAgendadoSchema: Joi.object({
+        id_agendamento: Joi.number().integer().required(),
+        id_produto_grade: Joi.number().integer().required(),
+        id_produto_servico: Joi.number().integer().required(),
+        id_tipo_agendamento: Joi.number().integer().required(),
+        des_ajuste_produto: Joi.string().max(1000).allow('', null),
+        val_desconto_servico: Joi.number().min(0).precision(2).default(0)
+    }),
+
+    /**
+     * Schema para upload de fotos de ajuste (tab_agendamento_item_fotos).
+     * O arquivo em si é validado pelo uploadMiddleware/UploadService;
+     * aqui validamos apenas os metadados de negócio.
+     *
+     * @type {Joi.ObjectSchema}
+     */
+    // fotoProdutoAgendamentoSchema: Joi.object({
+    //     id_produto_agendamento: Joi.number().integer().required(),
+    //     ind_tipo_foto: Joi.string().valid('antes', 'depois').required()
+    // }),
+    /**
+     * Schema para upload de fotos de ajuste (tab_agendamento_item_fotos).
+     * O arquivo é validado pelo uploadMiddleware (tamanho/MIME) e pelo
+     * service (assinatura binária). Aqui validamos apenas metadados.
+     *
+     * @type {Joi.ObjectSchema}
+     */
+    fotoProdutoAgendamentoSchema: Joi.object({
+        id_agendamento: Joi.number().integer().positive().required(),
+        id_item: Joi.number().integer().positive().required(),
+        ind_tipo_foto: Joi.string().trim().lowercase().valid('antes', 'depois').required()
+            .messages({
+                'any.only': "ind_tipo_foto deve ser 'antes' ou 'depois'",
+                'any.required': 'ind_tipo_foto é obrigatório'
+            })
+    }),
+
+    /**
+     * Schema para agendamento criado pela página PÚBLICA (sem autenticação).
+     * Diferente do agendamentoSchema interno:
+     * - Não recebe id_paciente (o paciente é localizado por CPF no Service).
+     * - Não recebe id_secretaria (não existe secretária no fluxo público).
+     * - Limita a 1 único item por agendamento público (reduz superfície de abuso).
+     *
+     * @type {Joi.ObjectSchema}
+     */
+    publicAgendamentoSchema: Joi.object({
+        num_cpf: Joi.string().length(11).required().custom((value, helpers) => {
+            if (!validators.validarCPF(value)) {
+                return helpers.error('any.invalid', { message: 'CPF inválido' });
+            }
+            return value;
+        }),
+        id_costureira: Joi.number().integer().required(),
+        dta_agendamento: Joi.date().greater('now').required()
+            .messages({ 'date.greater': 'A data do agendamento deve ser futura' }),
+        des_observacoes_geral: Joi.string().max(1000).allow('', null),
+    }),
+
+    /**
+     * Schema para o tipo de agendamento (tab_tipo_agendamento).
+     *
+     * @type {Joi.ObjectSchema}
+     */
+    tipoAgendamentoSchema: Joi.object({
+        des_tipo_agendamento: Joi.string().min(3).max(50).required(),
+        ind_ativo: Joi.boolean().default(true)
+    }),
+
+
+
 };
 
 module.exports = validators;

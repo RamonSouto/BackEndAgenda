@@ -155,11 +155,11 @@ class TestHelpers {
      */
     static async cleanDatabase(database) {
         await database.query('SET FOREIGN_KEY_CHECKS = 0');
-        await database.query('TRUNCATE TABLE tab_fotos_ajustes');
-        await database.query('TRUNCATE TABLE tab_produto_agendamento');
-        await database.query('TRUNCATE TABLE tab_agendamentos');
+        await database.query('TRUNCATE TABLE tab_agendamento_item_fotos');
+        await database.query('TRUNCATE TABLE tab_agendamento_item');
+        await database.query('TRUNCATE TABLE tab_agendamento');
         await database.query('TRUNCATE TABLE tab_pessoas');
-        await database.query('TRUNCATE TABLE tab_logs');
+        await database.query('TRUNCATE TABLE tab_log');
         await database.query('SET FOREIGN_KEY_CHECKS = 1');
     }
 

@@ -91,11 +91,24 @@ class ConflictError extends ApiError {
     }
 }
 
+/**
+ * Erro 422 - Dados de validação inválidos.
+ * @class ValidationError
+ * @extends ApiError
+ * @param {string} [message='Dados de validação inválidos'] - Mensagem personalizada.
+ */
+class ValidationError extends ApiError {
+    constructor(message = 'Dados de validação inválidos') {
+        super(message, 422);
+    }
+}
+
 module.exports = {
     ApiError,
     NotFoundError,
     BadRequestError,
     UnauthorizedError,
     ForbiddenError,
-    ConflictError
+    ConflictError,
+    ValidationError
 };

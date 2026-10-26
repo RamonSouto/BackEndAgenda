@@ -103,7 +103,23 @@ class App {
         this.app.use(sanitizarInputMiddleware);
 
         // Servir arquivos estáticos (uploads)
-        this.app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+        //this.app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+        // Servir arquivos estáticos (uploads) — WHITELIST (LGPD)
+        // Somente pastas sem dados pessoais são públicas.
+        // uploads/ajustes e uploads/deletados contêm fotos pós-cirúrgicas (dado sensível de saúde)
+        // e são entregues apenas via GET /api/agendamentos/fotos/:id/arquivo (autenticado).
+        const uploadsDir = path.join(__dirname, '../uploads');
+        const staticOptions = {
+            dotfiles: 'deny',
+            index: false,
+            fallthrough: true
+        };
+
+        ['cor_estampa', 'imagem_produto', 'empresa'].forEach((pasta) => {
+            this.app.use(`/uploads/${pasta}`, express.static(path.join(uploadsDir, pasta), staticOptions));
+        });
+
 
         this.app.use(requestLoggerMiddleware);
 

@@ -110,7 +110,7 @@ package "Zona de Dados (Rede Isolada)" #E8F4FF {
     component "MySQL Server 8.0" as MySQL_Primary
     database "Banco de Dados\nagenda_ajustes" as MainDB {
       component "tab_pessoas"
-      component "tab_agendamentos"
+      component "tab_agendamento"
       component "tab_produto_agendamento"
       component "tab_fotos_ajustes"
       component "tab_logs"

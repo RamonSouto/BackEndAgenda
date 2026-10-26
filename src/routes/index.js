@@ -21,12 +21,20 @@ const router = express.Router();
 // Importar rotas
 const authRoutes = require('./authRoutes');
 
+// Módulo de Agendamento
+const tipoAgendamentoRoutes = require('./agendamento/tipoAgendamentoRoutes');
+const agendamentoRoutes = require('./agendamento/agendamentoRoutes');
+const agendamentoProdutoRoutes = require('./agendamento/agendamentoProdutoRoutes')
+const fotoProdutoAgendamentoRoutes = require('./agendamento/fotoProdutoAgendamentoRoutes');
+
+// const publicAgendamentoRoutes = require('./agendamento/publicAgendamentoRoutes');
+
 // Módulo de Pessoa
 const pessoaRoutes = require('./pessoaRoutes');
 // const agendamentoRoutes = require('./agendamentoRoutes');
 
 // Módulo de Produtos
-const produtoRoutes = require('./produtoRoutes');
+const produtoRoutes = require('./produto/produtoRoutes');
 const categoriaRoutes = require('./produto/categoriaRoutes');
 const tamanhoRoutes = require('./produto/tamanhoRoutes');
 const corEstampaRoutes = require('./produto/corEstampaRoutes')
@@ -121,7 +129,11 @@ router.use('/auth', authRoutes);
 router.use('/pessoas', pessoaRoutes);
 
 // Módulo de Agendamento
-// router.use('/agendamentos', agendamentoRoutes);
+router.use('/agendamentos', fotoProdutoAgendamentoRoutes);
+router.use('/agendamentos', tipoAgendamentoRoutes);
+router.use('/agendamentos', agendamentoRoutes);
+router.use('/agendamentos', agendamentoProdutoRoutes);
+// router.use('/public/agendamentos', publicAgendamentoRoutes);
 
 // Módulo de Produtos
 router.use('/produtos', produtoRoutes);

@@ -15,6 +15,7 @@
  */
 
 const rateLimit = require('express-rate-limit');
+const ApiError = require('../utils/ApiError');
 const { MENSAGENS } = require('../utils/constants');
 const logger = require('../config/logger');
 const { optional, options } = require('joi');
@@ -117,9 +118,48 @@ const limiterUpload = rateLimit({
     legacyHeaders: false
 });
 
+/**
+ * Middleware de rate limiting para a rota PÚBLICA de agendamento.
+ * 
+ * @constant {Function} limiterPublicoAgendamento
+ * @description Limite agressivo: 5 requisições por IP a cada 1 hora.
+ * Rotas públicas de agendamento são vetor clássico de spam/DoS
+ * (ex.: bot travando todos os horários disponíveis da costureira).
+ * Não usa `skipSuccessfulRequests` propositalmente: mesmo tentativas
+ * bem-sucedidas contam, pois criar múltiplos agendamentos falsos
+ * também é abuso.
+ * 
+ * Configurável via variáveis de ambiente:
+ * - `RATE_LIMIT_PUBLICO_WINDOW_MS` – padrão: 3600000 (1h)
+ * - `RATE_LIMIT_PUBLICO_MAX` – padrão: 5
+ * 
+ * @example
+ * router.post('/agendamentos/publico', limiterPublicoAgendamento, controller);
+ */
+const limiterPublicoAgendamento = rateLimit({
+    windowMs: parseInt(process.env.RATE_LIMIT_PUBLICO_WINDOW_MS) || 60 * 60 * 1000, // 1 hora
+    max: parseInt(process.env.RATE_LIMIT_PUBLICO_MAX) || 5,
+    message: {
+        sucesso: false,
+        mensagem: 'Muitas tentativas de agendamento',
+        erro: 'Você excedeu o limite de agendamentos por hora. Tente novamente mais tarde ou entre em contato com a clínica.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => req.ip,
+    handler: (req, res, next, options) => {
+        logger.warn('Rate limit excedido em rota pública de agendamento', {
+            ip: req.ip,
+            rota: req.originalUrl
+        });
+        res.status(429).json(options.message);
+    }
+});
+
 module.exports = {
     limiterGeral,
     limiterLogin,
     limiterCriacao,
-    limiterUpload
+    limiterUpload,
+    limiterPublicoAgendamento
 };

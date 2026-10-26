@@ -1,7 +1,7 @@
 // src/services/AgendamentoService.js
-const AgendamentoModel = require('../models/AgendamentoModel');
+const AgendamentoModel = require('../models/agendamento/AgendamentoModel');
 const PessoaModel = require('../models/PessoaModel');
-const ProdutoModel = require('../models/ProdutoModel');
+const ProdutoModel = require('../models/produto/ProdutoModel');
 const LogService = require('./LogService');
 const NotificacaoService = require('./NotificacaoService');
 const { STATUS_AGENDAMENTO, TIPO_PESSOA, MENSAGENS, ACOES_LOG, PAPEIS_PESSOA } = require('../utils/constants');
@@ -64,7 +64,7 @@ class AgendamentoService {
                 await LogService.registrar({
                     id_usuario: usuarioLogadoId,
                     des_acao: ACOES_LOG.AGENDAMENTO_CRIAR,
-                    des_tabela: 'tab_agendamentos',
+                    des_tabela: 'tab_agendamento',
                     num_registro_id: agendamentoId,
                     des_detalhes: {
                         paciente: paciente.nom_completo,
@@ -107,7 +107,7 @@ class AgendamentoService {
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_agendamentos',
+                des_tabela: 'tab_agendamento',
                 num_registro_id: id,
                 des_detalhes: {
                     tipo_consulta: 'buscar_por_id'
@@ -142,7 +142,7 @@ class AgendamentoService {
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_agendamentos',
+                des_tabela: 'tab_agendamento',
                 des_detalhes: {
                     tipo_consulta: 'listar',
                     filtros: filtros,
@@ -189,7 +189,7 @@ class AgendamentoService {
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.AGENDAMENTO_EDITAR,
-                des_tabela: 'tab_agendamentos',
+                des_tabela: 'tab_agendamento',
                 num_registro_id: id,
                 des_detalhes: {
                     campos_alterados: Object.keys(dados),
@@ -242,7 +242,7 @@ class AgendamentoService {
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.AGENDAMENTO_CANCELAR,
-                des_tabela: 'tab_agendamentos',
+                des_tabela: 'tab_agendamento',
                 num_registro_id: id,
                 des_detalhes: {
                     paciente: agendamento.paciente_nome,
@@ -295,7 +295,7 @@ class AgendamentoService {
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.DELETAR,
-                des_tabela: 'tab_agendamentos',
+                des_tabela: 'tab_agendamento',
                 num_registro_id: id,
                 des_detalhes: {
                     paciente: agendamento.paciente_nome,
@@ -334,7 +334,7 @@ class AgendamentoService {
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.COMPARECIMENTO,
-                des_tabela: 'tab_agendamentos',
+                des_tabela: 'tab_agendamento',
                 num_registro_id: id,
                 des_detalhes: {
                     paciente: agendamento.paciente_nome,
@@ -363,7 +363,7 @@ class AgendamentoService {
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: 'confirmar_agendamento',
-                des_tabela: 'tab_agendamentos',
+                des_tabela: 'tab_agendamento',
                 num_registro_id: id
             });
 
@@ -385,7 +385,7 @@ class AgendamentoService {
             await LogService.registrar({
                 id_usuario: usuarioLogadoId,
                 des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_agendamentos',
+                des_tabela: 'tab_agendamento',
                 des_detalhes: {
                     tipo_consulta: 'listar_por_costureira',
                     id_costureira: id_costureira,

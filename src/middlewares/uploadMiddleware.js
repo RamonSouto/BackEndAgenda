@@ -196,8 +196,10 @@ const uploadSingleOptional = (fieldName = 'foto', subpasta = 'ajuste') => {
  *   // req.files é um array de objetos de arquivo
  * });
  */
-const uploadMultiple = (fieldName = 'fotos', maxCount = 10) => {
+const uploadMultiple = (fieldName = 'fotos', maxCount = 10, subpasta = 'ajustes') => {
     return (req, res, next) => {
+        req.uploadSubDir = subpasta;
+
         const uploadHandler = upload.array(fieldName, maxCount);
 
         uploadHandler(req, res, (err) => {

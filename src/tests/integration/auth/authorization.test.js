@@ -181,7 +181,7 @@ describe('Authorization - Testes de Autorização', () => {
 
                 // Liberar costureira
                 await database.query(
-                    'UPDATE tab_agendamentos SET ind_status = ? WHERE id = ?',
+                    'UPDATE tab_agendamento SET ind_status = ? WHERE id = ?',
                     ['concluido', agendamentoSecretariaId]
                 );
 
@@ -218,7 +218,7 @@ describe('Authorization - Testes de Autorização', () => {
 
                 // Liberar costureira
                 await database.query(
-                    'UPDATE tab_agendamentos SET ind_status = ? WHERE id = ?',
+                    'UPDATE tab_agendamento SET ind_status = ? WHERE id = ?',
                     ['concluido', criarResponse.body.dados.id]
                 );
 
@@ -552,7 +552,7 @@ describe('Authorization - Testes de Autorização', () => {
 
             // Liberar costureira
             await database.query(
-                'UPDATE tab_agendamentos SET ind_status = ? WHERE id = ?',
+                'UPDATE tab_agendamento SET ind_status = ? WHERE id = ?',
                 ['concluido', agendamento.body.dados.id]
             );
 

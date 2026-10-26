@@ -101,7 +101,7 @@ object ":ProdutoAgendamento" as prodAgend2 {
 object ":Log (Criação)" as logCriacao {
   id = 1001
   des_acao = "criar"
-  des_tabela = "tab_agendamentos"
+  des_tabela = "tab_agendamento"
   num_registro_id = 101
   num_ip_address = "192.168.1.100"
   des_user_agent = "Mozilla/5.0..."
@@ -111,7 +111,7 @@ object ":Log (Criação)" as logCriacao {
 object ":Log (Confirmação)" as logConfirmacao {
   id = 1002
   des_acao = "editar"
-  des_tabela = "tab_agendamentos"
+  des_tabela = "tab_agendamento"
   num_registro_id = 101
   des_detalhes = "{'status': 'confirmado'}"
   num_ip_address = "192.168.1.100"

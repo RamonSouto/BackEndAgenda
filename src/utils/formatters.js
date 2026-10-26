@@ -103,9 +103,24 @@ module.exports = {
      * @example
      * formatarDataHora('2025-10-05T14:30:00'); // '05/10/2025 14:30'
      */
-    formatarDataHora(data, formato = 'dd/MM/yyyy HH:mm') {
+    formatarDataHora(data, formato = 'dd/MM/yyyy HH:mm:ss') {
         if (!data) return null;
         return format(typeof data === 'string' ? parseISO(data) : data, formato, { locale: ptBR });
+    },
+    /**
+     * Formata uma data/hora para o formato especificado (padrão: yyyy-MM-dd HH:mm:ss).
+     * 
+     * @function formatarDataHora
+     * @param {string|Date} data - Data no formato ISO ou objeto Date.
+     * @param {string} [formato='yyyy-MM-dd HH:mm:ss'] - Padrão de formatação.
+     * @returns {string|null} Data e hora formatadas ou null se entrada for falsy.
+     * 
+     * @example
+     * formatarDataHora('2025-10-05T14:30:00'); // '05/10/2025 14:30'
+     */
+    formatarDataHoraDB(data, formato = 'yyyy-MM-dd HH:mm:ss') {
+        if (!data) return null;
+        return format(typeof data === 'string' ? parseISO(data) : data, formato);
     },
 
     /**

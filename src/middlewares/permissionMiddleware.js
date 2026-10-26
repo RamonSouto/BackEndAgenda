@@ -226,6 +226,14 @@ const costureiraOuAdminMiddleware = (req, res, next) => {
     ])(req, res, next);
 };
 
+const costureiraAdminSecretariaMiddleware = (req, res, next) => {
+    return papelMiddleware([
+        PAPEIS_PESSOA.COSTUREIRA,
+        PAPEIS_PESSOA.ADMINISTRADOR,
+        PAPEIS_PESSOA.SECRETARIA
+    ])(req, res, next);
+};
+
 /**
  * Middleware que restringe acesso a recursos pertencentes ao próprio usuário.
  * Administradores têm acesso irrestrito.
@@ -278,6 +286,7 @@ module.exports = {
     apenasAdminMiddleware,
     secretariaOuAdminMiddleware,
     costureiraOuAdminMiddleware,
+    costureiraAdminSecretariaMiddleware,
     recursoProprio,
     extrairPapeisUsuario
 };

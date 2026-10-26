@@ -151,7 +151,9 @@ class EmpresaController {
     * { "sucesso": true, "dados": { "id": 1, "nom_fantasia": "Minha Empresa", ... } }
     */
     buscarEmpresaPorId = asyncHandler(async (req, res) => {
+
         const { id } = req.params;
+
         const empresa = await EmpresaService.buscarEmpresaPorId(id, req.usuario.id);
 
         return res.status(200).json({

@@ -447,14 +447,6 @@ class PessoaController {
             dados: costureiras
         });
     });
-
-
-
-
-
-
-
-
 }
 
 module.exports = new PessoaController();

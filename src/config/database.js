@@ -132,7 +132,7 @@ class Database {
      * @example
      * await database.transaction(async (conn) => {
      *   await conn.execute('INSERT INTO tab_pessoas ...');
-     *   await conn.execute('UPDATE tab_agendamentos ...');
+     *   await conn.execute('UPDATE tab_agendamento ...');
      * });
      */
     async transaction(callback) {

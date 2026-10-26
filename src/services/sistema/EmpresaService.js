@@ -1,9 +1,9 @@
-// src/services/EmpresaService.js
+// src/services/sistema/EmpresaService.js
 
 /**
  * @author Ramon David Souto
  * @version 1.0.0
- * @file src/services/EmpresaService.js
+ * @file src/services/sistema/EmpresaService.js
  * @description Serviço de gerenciamento de empresas.
  * Gerencia criação, listagem, busca, atualização e exclusão (soft delete)
  * de empresas, com validação Joi, controle de único ativo e auditoria.

@@ -803,7 +803,7 @@ components:
           example: criar
         des_tabela:
           type: string
-          example: tab_agendamentos
+          example: tab_agendamento
         num_registro_id:
           type: integer
           nullable: true
@@ -3704,7 +3704,7 @@ paths:
                       por_tabela:
                         type: object
                         example:
-                          tab_agendamentos: 120
+                          tab_agendamento: 120
                           tab_pessoas: 80
                           tab_produto_agendamento: 50
                       logs_detalhados:

@@ -252,6 +252,7 @@ class EmpresaModel {
      * const sucesso = await empresaModel.atualizar(1, { nom_fantasia: 'Novo Nome' });
      */
     async atualizar(id, dados) {
+
         const campos = [];
         const valores = [];
 

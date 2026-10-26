@@ -202,6 +202,17 @@ const MENSAGENS = {
         LOGIN: 'Login realizado com sucesso'
     }
 };
+/**
+ * Limites de fotos de ajuste por item agendado.
+ *
+ * @constant {Object} LIMITES_FOTO
+ * @property {number} MAX_POR_REQUISICAO - Máximo de arquivos por upload.
+ * @property {number} MAX_POR_ITEM - Máximo de fotos ativas por item.
+ */
+const LIMITES_FOTO = {
+    MAX_POR_REQUISICAO: 10,
+    MAX_POR_ITEM: 10
+};
 
 module.exports = {
     PAPEIS_PESSOA,
@@ -211,5 +222,6 @@ module.exports = {
     STATUS_PRODUTO_AGENDAMENTO,
     ACOES_LOG,
     PERMISSOES,
-    MENSAGENS
+    MENSAGENS,
+    LIMITES_FOTO
 };

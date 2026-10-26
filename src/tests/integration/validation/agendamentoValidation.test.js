@@ -266,7 +266,7 @@ describe('Agendamento Validation - Testes de Validação', () => {
 
             // Liberar costureira para próximos testes
             await database.query(
-                'UPDATE tab_agendamentos SET ind_status = ? WHERE id = ?',
+                'UPDATE tab_agendamento SET ind_status = ? WHERE id = ?',
                 ['concluido', response.body.dados.id]
             );
         });
@@ -320,7 +320,7 @@ describe('Agendamento Validation - Testes de Validação', () => {
 
             // Liberar costureira
             await database.query(
-                'UPDATE tab_agendamentos SET ind_status = ? WHERE id = ?',
+                'UPDATE tab_agendamento SET ind_status = ? WHERE id = ?',
                 ['concluido', response.body.dados.id]
             );
         });
@@ -367,7 +367,7 @@ describe('Agendamento Validation - Testes de Validação', () => {
 
             // Liberar costureira
             await database.query(
-                'UPDATE tab_agendamentos SET ind_status = ? WHERE id = ?',
+                'UPDATE tab_agendamento SET ind_status = ? WHERE id = ?',
                 ['concluido', response.body.dados.id]
             );
         });
@@ -533,7 +533,7 @@ describe('Agendamento Validation - Testes de Validação', () => {
         beforeAll(async () => {
             // Liberar costureira primeiro
             await database.query(
-                'UPDATE tab_agendamentos SET ind_status = ? WHERE id_costureira = ?',
+                'UPDATE tab_agendamento SET ind_status = ? WHERE id_costureira = ?',
                 ['concluido', pessoasIds.costureira]
             );
 
@@ -594,7 +594,7 @@ describe('Agendamento Validation - Testes de Validação', () => {
         it('deve validar tamanho das observações da costureira', async () => {
             // Criar novo agendamento
             await database.query(
-                'UPDATE tab_agendamentos SET ind_status = ? WHERE id = ?',
+                'UPDATE tab_agendamento SET ind_status = ? WHERE id = ?',
                 ['concluido', agendamentoId]
             );
 
@@ -629,7 +629,7 @@ describe('Agendamento Validation - Testes de Validação', () => {
         it('deve validar status ao atualizar', async () => {
             // Liberar costureira
             await database.query(
-                'UPDATE tab_agendamentos SET ind_status = ? WHERE id_costureira = ?',
+                'UPDATE tab_agendamento SET ind_status = ? WHERE id_costureira = ?',
                 ['concluido', pessoasIds.costureira]
             );
 
@@ -662,7 +662,7 @@ describe('Agendamento Validation - Testes de Validação', () => {
         it('deve aceitar status válido', async () => {
             // Liberar costureira
             await database.query(
-                'UPDATE tab_agendamentos SET ind_status = ? WHERE id_costureira = ?',
+                'UPDATE tab_agendamento SET ind_status = ? WHERE id_costureira = ?',
                 ['concluido', pessoasIds.costureira]
             );
 
@@ -713,7 +713,7 @@ describe('Agendamento Validation - Testes de Validação', () => {
         it('deve aceitar observações gerais de tamanho válido', async () => {
             // Liberar costureira
             await database.query(
-                'UPDATE tab_agendamentos SET ind_status = ? WHERE id_costureira = ?',
+                'UPDATE tab_agendamento SET ind_status = ? WHERE id_costureira = ?',
                 ['concluido', pessoasIds.costureira]
             );
 
