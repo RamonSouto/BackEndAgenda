@@ -15,7 +15,7 @@
  * @requires ../config/env
  */
 
-const AgendamentoModel = require('../models/AgendamentoModel');
+const AgendamentoModel = require('../models/agendamento/AgendamentoModel');
 const PessoaModel = require('../models/PessoaModel');
 const { formatarDataHora } = require('../utils/formatters');
 const axios = require('axios');

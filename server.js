@@ -21,6 +21,8 @@ const app = require('./src/app');
 const database = require('./src/config/database');
 const UploadService = require('./src/services/UploadService');
 const config = require('./src/config/env');
+const { validarChave } = require('./src/utils/cryptoUtils');
+const EmailOutboxWorker = require('./src/workers/emailOutboxWorker');
 
 /**
  * Classe responsável pela inicialização e gerenciamento do servidor.
@@ -53,12 +55,13 @@ class Server {
 
             // Conectar ao banco de dados
             await this.connectDatabase();
-
+            validarChave();
             // Inicializar serviço de upload
             await this.initializeUploadService();
 
             // Iniciar servidor HTTP
             await this.startHttpServer();
+            EmailOutboxWorker.iniciar();
 
             // Configurar handlers de encerramento
             this.setupShutdownHandlers();
@@ -152,6 +155,7 @@ class Server {
             console.log(`\n\n⚠️  Sinal ${signal} recebido. Encerrando servidor...`);
 
             if (this.server) {
+                EmailOutboxWorker.parar();
                 this.server.close(async () => {
                     console.log('🔌 Servidor HTTP encerrado');
 

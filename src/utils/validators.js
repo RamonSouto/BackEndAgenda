@@ -1,4 +1,5 @@
 // src/utils/validators.js
+
 /**
  * @author Ramon David Souto
  * @version 1.0.0
@@ -560,7 +561,62 @@ const validators = {
         ind_ativo: Joi.boolean().default(true)
     }),
 
+    /**
+     * Schema de configuração SMTP da empresa.
+     * `des_smtp_senha` é opcional: se omitida, mantém a senha atual.
+     *
+     * @type {Joi.ObjectSchema}
+     */
+    smtpSchema: Joi.object({
+        ind_smtp_ativo: Joi.boolean().required(),
+        des_smtp_host: Joi.string().hostname().max(255).required(),
+        num_smtp_porta: Joi.number().integer().valid(25, 465, 587, 2525).required(),
+        ind_smtp_seguro: Joi.boolean().required(),
+        des_smtp_usuario: Joi.string().max(255).required(),
+        des_smtp_senha: Joi.string().min(1).max(256),
+        des_smtp_email_remetente: Joi.string().email().max(255).required(),
+        nom_smtp_remetente: Joi.string().max(100).pattern(/^[^\r\n<>"]+$/).required()
+    }),
 
+    /**
+     * Schema de template de e-mail.
+     *
+     * @type {Joi.ObjectSchema}
+     */
+    emailTemplateSchema: Joi.object({
+        des_assunto: Joi.string().max(200).required(),
+        des_corpo_html: Joi.string().max(100000).required(),
+        ind_ativo: Joi.boolean().default(true)
+    }),
+
+    /**
+     * Schema de evento de e-mail (parâmetro de rota).
+     *
+     * @type {Joi.StringSchema}
+     */
+    eventoEmailSchema: Joi.string()
+        .valid('agendamento_cadastrado', 'agendamento_concluido', 'agendamento_cancelado').required(),
+
+    /**
+     * Schema de filtro da outbox.
+     *
+     * @type {Joi.ObjectSchema}
+     */
+    outboxFiltroSchema: Joi.object({
+        ind_status: Joi.string().valid('pendente', 'processando', 'enviado', 'falha'),
+        id_agendamento: Joi.number().integer().positive(),
+        pagina: Joi.number().integer().min(1).default(1),
+        limite: Joi.number().integer().min(1).max(100).default(20)
+    }),
+
+    /**
+     * Schema de teste SMTP.
+     *
+     * @type {Joi.ObjectSchema}
+     */
+    smtpTesteSchema: Joi.object({
+        des_destinatario: Joi.string().email().max(255).required()
+    }),
 
 };
 

@@ -47,6 +47,14 @@ module.exports = {
         maxSize: process.env.LOG_MAX_SIZE || '20m',
         maxFiles: process.env.LOG_MAX_FILES || '14d',     // retenção de 14 dias
         datePattern: 'YYYY-MM-DD'
-    }
-
+    },
+    email: {
+        encryptionKey: process.env.EMAIL_ENCRYPTION_KEY,
+        empresaId: parseInt(process.env.EMAIL_EMPRESA_ID) || null,
+        publicUrl: (process.env.APP_PUBLIC_URL || 'http://localhost:5173').replace(/\/+$/, ''),
+        workerEnabled: process.env.EMAIL_WORKER_ENABLED !== 'false',
+        workerIntervalMs: parseInt(process.env.EMAIL_WORKER_INTERVAL_MS) || 15000,
+        workerBatch: parseInt(process.env.EMAIL_WORKER_BATCH) || 10,
+        retencaoDias: parseInt(process.env.EMAIL_OUTBOX_RETENCAO_DIAS) || 90
+    },
 };

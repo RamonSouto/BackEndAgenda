@@ -130,7 +130,9 @@ class AgendamentoModel {
      */
     async listar(filtros = {}) {
 
-        const offset = (filtros.pagina - 1) * filtros.limite;
+        const limite = Math.min(Math.max(Number.parseInt(filtros.limite, 10) || 20, 1), 100);
+        const pagina = Math.max(Number.parseInt(filtros.pagina, 10) || 1, 1);
+        const offset = (pagina - 1) * limite;
 
         const condicoes = ['a.deleted_at IS NULL'];
 
@@ -167,7 +169,7 @@ class AgendamentoModel {
             INNER JOIN tab_pessoas c ON (a.id_costureira = c.id)
             WHERE ${condicoes.join(' AND ')}
             ORDER BY a.dta_agendamento ASC
-            LIMIT ${filtros.limite} OFFSET ${offset}
+            LIMIT ${limite} OFFSET ${offset}
         `;
 
         return database.query(sql, valores);
@@ -302,6 +304,31 @@ class AgendamentoModel {
         `;
         const resultado = await database.query(sql, [id]);
         return resultado.affectedRows > 0;
+    }
+
+    /**
+     * Busca dados mínimos para notificação por e-mail (inclui e-mail do paciente).
+     * @method buscarDadosNotificacao
+     * @param {number} id - ID do agendamento.
+     * @returns {Promise<Object|null>}
+     **/
+    async buscarDadosNotificacao(id) {
+        const sql = `
+            SELECT a.id, 
+                   a.des_url_externa, 
+                   a.dta_agendamento, 
+                   a.ind_status,
+                   p.nom_completo AS nom_paciente,
+                   p.des_email_1 AS des_email_paciente,
+                   c.nom_completo AS nom_costureira
+            FROM tab_agendamento a
+            INNER JOIN tab_pessoas p ON (a.id_paciente = p.id)
+            INNER JOIN tab_pessoas c ON (a.id_costureira = c.id)
+            WHERE a.id = ?
+            AND a.deleted_at IS NULL
+        `;
+        const resultado = await database.query(sql, [id]);
+        return resultado[0] || null;
     }
 }
 

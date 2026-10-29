@@ -21,6 +21,7 @@ const express = require('express');
 const router = express.Router();
 const AgendamentoController = require('../../controllers/agendamento/AgendamentoController');
 const authMiddleware = require('../../middlewares/authMiddleware');
+const { validarIdMiddleware } = require('../../middlewares/errorMiddleware');
 const { apenasAdminMiddleware, secretariaOuAdminMiddleware, costureiraAdminSecretariaMiddleware } = require('../../middlewares/permissionMiddleware');
 
 router.use(authMiddleware);
@@ -36,6 +37,11 @@ router.post(
 router.get(
     '/',
     AgendamentoController.listar
+);
+
+router.get(
+    '/disponibilidade',
+    AgendamentoController.verificarDisponibilidade
 );
 
 router.get(
@@ -55,51 +61,32 @@ router.delete(
     AgendamentoController.deletar
 );
 
-router.get(
-    '/disponibilidade',
-    AgendamentoController.verificarDisponibilidade
-);
-
-
-
 router.patch(
     '/:id/costureira',
     secretariaOuAdminMiddleware,
     AgendamentoController.trocarCostureira
 );
 
-
-
-
-
-// router.patch(
-//     '/:id/status',
-//     costureiraAdminSecretariaMiddleware,
-//     AgendamentoController.atualizarStatus
-// );
-
-
-
-
-
-
-// // Fotos do item — sub-sub-recurso (reaproveita uploadMiddleware existente)
-// router.get(
-//     '/itens/:idItem/fotos',
-//     FotoProdutoAgendamentoController.listarPorItem
-// );
-
-// router.post(
-//     '/itens/:idItem/fotos',
-//     costureiraAdminSecretariaMiddleware,
-//     uploadMiddleware.uploadSingle('foto'),
-//     FotoProdutoAgendamentoController.adicionar
-// );
-
-// router.delete(
-//     '/itens/fotos/:id',
-//     apenasAdminMiddleware,
-//     FotoProdutoAgendamentoController.deletar
-// );
+/**
+ * @route PATCH /api/agendamentos/:id/status
+ * @method PATCH
+ * @description Altera status (agendado→confirmado→concluido|cancelado|falta). Concluído/cancelado enviam e-mail.
+ * @access Privado – Costureira, Secretária e Administrador
+ * @returns {Object} 200 - Agendamento atualizado.
+ * @returns {Object} 400 - Transição inválida ou prazo de cancelamento.
+ * @returns {Object} 401 - Token inválido/ausente.
+ * @returns {Object} 403 - Papel não autorizado.
+ * @returns {Object} 404 - Agendamento não encontrado.
+ *
+ * @example
+ * PATCH /api/agendamentos/10/status
+ * Body: { "status": "cancelado" }
+ */
+router.patch(
+    '/:id/status',
+    validarIdMiddleware('id'),
+    costureiraAdminSecretariaMiddleware,
+    AgendamentoController.atualizarStatus
+);
 
 module.exports = router;

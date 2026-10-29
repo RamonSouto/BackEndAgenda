@@ -202,6 +202,7 @@ const MENSAGENS = {
         LOGIN: 'Login realizado com sucesso'
     }
 };
+
 /**
  * Limites de fotos de ajuste por item agendado.
  *
@@ -214,6 +215,27 @@ const LIMITES_FOTO = {
     MAX_POR_ITEM: 10
 };
 
+/**
+ * Eventos que disparam e-mail.
+ * @constant {Object} EVENTOS_EMAIL
+ */
+const EVENTOS_EMAIL = Object.freeze({
+    CADASTRADO: 'agendamento_cadastrado',
+    CONCLUIDO: 'agendamento_concluido',
+    CANCELADO: 'agendamento_cancelado'
+});
+
+/**
+ * Status da outbox de e-mail.
+ * @constant {Object} STATUS_EMAIL_OUTBOX
+ */
+const STATUS_EMAIL_OUTBOX = Object.freeze({
+    PENDENTE: 'pendente',
+    PROCESSANDO: 'processando',
+    ENVIADO: 'enviado',
+    FALHA: 'falha'
+});
+
 module.exports = {
     PAPEIS_PESSOA,
     COLUNAS_PAPEIS_PESSOA,
@@ -223,5 +245,7 @@ module.exports = {
     ACOES_LOG,
     PERMISSOES,
     MENSAGENS,
-    LIMITES_FOTO
+    LIMITES_FOTO,
+    EVENTOS_EMAIL,
+    STATUS_EMAIL_OUTBOX
 };

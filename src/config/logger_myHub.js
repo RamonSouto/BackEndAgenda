@@ -1,4 +1,5 @@
 // src/config/logger.js
+
 /**
  * @author Ramon David Souto
  * @version 1.0.0
@@ -120,4 +121,5 @@ class LoggerFactory {
  *
  * @type {winston.Logger}
  */
+
 module.exports = LoggerFactory.criar();

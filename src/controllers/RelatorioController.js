@@ -15,7 +15,7 @@
  * @requires date-fns
  */
 const LogService = require('../services/LogService');
-const AgendamentoService = require('../services/AgendamentoService');
+const AgendamentoService = require('../services/agendamento/AgendamentoService');
 const PessoaService = require('../services/PessoaService');
 const { asyncHandler } = require('../middlewares/errorMiddleware');
 const { startOfMonth, endOfMonth, startOfDay, endOfDay } = require('date-fns');

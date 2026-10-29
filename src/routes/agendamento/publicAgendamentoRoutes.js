@@ -2,57 +2,82 @@
 
 /**
  * @author Ramon David Souto
- * @version 1.0.0
+ * @version 1.1.0
  * @file src/routes/agendamento/publicAgendamentoRoutes.js
- * @description Rotas públicas (sem autenticação) para autoagendamento pelo
- * paciente. Protegidas por rate limiter agressivo (anti-spam/DoS de agenda).
- * NUNCA expor dados sensíveis de outras pessoas nestas rotas.
- * 
+ * @description Rotas públicas (sem autenticação): disponibilidade, autoagendamento
+ * e consulta por UUID (link do e-mail). Validação do payload é feita no Service
+ * (validators.publicAgendamentoSchema). NUNCA expor dados sensíveis aqui.
+ *
  * @requires express
- * @requires ../../controllers/agendamento/agendamentoController
+ * @requires express-rate-limit
+ * @requires ../../controllers/agendamento/AgendamentoController
  * @requires ../../middlewares/rateLimitMiddleware
- * @requires ../../schemas/agendamentoSchema
+ * @requires ../../middlewares/errorMiddleware
  */
 const router = require('express').Router();
-const agendamentoService = require('../../services/agendamento/agendamentoService');
-const { limiterAgendamentoPublico } = require('../../middlewares/rateLimitMiddleware');
-const validate = require('../../middlewares/validateMiddleware');
-const { publicAgendamentoSchema } = require('../../schemas/publicAgendamentoSchema');
+const rateLimit = require('express-rate-limit');
+const AgendamentoController = require('../../controllers/agendamento/AgendamentoController');
+const { limiterPublicoAgendamento } = require('../../middlewares/rateLimitMiddleware');
+const { validarBodyMiddleware } = require('../../middlewares/errorMiddleware');
 
-const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+const REGEX_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-router.use(limiterAgendamentoPublico);
-
-/**
- * Verifica disponibilidade de horário (visão pública, sem expor lista de agendamentos).
- * @example GET /api/public/agendamentos/disponibilidade?idCostureira=3&data=2026-09-20 14:00:00
- */
-router.get('/disponibilidade', asyncHandler(async (req, res) => {
-    const { idCostureira, data } = req.query;
-    const disponivel = await agendamentoService.verificarDisponibilidade(idCostureira, data);
-    res.status(200).json({ sucesso: true, dados: { disponivel } });
-}));
+/** Consulta é mais permissiva que criação (o paciente pode reabrir o link várias vezes). */
+const limiterConsultaPublica = rateLimit({
+    windowMs: 15 * 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false
+});
 
 /**
- * Cria um agendamento via canal público (autoagendamento do paciente).
- * @example POST /api/public/agendamentos
+ * @route GET /api/public/agendamentos/disponibilidade
+ * @method GET
+ * @description Verifica disponibilidade de horário de uma costureira.
+ * @access Público – rate limit 60 req/15min por IP
+ * @returns {Object} 200 - { disponivel, motivo? }.
+ * @returns {Object} 429 - Muitas requisições.
+ *
+ * @example
+ * GET /api/public/agendamentos/disponibilidade?id_costureira=3&data=2026-11-20 14:00:00
  */
-router.post('/', validate(publicAgendamentoSchema), asyncHandler(async (req, res) => {
-    const dados = await agendamentoService.criarAgendamento(req.body, null);
-    res.status(201).json({
-        sucesso: true,
-        mensagem: 'Agendamento solicitado com sucesso',
-        dados: { id: dados.id, uuid: dados.des_url_externa, dta_agendamento: dados.dta_agendamento }
-    });
-}));
+router.get(
+    '/disponibilidade',
+    limiterConsultaPublica,
+    AgendamentoController.verificarDisponibilidadePublica
+);
 
 /**
- * Consulta pública de um agendamento pelo UUID (link enviado via WhatsApp/e-mail).
- * @example GET /api/public/agendamentos/:uuid
+ * @route POST /api/public/agendamentos
+ * @method POST
+ * @description Autoagendamento do paciente (localizado por CPF).
+ * @access Público – rate limit 5 req/hora por IP
+ * @returns {Object} 201 - Agendamento criado (dados mínimos + UUID).
+ * @returns {Object} 400 - Payload inválido.
+ * @returns {Object} 404 - CPF não cadastrado.
+ * @returns {Object} 409 - Horário ocupado.
+ * @returns {Object} 429 - Muitas requisições.
+ *
+ * @example
+ * POST /api/public/agendamentos
+ * Body: { "num_cpf": "11144477735", "id_costureira": 2, "dta_agendamento": "2026-11-20 14:00:00" }
  */
-router.get('/:uuid', asyncHandler(async (req, res) => {
-    const dados = await agendamentoService.buscarPorUuidPublico(req.params.uuid);
-    res.status(200).json({ sucesso: true, dados });
-}));
+router.post('/', limiterPublicoAgendamento, validarBodyMiddleware, AgendamentoController.criarPublico);
+
+/**
+ * @route GET /api/public/agendamentos/:uuid
+ * @method GET
+ * @description Consulta pública do agendamento pelo UUID enviado por e-mail.
+ * @access Público – rate limit 60 req/15min por IP
+ * @returns {Object} 200 - Dados mínimos do agendamento.
+ * @returns {Object} 400 - UUID inválido.
+ * @returns {Object} 404 - Não encontrado.
+ *
+ * @example
+ * GET /api/public/agendamentos/3f2b8c1e-9a4d-4e7b-8c21-5d6f7a8b9c0d
+ */
+router.get('/:uuid', limiterConsultaPublica, (req, res, next) => {
+    if (!REGEX_UUID.test(req.params.uuid)) {
+        return res.status(400).json({ sucesso: false, mensagem: 'Identificador inválido' });
+    }
+    next();
+}, AgendamentoController.buscarPorUuidPublico);
 
 module.exports = router;

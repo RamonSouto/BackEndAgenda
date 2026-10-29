@@ -47,7 +47,7 @@ const {
 const SENSITIVE_KEYS = new Set([
     'des_senha', 'senha', 'password', 'senha_atual', 'nova_senha',
     'token', 'authorization', 'jwt', 'api_key', 'apikey',
-    'num_cpf', 'cpf', 'num_cnpj', 'cnpj'
+    'num_cpf', 'cpf', 'num_cnpj', 'cnpj', 'des_smtp_senha', 'des_smtp_senha_enc', 'smtp_senha', 'pass'
 ]);
 
 /**

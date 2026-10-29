@@ -26,8 +26,7 @@ const tipoAgendamentoRoutes = require('./agendamento/tipoAgendamentoRoutes');
 const agendamentoRoutes = require('./agendamento/agendamentoRoutes');
 const agendamentoProdutoRoutes = require('./agendamento/agendamentoProdutoRoutes')
 const fotoProdutoAgendamentoRoutes = require('./agendamento/fotoProdutoAgendamentoRoutes');
-
-// const publicAgendamentoRoutes = require('./agendamento/publicAgendamentoRoutes');
+const publicAgendamentoRoutes = require('./agendamento/publicAgendamentoRoutes');
 
 // Módulo de Pessoa
 const pessoaRoutes = require('./pessoaRoutes');
@@ -49,6 +48,7 @@ const cidadeRoutes = require('./sistema/cidadeRoutes');
 const estadoRoutes = require('./sistema/estadoRoutes');
 const empresaRoutes = require('./sistema/empresaRoutes');
 const parametrizacaoRoutes = require('./sistema/parametrizacaoRoutes');
+const emailRoutes = require('./sistema/emailRoutes');
 
 const relatorioRoutes = require('./relatorioRoutes');
 
@@ -129,11 +129,11 @@ router.use('/auth', authRoutes);
 router.use('/pessoas', pessoaRoutes);
 
 // Módulo de Agendamento
+router.use('/public/agendamentos', publicAgendamentoRoutes);
 router.use('/agendamentos', fotoProdutoAgendamentoRoutes);
 router.use('/agendamentos', tipoAgendamentoRoutes);
 router.use('/agendamentos', agendamentoRoutes);
 router.use('/agendamentos', agendamentoProdutoRoutes);
-// router.use('/public/agendamentos', publicAgendamentoRoutes);
 
 // Módulo de Produtos
 router.use('/produtos', produtoRoutes);
@@ -151,6 +151,7 @@ router.use('/sistema', cidadeRoutes)
 router.use('/sistema', estadoRoutes)
 router.use('/sistema', empresaRoutes);
 router.use('/sistema', parametrizacaoRoutes);
+router.use('/sistema', emailRoutes);
 
 
 router.use('/relatorios', relatorioRoutes);

@@ -308,6 +308,57 @@ class EmpresaModel {
         return resultado.affectedRows > 0;
     }
 
+
+    /**     
+     * Busca configuração SMTP (inclui senha criptografada – uso interno).
+     * @method buscarConfigSmtp
+     * @param {number} id - ID da empresa.     
+     * @returns {Promise<Object|null>}
+     * */
+    async buscarConfigSmtp(id) {
+        const sql = `
+            SELECT id, nom_fantasia, num_celular_1, ind_smtp_ativo, des_smtp_host, num_smtp_porta,
+            ind_smtp_seguro, des_smtp_usuario, des_smtp_senha_enc,
+            des_smtp_email_remetente, nom_smtp_remetente, updated_ad
+            FROM tab_empresa
+            WHERE id = ? AND deleted_at IS NULL
+            `;
+        const resultado = await database.query(sql, [id]);
+        return resultado[0] || null;
+    }
+
+    /**
+     * Busca o ID da empresa emissora padrão (primeira ativa).
+     * @method buscarIdEmpresaPadrao     
+     * @returns {Promise<number|null>}     
+     **/
+    async buscarIdEmpresaPadrao() {
+        const sql = `SELECT id FROM tab_empresa WHERE ind_ativo = 1 AND deleted_at IS NULL ORDER BY id LIMIT 1`;
+        const resultado = await database.query(sql);
+        return resultado[0]?.id || null;
+    }
+
+    /**
+     * Atualiza configuração SMTP (colunas fixas – sem colunas dinâmicas).
+     * @method atualizarSmtp
+     * @param {number} id - ID da empresa.
+     * @param {Object} dados - Campos SMTP validados.
+     * @param {string|null} senhaEnc - Senha criptografada (null mantém a atual).
+     * @returns {Promise<boolean>}     
+     **/
+    async atualizarSmtp(id, dados, senhaEnc) {
+        const sql = `
+            UPDATE tab_empresa SET
+            ind_smtp_ativo = ?, des_smtp_host = ?, num_smtp_porta = ?, ind_smtp_seguro = ?,
+            des_smtp_usuario = ?, des_smtp_email_remetente = ?, nom_smtp_remetente = ?,
+            des_smtp_senha_enc = COALESCE(?, des_smtp_senha_enc)
+            WHERE id = ? AND deleted_at IS NULL
+        `;
+        const resultado = await database.query(sql, [dados.ind_smtp_ativo, dados.des_smtp_host, dados.num_smtp_porta, dados.ind_smtp_seguro, dados.des_smtp_usuario, dados.des_smtp_email_remetente, dados.nom_smtp_remetente, senhaEnc, id]);
+
+        return resultado.affectedRows > 0;
+    }
+
 }
 
 module.exports = new EmpresaModel();

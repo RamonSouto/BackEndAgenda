@@ -21,16 +21,16 @@
  * @requires ../../utils/ApiError
  */
 const { v4: uuidv4, randomUUID } = require('crypto');
-const database = require('../../config/database');
 const AgendamentoModel = require('../../models/agendamento/AgendamentoModel');
 const ProdutoAgendamentoModel = require('../../models/agendamento/AgendamentoProdutoModel');
 const ParametrizacaoModel = require('../../models/sistema/ParametrizacaoModel');
 const PessoaModel = require('../../models/PessoaModel');
 const LogService = require('../LogService');
-const { ACOES_LOG, MENSAGENS, STATUS_AGENDAMENTO } = require('../../utils/constants');
+const { ACOES_LOG, MENSAGENS, STATUS_AGENDAMENTO, EVENTOS_EMAIL } = require('../../utils/constants');
 const validators = require('../../utils/validators');
 const { NotFoundError, BadRequestError, ConflictError } = require('../../utils/ApiError');
 const { formatarDataHoraDB } = require('../../utils/formatters');
+const EmailOutboxService = require('../email/EmailOutboxService');
 
 /**
  * Transições de status permitidas (máquina de estados simples).
@@ -42,6 +42,11 @@ const TRANSICOES_PERMITIDAS = {
     concluido: [],
     cancelado: [],
     falta: []
+};
+
+const EVENTO_POR_STATUS = {
+    [STATUS_AGENDAMENTO.CONCLUIDO]: EVENTOS_EMAIL.CONCLUIDO,
+    [STATUS_AGENDAMENTO.CANCELADO]: EVENTOS_EMAIL.CANCELADO
 };
 
 class AgendamentoService {
@@ -200,11 +205,9 @@ class AgendamentoService {
 
         const dtaFormatada = formatarDataHoraDB(dataHora)
 
+        const temConflito = await AgendamentoModel.verificarConflito(value.id_costureira, dtaFormatada);
 
-        //const temConflito = await AgendamentoModel.verificarConflito(value.id_costureira, dtaFormatada);
-        const temConflito = await this.verificarDisponibilidade(value.id_costureira, dtaFormatada);
-
-        if (!temConflito) {
+        if (temConflito) {
             throw new ConflictError(MENSAGENS.ERRO.COSTUREIRA_OCUPADA);
         }
 
@@ -228,6 +231,8 @@ class AgendamentoService {
                 des_observacoes_costureira: value.des_observacoes_costureira
             }
         });
+
+        await EmailOutboxService.enfileirarEventoAgendamento(EVENTOS_EMAIL.CADASTRADO, agendamentoId);
 
         const agendamento = await AgendamentoModel.buscarPorId(agendamentoId);
 
@@ -567,6 +572,11 @@ class AgendamentoService {
             }
         });
 
+        if (EVENTO_POR_STATUS[novoStatus]) {
+            await EmailOutboxService.enfileirarEventoAgendamento(EVENTO_POR_STATUS[novoStatus], id);
+        }
+
+
         return this.buscarAgendamentoCompleto(id, usuarioLogadoId);
     }
 
@@ -687,6 +697,47 @@ class AgendamentoService {
         }
 
         return agendamento;
+    };
+
+    /**
+     * Cria agendamento a partir do fluxo PÚBLICO (sem autenticação).
+     * Reutiliza `criar` (validação, conflito, auditoria e e-mail de cadastro).
+     *
+     * @method criarAgendamentoPublico
+     * @async
+     * @param {Object} dados - { num_cpf, id_costureira, dta_agendamento, des_observacoes_geral? }
+     * @returns {Promise<Object>} Dados mínimos + UUID público.
+     * @throws {NotFoundError|BadRequestError|ConflictError}
+    */
+    async criarAgendamentoPublico(dados) {
+        const { error, value } = validators.publicAgendamentoSchema.validate(dados);
+        if (error) {
+            throw new BadRequestError(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
+        }
+
+        const paciente = await PessoaModel.buscarPorCpf(value.num_cpf);
+        if (!paciente || !paciente.ind_paciente || paciente.ind_status !== 'ativo') {
+            throw new NotFoundError(
+                'CPF não encontrado em nosso cadastro. Entre em contato com a clínica para se cadastrar antes de agendar.'
+            );
+        }
+
+        // Auditoria: o próprio paciente é o autor
+        const resultado = await this.criar({
+            id_paciente: paciente.id,
+            id_costureira: value.id_costureira,
+            dta_agendamento: value.dta_agendamento,
+            des_observacoes_geral: value.des_observacoes_geral
+        }, paciente.id);
+
+        // Retorno reduzido (LGPD)
+        return {
+            id: resultado.id,
+            des_url_externa: resultado.des_url_externa,
+            dta_agendamento: resultado.dta_agendamento,
+            ind_status: resultado.ind_status,
+            nom_costureira: resultado.nom_costureira
+        };
     }
 
 }
