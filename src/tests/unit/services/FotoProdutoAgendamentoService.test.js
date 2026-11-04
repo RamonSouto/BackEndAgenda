@@ -135,6 +135,11 @@ describe('consultas', () => {
         await expect(Service.buscarPorId(10, admin)).rejects.toMatchObject({ statusCode: 404 });
         await expect(Service.buscarPorId(10, medico)).rejects.toMatchObject({ statusCode: 403 });
     });
+    it('buscarPorId sucesso retorna foto mapeada', async () => {
+        const f = await Service.buscarPorId(10, costureira);
+        expect(f).toMatchObject({ id: 10, url_arquivo: '/api/agendamentos/fotos/10/arquivo' });
+        expect(f).not.toHaveProperty('des_caminho_arquivo');
+    });
     it('obterArquivo resolve caminho e audita', async () => {
         await expect(Service.obterArquivo(10, costureira)).resolves.toEqual({ caminho: path.join(ROOT, 'ajustes/f.jpg') });
         expect(LogService.registrar.mock.calls[0][0].des_detalhes).toEqual({ tipo_consulta: 'download_arquivo' });

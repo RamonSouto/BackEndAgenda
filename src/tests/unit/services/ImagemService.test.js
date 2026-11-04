@@ -1,3 +1,5 @@
+// /src/tests/unit/services/ImagemService.test.js
+
 jest.mock('../../../models/produto/ImagemModel');
 jest.mock('../../../services/LogService', () => ({ registrar: jest.fn() }));
 jest.mock('../../../services/UploadService', () => ({ deletarArquivo: jest.fn() }));
@@ -73,6 +75,11 @@ describe('ImagemService.adicionarImagemProduto', () => {
         await expect(Service.adicionarImagemProduto({}, 7)).rejects.toThrow(`${MENSAGENS.ERRO.VALIDACAO}: x`);
         expect(Model.criarImagemProduto).not.toHaveBeenCalled();
     });
+    // NOVO
+    it('erro do Model é propagado', async () => {
+        Model.criarImagemProduto.mockRejectedValue(new Error('db'));
+        await expect(Service.adicionarImagemProduto({ id_produto: 5 }, 7)).rejects.toThrow('db');
+    });
     it.failing('log contém a URL (usa `imagemProdutoId` number)', async () => {
         await Service.adicionarImagemProduto({ id_produto: 5, des_url_imagem: '/u/a.jpg' }, 7);
         expect(LogService.registrar.mock.calls[0][0].des_detalhes.des_url_imagem).toBe('/u/a.jpg');
@@ -111,6 +118,12 @@ describe('ImagemService.atualizarImagemProduto', () => {
         await Service.atualizarImagemProduto(1, { id_produto_grade: '3', ind_principal: 1 }, 7);
         expect(Model.desmarcarImagemPrincipalPorGrade).toHaveBeenCalledWith(3);
     });
+    // NOVO
+    it('principal sem produto/grade → não desmarca', async () => {
+        await Service.atualizarImagemProduto(1, { id_produto: 'null', ind_principal: true }, 7);
+        expect(Model.desmarcarImagemPrincipalPorProduto).not.toHaveBeenCalled();
+        expect(Model.desmarcarImagemPrincipalPorGrade).not.toHaveBeenCalled();
+    });
     it('nova URL → apaga arquivo antigo e audita antes/depois', async () => {
         const r = await Service.atualizarImagemProduto(1, { des_url_imagem: '/u/novo.jpg' }, 7);
         expect(UploadService.deletarArquivo).toHaveBeenCalledWith('/u/a.jpg');
@@ -125,6 +138,12 @@ describe('ImagemService.atualizarImagemProduto', () => {
         await Service.atualizarImagemProduto(1, { num_ordem: 2 }, 7);
         expect(UploadService.deletarArquivo).not.toHaveBeenCalled();
         expect(LogService.registrar.mock.calls[1][0].des_detalhes.des_url_imagem_nova).toBe('/u/a.jpg');
+    });
+    // NOVO (linha 235)
+    it('registro atual sem URL → não apaga mesmo com nova URL', async () => {
+        Model.buscarImagemProdutoId.mockResolvedValue(img({ des_url_imagem: null }));
+        await Service.atualizarImagemProduto(1, { des_url_imagem: '/u/novo.jpg' }, 7);
+        expect(UploadService.deletarArquivo).not.toHaveBeenCalled();
     });
     it('falha ao apagar arquivo não interrompe a atualização', async () => {
         UploadService.deletarArquivo.mockRejectedValueOnce(new Error('fs'));
@@ -147,7 +166,6 @@ describe('ImagemService.atualizarImagemProduto', () => {
 });
 
 describe('ImagemService.deletarImagemProduto', () => {
-    // O service espera um array; os mocks seguem esse formato para cobrir os branches.
     const comoArray = (o) => Model.buscarImagemProdutoId.mockResolvedValue([img(o)]);
 
     it('não principal → apenas soft delete', async () => {

@@ -30,12 +30,14 @@ describe('LogService.registrar', () => {
 describe('LogService – delegações', () => {
     it.each([
         ['listar', 'listar', [{ des_acao: 'x' }], [{ des_acao: 'x' }]],
+        ['listar', 'listar', [], [{}]],
         ['buscarPorUsuario', 'buscarPorUsuario', [1], [1, 50]],
         ['buscarPorUsuario', 'buscarPorUsuario', [1, 5], [1, 5]],
         ['buscarPorTabela', 'buscarPorTabela', ['tab_x'], ['tab_x', null]],
+        ['buscarPorTabela', 'buscarPorTabela', ['tab_x', 7], ['tab_x', 7]],
         ['obterEstatisticasAcoes', 'estatisticasAcoes', ['a', 'b'], ['a', 'b']],
         ['obterEstatisticasUsuarios', 'estatisticasUsuarios', ['a', 'b'], ['a', 'b']]
-    ])('%s → LogModel.%s', async (metodo, modelo, args, esperado) => {
+    ])('%s(%j) → LogModel.%s', async (metodo, modelo, args, esperado) => {
         LogModel[modelo].mockResolvedValue(['ok']);
         await expect(Service[metodo](...args)).resolves.toEqual(['ok']);
         expect(LogModel[modelo]).toHaveBeenCalledWith(...esperado);

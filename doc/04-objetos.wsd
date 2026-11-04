@@ -1,0 +1,66 @@
+@startuml objetos
+object "maria : Pessoa" as pac {
+  id = 15
+  nom_completo = "Maria Souza"
+  ind_paciente = true
+  ind_status = "ativo"
+}
+object "ana : Pessoa" as cos {
+  id = 3
+  nom_completo = "Ana Costureira"
+  ind_costureira = true
+  val_cor_hex = "FF6699"
+}
+object "carla : Pessoa" as sec {
+  id = 2
+  ind_secretaria = true
+}
+object "ag10 : Agendamento" as ag {
+  id = 10
+  des_url_externa = "3f2b8c1e-9a4d-4e7b-..."
+  dta_agendamento = 2026-11-20 14:00:00
+  ind_status = "confirmado"
+  ind_slot_ativo = 1
+}
+object "item3 : AgendamentoItem" as it {
+  id = 3
+  val_preco_servico = 49.90
+  val_desconto_servico = 5.00
+  ind_status = "producao"
+}
+object "foto21 : FotoItem" as f1 {
+  id = 21
+  ind_tipo_foto = "antes"
+  des_caminho_arquivo = "ajustes/ajuste-10-3-A-...jpg"
+}
+object "grade5 : ProdutoGrade" as gr {
+  id = 5
+  num_sku = "CINTA-M-PRETO"
+}
+object "ps3 : ProdutoServico" as ps {
+  id = 3
+}
+object "preco7 : PrecoProdutoServico" as pr {
+  val_preco = 49.90
+  dta_inicio = 2026-01-01
+}
+object "tipo1 : TipoAgendamento" as tp {
+  des_tipo_agendamento = "Ajuste"
+}
+object "out88 : EmailOutbox" as ob {
+  ind_evento = "agendamento_cadastrado"
+  ind_status = "enviado"
+  num_tentativas = 1
+}
+
+ag --> pac : paciente
+ag --> cos : costureira
+ag --> sec : secretária
+ag *-- it
+it *-- f1
+it --> gr
+it --> ps
+it --> tp
+ps *-- pr : vigente
+ob --> ag
+@enduml

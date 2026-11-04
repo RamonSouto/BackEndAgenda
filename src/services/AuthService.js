@@ -118,7 +118,8 @@ class AuthService {
                 return ['*'];
             }
 
-            permissoesDoPapel.forEach(permissoes => permissoes.add(permissao));
+            permissoesDoPapel.forEach((permissao) => permissoes.add(permissao));
+
         }
 
         return Array.from(permissoes);

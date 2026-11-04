@@ -1,0 +1,87 @@
+@startuml casos_de_uso
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+actor "Visitante/Paciente\n(anônimo)" as Pac
+actor "Usuário Autenticado" as Usr
+actor Administrador as Adm
+actor "Secretária" as Sec
+actor Costureira as Cos
+actor "Médico" as Med
+actor "Servidor SMTP" as SMTP <<system>>
+actor "Worker Outbox" as Wrk <<system>>
+
+Adm -|> Usr
+Sec -|> Usr
+Cos -|> Usr
+Med -|> Usr
+
+rectangle "Sistema Agenda de Ajustes" {
+  usecase "Autenticar (JWT)" as UC_Login
+  usecase "Verificar disponibilidade" as UC_Disp
+  usecase "Autoagendar por CPF" as UC_AutoAg
+  usecase "Consultar agendamento por UUID" as UC_UUID
+
+  usecase "Criar agendamento" as UC_Criar
+  usecase "Listar/consultar agendamentos" as UC_Listar
+  usecase "Editar agendamento" as UC_Edit
+  usecase "Trocar costureira" as UC_Troca
+  usecase "Alterar status" as UC_Status
+  usecase "Excluir agendamento (soft)" as UC_Del
+  usecase "Gerenciar itens do agendamento" as UC_Itens
+  usecase "Resolver preço vigente" as UC_Preco
+  usecase "Enviar/gerenciar fotos de ajuste" as UC_Foto
+  usecase "Baixar foto (LGPD)" as UC_Down
+
+  usecase "Validar janela de horário" as UC_Janela
+  usecase "Verificar conflito de slot" as UC_Conf
+  usecase "Registrar auditoria" as UC_Log
+  usecase "Enfileirar e-mail" as UC_Enf
+  usecase "Processar outbox / purgar LGPD" as UC_Out
+
+  usecase "Gerenciar catálogo\n(produto, grade, categoria,\ncor/estampa, imagem, serviço, preço)" as UC_Cat
+  usecase "Gerenciar tipos de agendamento" as UC_Tipo
+  usecase "Gerenciar sistema\n(empresa, SMTP, templates,\nparametrização)" as UC_Sis
+  usecase "Visualizar relatórios" as UC_Rel
+}
+
+Pac --> UC_Disp
+Pac --> UC_AutoAg
+Pac --> UC_UUID
+Usr --> UC_Login
+Usr --> UC_Listar
+Usr --> UC_Disp
+
+Sec --> UC_Criar
+Sec --> UC_Edit
+Sec --> UC_Troca
+Sec --> UC_Itens
+Cos --> UC_Status
+Cos --> UC_Foto
+Cos --> UC_Down
+Sec --> UC_Status
+Sec --> UC_Foto
+Adm --> UC_Del
+Adm --> UC_Cat
+Adm --> UC_Tipo
+Adm --> UC_Sis
+Med --> UC_Rel
+Adm --> UC_Rel
+
+UC_AutoAg ..> UC_Criar : <<include>>
+UC_Criar ..> UC_Janela : <<include>>
+UC_Criar ..> UC_Conf : <<include>>
+UC_Criar ..> UC_Log : <<include>>
+UC_Criar ..> UC_Enf : <<include>>
+UC_Edit ..> UC_Janela : <<include>>
+UC_Troca ..> UC_Conf : <<include>>
+UC_Itens ..> UC_Preco : <<include>>
+UC_Enf <.. UC_Status : <<extend>>\n[concluido|cancelado]
+UC_Disp ..> UC_Janela : <<include>>
+UC_Disp ..> UC_Conf : <<include>>
+UC_Foto ..> UC_Log : <<include>>
+
+Wrk --> UC_Out
+UC_Out --> SMTP
+@enduml

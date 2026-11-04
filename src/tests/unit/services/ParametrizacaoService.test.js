@@ -1,6 +1,5 @@
 // /src/tests/unit/services/ParametrizacaoService.test.js
 
-
 jest.mock('../../../models/sistema/ParametrizacaoModel', () => ({
     criar: jest.fn(), listar: jest.fn(), buscarParametrizacaoPorId: jest.fn(), buscarParametrizacaoPorTipoAtivo: jest.fn(),
     contarAtivosPorTipo: jest.fn(), contarDesativadoPorTipo: jest.fn(), buscarTipoDesativadoMaisRecente: jest.fn(),
@@ -55,6 +54,11 @@ describe('criar', () => {
     ])('%s → erro de validação', async (_, extra) => {
         await expect(Service.criar(payload(extra), 9)).rejects.toThrow(/^Erro de validação/);
         expect(Model.desativarPorTipo).not.toHaveBeenCalled();
+    });
+    // NOVO
+    it('erro do Model é propagado', async () => {
+        Model.criar.mockRejectedValue(new Error('db'));
+        await expect(Service.criar(payload(), 9)).rejects.toThrow('db');
     });
     it.failing('validação deveria ser BadRequestError (400)', async () => {
         await expect(Service.criar({}, 9)).rejects.toMatchObject({ statusCode: 400 });
@@ -126,6 +130,25 @@ describe('atualizar', () => {
         await expect(Service.atualizar(1, { des_tipo_dia: 'SABADO' }, 9)).rejects.toThrow(/alterar o tipo/);
         expect(Model.atualizar).not.toHaveBeenCalled();
     });
+    // NOVO
+    it('único ativo sem desativado: edição simples é permitida', async () => {
+        Model.contarAtivosPorTipo.mockResolvedValue(0);
+        Model.buscarTipoDesativadoMaisRecente.mockResolvedValue(0);
+        await expect(Service.atualizar(1, { qtd_minutos_intervalo: 30 }, 9)).resolves.toEqual(registro());
+    });
+    // NOVO (comportamento atual)
+    it('único ativo com desativado: troca o ativo (comportamento atual)', async () => {
+        Model.contarAtivosPorTipo.mockResolvedValue(0);
+        await Service.atualizar(1, { ind_ativo: false }, 9);
+        expect(Model.desativarParametrizacao).toHaveBeenCalledWith(1);
+        expect(Model.ativarParametrizacao).toHaveBeenCalledWith(2);
+    });
+    // NOVO
+    it('ativando registro inativo (boolean false) desativa os outros do tipo', async () => {
+        Model.buscarParametrizacaoPorId.mockResolvedValue(registro({ ind_ativo: false }));
+        await Service.atualizar(1, { ind_ativo: true }, 9);
+        expect(Model.desativarPorTipo).toHaveBeenCalledWith('UTIL', 1);
+    });
     it('trocar tipo desativando → erro', async () => {
         await expect(Service.atualizar(1, { des_tipo_dia: 'SABADO', ind_ativo: false }, 9)).rejects.toThrow(/deve permanecer ativo/);
     });
@@ -169,6 +192,15 @@ describe('deletar', () => {
         expect(Model.ativarParametrizacao).toHaveBeenCalledWith(2);
         expect(Model.deletar).toHaveBeenCalledWith(1);
         expect(LogService.registrar).toHaveBeenCalledWith(expect.objectContaining({ des_acao: 'deletar', num_registro_id: 1 }));
+    });
+    // NOVO (linha 316 – comportamento atual)
+    it('inativo (ind_ativo=0) com inativos: troca, deleta e audita', async () => {
+        Model.buscarParametrizacaoPorId.mockResolvedValue(registro({ ind_ativo: 0 }));
+        await expect(Service.deletar(1, 9)).resolves.toBe(true);
+        expect(Model.buscarTipoDesativadoMaisRecente).toHaveBeenCalledWith('UTIL', 1);
+        expect(Model.desativarParametrizacao).toHaveBeenCalledWith(1);
+        expect(Model.ativarParametrizacao).toHaveBeenCalledWith(2);
+        expect(LogService.registrar.mock.calls[0][0].des_detalhes.parametrizacao).toEqual(registro({ ind_ativo: 0 }));
     });
     it('inexistente → erro', async () => {
         Model.buscarParametrizacaoPorId.mockResolvedValue(null);

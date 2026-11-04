@@ -1,0 +1,258 @@
+@startuml classes
+skinparam classAttributeIconSize 0
+hide empty members
+
+package config {
+  class Database <<singleton>> {
+    - pool : mysql.Pool
+    + connect() : Promise<Pool>
+    + getPool() : Pool
+    + query(sql:string, params:Array) : Promise<any>
+    + transaction(cb:Function) : Promise<any>
+    + close() : Promise<void>
+  }
+  class Env <<module>> {
+    + env : string
+    + port : number
+    + database : Object
+    + jwt : Object
+    + upload : Object
+    + email : Object
+    + logger : Object
+  }
+  class Logger <<winston>> {
+    + info() / warn() / error() / http()
+    + child(meta) : Logger
+  }
+}
+
+package routes {
+  class AgendamentoRoutes <<router>>
+  class PublicAgendamentoRoutes <<router>>
+  class FotoProdutoAgendamentoRoutes <<router>>
+}
+
+package middlewares {
+  class AuthMiddleware <<function>> {
+    + authMiddleware(req,res,next)
+  }
+  class PermissionMiddleware <<module>> {
+    + permissionMiddleware(perms)
+    + papelMiddleware(papeis)
+    + apenasAdminMiddleware()
+    + secretariaOuAdminMiddleware()
+    + costureiraAdminSecretariaMiddleware()
+    + recursoProprio(param)
+  }
+  class ErrorMiddleware <<module>> {
+    + errorMiddleware(err,req,res,next)
+    + asyncHandler(fn) : Function
+    + validarIdMiddleware(param)
+    + validarBodyMiddleware()
+    + sanitizarInputMiddleware()
+  }
+  class UploadMiddleware <<module>> {
+    + uploadSingle(field, subpasta)
+    + uploadMultiple(field, max, subpasta)
+    + uploadFields(fields, subpasta)
+  }
+  class RateLimitMiddleware <<module>>
+  class RequestLoggerMiddleware <<function>>
+}
+
+package controllers {
+  class AgendamentoController <<singleton>> {
+    + criar(req,res)
+    + listar(req,res)
+    + buscarPorId(req,res)
+    + atualizar(req,res)
+    + trocarCostureira(req,res)
+    + atualizarStatus(req,res)
+    + deletar(req,res)
+    + verificarDisponibilidade(req,res)
+    + criarPublico(req,res)
+    + buscarPorUuidPublico(req,res)
+  }
+  class AgendamentoProdutoController <<singleton>> {
+    + adicionarItem() / listarPorAgendamento()
+    + buscarPorId() / atualizar() / deletar()
+  }
+  class FotoProdutoAgendamentoController <<singleton>> {
+    + validarAcessoUpload() / adicionar()
+    + listarPorItem() / buscarPorId()
+    + baixarArquivo() / deletar()
+  }
+}
+
+package services {
+  class AgendamentoService <<singleton>> {
+    - TRANSICOES_PERMITIDAS : Map<string,string[]>
+    - _validarPessoas(idPac,idCos,idSec) : Promise<Object>
+    - _validarJanelaHorario(data:Date) : Promise<Object>
+    - _validarSecretaria(id) : Promise<void>
+    + verificarDisponibilidade(idCos, data) : Promise<Object>
+    + criar(dados, usuarioId) : Promise<Agendamento>
+    + atualizar(id, dados, usuarioId) : Promise<Agendamento>
+    + buscarAgendamentoCompleto(id, usuario) : Promise<Object>
+    + listarAgendamentos(filtros, usuario) : Promise<{dados,total}>
+    + trocarCostureira(id, idCos, motivo, usuario)
+    + alterarStatus(id, status, usuario)
+    + deletarAgendamento(id, usuarioId) : Promise<boolean>
+    + criarAgendamentoPublico(dados) : Promise<Object>
+    + buscarPorUuidPublico(uuid) : Promise<Object>
+  }
+  class AgendamentoProdutoService <<singleton>> {
+    - _obterAgendamentoEditavel(id, usuario)
+    - _obterItemDoAgendamento(idAg, idItem)
+    - _resolverPreco(idPS, idGrade, desc, uid) : Promise<number>
+    + adicionarItem(dados, usuario)
+    + atualizar(idAg, idItem, dados, usuario)
+    + deletarItem(idAg, idItem, usuario)
+  }
+  class FotoProdutoAgendamentoService <<singleton>> {
+    - _validarAcesso(usuario, ctx)
+    - _validarStatusEditavel(ctx)
+    - _descartarArquivos(caminhos)
+    + validarAcessoItem(idAg, idItem, usuario)
+    + adicionarFotos(params, usuario)
+    + obterArquivo(id, usuario) : {caminho}
+    + deletar(id, usuario) : boolean
+  }
+  class LogService <<singleton>> {
+    + registrar(dados) : Promise<void>
+  }
+  class EmailOutboxService <<singleton>> {
+    + enfileirarEventoAgendamento(evento, idAg)
+    + processarLote()
+  }
+  class MailTransportService {
+    + fecharTodos()
+  }
+  class UploadService {
+    + getMulterConfig()
+    + validarArquivo(file)
+    + deletarArquivo(path)
+    + caminhoRelativo(file) : string
+  }
+}
+
+package models {
+  class AgendamentoModel <<singleton>> {
+    - _montarFiltros(f) : {where, valores}
+    + criar(dados, conn?) : number
+    + buscarPorId(id, conn?) : Object
+    + buscarPorUuid(uuid) : Object
+    + listar(filtros) : Array
+    + contar(filtros) : number
+    + verificarConflito(idCos, data, ignorarId?, conn?) : boolean
+    + atualizarStatus(id, atual, novo, conn?) : boolean
+    + trocarCostureira(id, idCos, conn?) : boolean
+    + atualizar(id, dados, conn?) : boolean
+    + deletar(id) : boolean
+  }
+  class AgendamentoProdutoModel <<singleton>> {
+    + buscarPrecoVigente(idPS) : Object
+    + criar(dados) / buscarPorId(id)
+    + listarPorAgendamento(idAg) / atualizar() / deletar()
+  }
+  class FotoProdutoAgendamentoModel <<singleton>> {
+    + buscarContextoItem(idItem, conn?, bloquear?)
+    + contarPorItem(idItem, conn?) : number
+    + criar(dados, conn?) / listarPorItem() / buscarPorId() / deletar()
+  }
+  class PessoaModel
+  class ParametrizacaoModel
+  class EmailOutboxModel {
+    + purgarEnviados(dias) : number
+  }
+}
+
+package utils {
+  class ApiError {
+    + statusCode : number
+    + isOperational : boolean
+  }
+  class NotFoundError
+  class BadRequestError
+  class UnauthorizedError
+  class ForbiddenError
+  class ConflictError
+  class ValidationError
+  class SqlUtils <<module>> {
+    + montarUpdate(dados, whitelist) : {set, valores}
+    + executar(sql, params, conn?) : Promise
+  }
+  class AcessoAgendamento <<module>> {
+    + restritoAosProprios(usuario) : boolean
+    + garantirAcessoAgendamento(usuario, ag) : void
+  }
+  class Validators <<module>>
+  class CryptoUtils <<module>> {
+    + criptografar(t) : string
+    + descriptografar(p) : string
+    + validarChave()
+  }
+  class ArquivoUtils <<module>>
+  class Constants <<module>>
+}
+
+package workers {
+  class EmailOutboxWorker <<singleton>> {
+    - timer : Timeout
+    - ativo : boolean
+    - ultimaPurga : number
+    - _ciclo() : Promise<void>
+    + iniciar() : void
+    + parar() : void
+  }
+}
+
+Error <|-- ApiError
+ApiError <|-- NotFoundError
+ApiError <|-- BadRequestError
+ApiError <|-- UnauthorizedError
+ApiError <|-- ForbiddenError
+ApiError <|-- ConflictError
+ApiError <|-- ValidationError
+
+AgendamentoRoutes ..> AgendamentoController
+AgendamentoRoutes ..> PermissionMiddleware
+PublicAgendamentoRoutes ..> AgendamentoController
+PublicAgendamentoRoutes ..> RateLimitMiddleware
+FotoProdutoAgendamentoRoutes ..> FotoProdutoAgendamentoController
+FotoProdutoAgendamentoRoutes ..> UploadMiddleware
+
+AgendamentoController ..> AgendamentoService
+AgendamentoController ..> ErrorMiddleware : asyncHandler
+AgendamentoProdutoController ..> AgendamentoProdutoService
+FotoProdutoAgendamentoController ..> FotoProdutoAgendamentoService
+
+AgendamentoService --> AgendamentoModel
+AgendamentoService --> AgendamentoProdutoModel
+AgendamentoService --> PessoaModel
+AgendamentoService --> ParametrizacaoModel
+AgendamentoService --> LogService
+AgendamentoService --> EmailOutboxService
+AgendamentoService ..> AcessoAgendamento
+AgendamentoService ..> Validators
+AgendamentoService ..> ApiError : <<throws>>
+
+AgendamentoProdutoService --> AgendamentoProdutoModel
+AgendamentoProdutoService --> AgendamentoModel
+AgendamentoProdutoService --> LogService
+FotoProdutoAgendamentoService --> FotoProdutoAgendamentoModel
+FotoProdutoAgendamentoService --> Database : transaction
+FotoProdutoAgendamentoService ..> ArquivoUtils
+UploadMiddleware --> UploadService
+
+AgendamentoModel ..> SqlUtils
+AgendamentoProdutoModel ..> SqlUtils
+SqlUtils --> Database
+Database ..> Env
+Logger ..> Env
+
+EmailOutboxWorker --> EmailOutboxService
+EmailOutboxWorker --> EmailOutboxModel
+EmailOutboxWorker --> MailTransportService
+EmailOutboxService ..> CryptoUtils
+@enduml

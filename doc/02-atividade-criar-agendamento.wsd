@@ -1,0 +1,66 @@
+@startuml atividade_criar_agendamento
+|Cliente|
+start
+:POST /api/agendamentos
+ ou /api/public/agendamentos;
+|Middlewares|
+:helmet / cors / requestLogger;
+:limiterGeral (ou limiterPublicoAgendamento);
+:sanitizarInput (trim + anti prototype pollution);
+if (Rota pública?) then (não)
+  :authMiddleware (JWT HS256);
+  if (Token válido?) then (não)
+    :401 Não autorizado;
+    stop
+  endif
+  :secretariaOuAdminMiddleware;
+  if (Papel autorizado?) then (não)
+    :403 Acesso negado;
+    stop
+  endif
+else (sim)
+endif
+:validarBodyMiddleware;
+|AgendamentoService|
+if (Público?) then (sim)
+  :Validar publicAgendamentoSchema;
+  :PessoaModel.buscarPorCpf();
+  if (Paciente ativo?) then (não)
+    :400 mensagem neutra (anti-enumeração);
+    stop
+  endif
+endif
+:Validar agendamentoSchema (Joi);
+if (Válido?) then (não)
+  :400 Erro de validação;
+  stop
+endif
+:_validarPessoas(paciente, costureira, secretária);
+if (Papéis e status OK?) then (não)
+  :400 Pessoa inválida;
+  stop
+endif
+:_validarJanelaHorario();
+if (Domingo ou fora do expediente?) then (sim)
+  :400 Fora do expediente;
+  stop
+endif
+:AgendamentoModel.verificarConflito();
+if (Conflito?) then (sim)
+  :409 Costureira ocupada;
+  stop
+endif
+|AgendamentoModel / MySQL|
+:INSERT tab_agendamento (UUID v4);
+note right: UNIQUE uq_agenda_costureira_slot\nfunciona como garantia final (ER_DUP_ENTRY → 409)
+|AgendamentoService|
+fork
+  :LogService.registrar(CRIAR);
+fork again
+  :EmailOutboxService.enfileirar(CADASTRADO);
+end fork
+:buscarPorId();
+|Cliente|
+:201 Created (público: dados mínimos + UUID);
+stop
+@enduml

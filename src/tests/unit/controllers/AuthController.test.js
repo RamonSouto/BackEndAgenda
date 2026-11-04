@@ -88,6 +88,12 @@ describe('resetarSenha', () => {
         await run(ctrl.resetarSenha, mockReq({ body: { num_cpf: '111', nova_senha: '123456' } }));
         expect(AuthService.resetarSenha).toHaveBeenCalledWith('111', '123456', 1);
     });
+
+    it('400 com senha curta', async () => {
+        const { res } = await run(ctrl.resetarSenha, mockReq({ body: { num_cpf: '111', nova_senha: '123' } }));
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(AuthService.resetarSenha).not.toHaveBeenCalled();
+    });
 });
 
 it('obterPerfil busca o próprio usuário', async () => {

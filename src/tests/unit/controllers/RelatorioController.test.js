@@ -97,3 +97,26 @@ it('dashboard consolida mês, hoje e costureiras', async () => {
     expect(dados.hoje.total).toBe(1);
     expect(dados.costureiras).toEqual({ total: 2, disponiveis: 1, ocupadas: 1 });
 });
+
+it('produtividade contabiliza falta e usa período informado', async () => {
+    Ag.listar.mockResolvedValue(['concluido', 'falta', 'falta'].map((s) => ({ costureira_id: 5, costureira_nome: 'Ana', ind_status: s })));
+    const body = await run(ctrl.produtividadeCostureiras, mockReq({ query: { data_inicio: '2026-01-01', data_fim: '2026-01-31' } }));
+    expect(body.periodo).toEqual({ data_inicio: '2026-01-01', data_fim: '2026-01-31' });
+    expect(body.dados[0]).toMatchObject({ concluidos: 1, faltas: 2, em_andamento: 0 });
+});
+
+describe.each([
+    ['estatisticasAcoes', 'obterEstatisticasAcoes'],
+    ['estatisticasUsuarios', 'obterEstatisticasUsuarios']
+])('%s – período', (m, svc) => {
+    it('usa período informado', async () => {
+        Log[svc].mockResolvedValue([{ x: 1 }]);
+        const body = await run(ctrl[m], mockReq({ query: { data_inicio: '2026-01-01', data_fim: '2026-01-31' } }));
+        expect(Log[svc]).toHaveBeenCalledWith('2026-01-01', '2026-01-31');
+        expect(body.dados).toEqual([{ x: 1 }]);
+    });
+    it('só data_inicio → cai no mês atual', async () => {
+        const body = await run(ctrl[m], mockReq({ query: { data_inicio: '2026-01-01' } }));
+        expect(new Date(body.periodo.data_inicio).getMonth()).toBe(10);
+    });
+});

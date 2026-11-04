@@ -12,16 +12,7 @@ const crypto = require('crypto');
 const logger = require('../config/logger');
 const { runWithContext } = require('../utils/loggerContext');
 
-/**
- * Gera um ID de requisição único (compatível com Node 16.0.0 – sem randomUUID).
- */
-// const generateRequestId = () =>
-//     crypto.randomBytes(8).toString('hex');
-const generateRequestId = () => crypto.randomUUID();
-
-
 const requestLoggerMiddleware = (req, res, next) => {
-    // const requestId = req.headers['x-request-id'] || generateRequestId();
     const idCliente = req.headers['x-request-id'];
     const requestId = /^[\w-]{8,64}$/.test(idCliente || '') ? idCliente : crypto.randomUUID();
     const startNs = process.hrtime.bigint();

@@ -20,7 +20,8 @@
     "test:auth": "jest --testPathPattern=auth --coverage --runInBand",
     "test:ci": "jest --coverage --ci --runInBand --maxWorkers=2",
     "test:coverage": "jest --coverage && open coverage/lcov-report/index.html",
-    "debug": "node --inspect server.js"
+    "debug": "node --inspect server.js",
+    "uml": "node scripts/renderUml.js"
   },
   "keywords": [
     "agenda",
@@ -35,6 +36,7 @@
     "@types/jest": "^29.5.8",
     "jest": "^29.7.0",
     "nodemon": "^3.1.11",
+    "sharp": "^0.35.5",
     "supertest": "^6.3.4"
   },
   "dependencies": {

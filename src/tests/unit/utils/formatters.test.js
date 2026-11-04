@@ -21,8 +21,10 @@ describe('formatters – datas', () => {
     it.each([
         ['formatarData', '2026-11-03', '03/11/2026'],
         ['formatarData', data, '03/11/2026'],
+        ['formatarDataHora', '2026-11-03T14:05:09', '03/11/2026 14:05:09'],
         ['formatarDataHora', data, '03/11/2026 14:05:09'],
-        ['formatarDataHoraDB', '2026-11-03T14:05:09', '2026-11-03 14:05:09']
+        ['formatarDataHoraDB', '2026-11-03T14:05:09', '2026-11-03 14:05:09'],
+        ['formatarDataHoraDB', data, '2026-11-03 14:05:09']
     ])('%s(%s) → %s', (fn, e, s) => expect(f[fn](e)).toBe(s));
     it('formato customizado', () => expect(f.formatarData(data, 'yyyy-MM-dd')).toBe('2026-11-03'));
     it.each(['formatarData', 'formatarDataHora', 'formatarDataHoraDB'])('%s(null) → null', (fn) => expect(f[fn](null)).toBeNull());

@@ -6,14 +6,12 @@ jest.mock('../../../models/PessoaModel', () => ({
 jest.mock('../../../services/LogService', () => ({ registrar: jest.fn() }));
 jest.mock('../../../config/logger', () => ({ debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
 jest.mock('bcryptjs', () => ({ hash: jest.fn(async (s) => `hash:${s}`) }));
-// BUG: o service faz require('../models/AgendamentoModel'), mas o arquivo está em models/agendamento/.
-// O mock virtual simula esse caminho para cobrir a lógica. Corrija o require no service.
-jest.mock('../../../models/AgendamentoModel', () => ({ buscarAgendamentoAtivoCostureira: jest.fn() }), { virtual: true });
+jest.mock('../../../models/agendamento/AgendamentoModel', () => ({ buscarAgendamentoAtivoCostureira: jest.fn() }));
 
 const bcrypt = require('bcryptjs');
 const PessoaModel = require('../../../models/PessoaModel');
 const LogService = require('../../../services/LogService');
-const AgendamentoModel = require('../../../models/AgendamentoModel');
+const AgendamentoModel = require('../../../models/agendamento/AgendamentoModel');
 const Service = require('../../../services/PessoaService');
 
 const CPF = '11144477735';
@@ -95,16 +93,24 @@ describe('PessoaService – consultas', () => {
         expect(LogService.registrar).toHaveBeenCalledWith(expect.objectContaining({ des_acao: 'consultar', num_registro_id: 1 }));
         await expect(Service.buscarPorId(2, 9)).rejects.toThrow('Recurso não encontrado');
     });
-    it('buscarPorCPF inválido', async () => {
-        await expect(Service.buscarPorCPF('123', 1)).rejects.toThrow('CPF inválido');
+    it.each(['123', null, undefined])('buscarPorCPF inválido: %p', async (cpf) => {
+        await expect(Service.buscarPorCPF(cpf, 1)).rejects.toThrow('CPF inválido');
+        expect(PessoaModel.buscarPorCPF).not.toHaveBeenCalled();
     });
-    it('buscarPorCPF válido hoje lança ReferenceError (cpfLimpo)', async () => {
-        await expect(Service.buscarPorCPF(CPF, 1)).rejects.toThrow(ReferenceError);
-    });
-    it.failing('buscarPorCPF válido deveria retornar pessoa (cpfLimpo não definido)', async () => {
-        PessoaModel.buscarPorCPF.mockResolvedValue(pessoaDb());
-        await expect(Service.buscarPorCPF('111.444.777-35', 1)).resolves.toMatchObject({ id: 1 });
+    it('buscarPorCPF não encontrada (limpa máscara)', async () => {
+        PessoaModel.buscarPorCPF.mockResolvedValue(null);
+        await expect(Service.buscarPorCPF('111.444.777-35', 1)).rejects.toThrow('Pessoa não encontrada');
         expect(PessoaModel.buscarPorCPF).toHaveBeenCalledWith(CPF);
+    });
+    it('buscarPorCPF sucesso: audita e oculta sensíveis', async () => {
+        PessoaModel.buscarPorCPF.mockResolvedValue(pessoaDb({ id: 3 }));
+        const r = await Service.buscarPorCPF(CPF, 1);
+        expect(r).toMatchObject({ id: 3 });
+        expect(r).not.toHaveProperty('num_cpf');
+        expect(r).not.toHaveProperty('des_senha');
+        expect(LogService.registrar.mock.calls[0][0]).toMatchObject({
+            id_usuario: 1, num_registro_id: 3, des_detalhes: { tipo_consulta: 'buscar_por_cpf', cpf: CPF }
+        });
     });
     it.each([['listar', 'listar', {}], ['listarPorPapel', 'buscarPorPapel', 'paciente']])('%s oculta sensíveis e loga total', async (metodo, modelo, arg) => {
         PessoaModel[modelo].mockResolvedValue([pessoaDb(), pessoaDb({ id: 2 })]);
@@ -212,6 +218,7 @@ describe('PessoaService.listarCostureirasDisponiveis', () => {
         PessoaModel.buscarPorPapel.mockResolvedValue([pessoaDb({ id: 1 }), pessoaDb({ id: 2 })]);
         AgendamentoModel.buscarAgendamentoAtivoCostureira.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 50 });
         const r = await Service.listarCostureirasDisponiveis(9);
+        expect(PessoaModel.buscarPorPapel).toHaveBeenCalledWith('costureira');
         expect(r[0]).toMatchObject({ disponivel: true, agendamento_ativo: null });
         expect(r[1]).toMatchObject({ disponivel: false, agendamento_ativo: { id: 50 } });
         expect(LogService.registrar.mock.calls[0][0].des_detalhes).toMatchObject({ total: 2, disponiveis: 1 });

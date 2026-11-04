@@ -1,0 +1,66 @@
+@startuml sequencia_criar
+autonumber
+actor "Secretária" as U
+participant "Express\n(app.js)" as App
+participant authMiddleware as Auth
+participant "permission\nMiddleware" as Perm
+participant AgendamentoController as Ctrl
+participant AgendamentoService as Svc
+participant PessoaModel as PM
+participant ParametrizacaoModel as ParM
+participant AgendamentoModel as AM
+participant LogService as Log
+participant EmailOutboxService as Out
+database MySQL as DB
+
+U -> App : POST /api/agendamentos {dados}
+App -> Auth : authMiddleware(req)
+Auth -> Auth : jwt.verify(HS256)
+alt token inválido
+  Auth --> U : 401
+end
+Auth -> Perm : next()
+Perm -> Perm : papel ∈ {secretaria, admin}?
+alt não autorizado
+  Perm --> U : 403
+end
+Perm -> Ctrl : criar(req,res)
+Ctrl -> Svc : criar(body, usuario.id)
+Svc -> Svc : agendamentoSchema.validate()
+Svc -> PM : buscarPorId(paciente/costureira/secretária)
+PM -> DB : SELECT tab_pessoas
+DB --> PM : rows
+PM --> Svc : pessoas
+Svc -> ParM : buscarParametrizacaoPorTipoAtivo(tipoDia)
+ParM -> DB : SELECT tab_parametrizacao
+ParM --> Svc : janela
+Svc -> AM : verificarConflito(idCos, data)
+AM -> DB : SELECT ... ind_status != 'cancelado'
+AM --> Svc : false
+Svc -> AM : criar({..., des_url_externa: randomUUID()})
+AM -> DB : INSERT tab_agendamento
+alt ER_DUP_ENTRY (corrida)
+  DB --> AM : erro uq_agenda_costureira_slot
+  AM --> App : throw → errorMiddleware
+  App --> U : 409 Costureira ocupada
+end
+DB --> AM : insertId
+AM --> Svc : id
+Svc -> Log : registrar(CRIAR)
+Log -> DB : INSERT tab_log
+Svc -> Out : enfileirarEventoAgendamento(CADASTRADO, id)
+Out -> DB : INSERT tab_email_outbox (idempotente)
+Svc -> AM : buscarPorId(id)
+AM --> Svc : agendamento
+Svc --> Ctrl : agendamento
+Ctrl --> U : 201 {sucesso, dados}
+
+== Assíncrono (worker) ==
+participant EmailOutboxWorker as W
+participant "SMTP" as S
+W ->> Out : processarLote() [a cada 15 s]
+Out -> DB : claim atômico (lock_token)
+Out ->> S : sendMail()
+S -->> Out : messageId
+Out -> DB : UPDATE status='enviado'
+@enduml

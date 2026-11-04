@@ -44,7 +44,7 @@ describe('AuthService – papéis e permissões', () => {
     it('sem papéis → []', () => {
         expect(Service.obterPermissoesUsuario({})).toEqual([]);
     });
-    it.failing('secretaria deveria ter permissões (forEach usa variável errada)', () => {
+    it('secretaria deveria ter permissões (forEach usa variável errada)', () => {
         expect(Service.obterPermissoesUsuario({ ind_secretaria: 1 })).toContain('agendamento:criar');
     });
     it('verificarPermissao: inexistente → false; admin → true', async () => {
@@ -52,9 +52,23 @@ describe('AuthService – papéis e permissões', () => {
         await expect(Service.verificarPermissao(1, 'x')).resolves.toBe(false);
         await expect(Service.verificarPermissao(1, 'x')).resolves.toBe(true);
     });
-    it.failing('verificarPermissao de médico deveria funcionar', async () => {
+    it('verificarPermissao de médico deveria funcionar', async () => {
         PessoaModel.buscarPorId.mockResolvedValue({ ind_medico: 1 });
         await expect(Service.verificarPermissao(1, 'relatorio:visualizar')).resolves.toBe(true);
+    });
+    it('possuiAlgumPapel sem lista → false (default [])', () => {
+        expect(Service.possuiAlgumPapel({ ind_medico: 1 })).toBe(false);
+    });
+
+    it('papel sem entrada em PERMISSOES → [] (fallback)', () => {
+        const { PERMISSOES } = require('../../../utils/constants');
+        const original = PERMISSOES.paciente;
+        delete PERMISSOES.paciente;
+        try {
+            expect(Service.obterPermissoesUsuario({ ind_paciente: 1 })).toEqual([]);
+        } finally {
+            if (original !== undefined) PERMISSOES.paciente = original;
+        }
     });
 });
 

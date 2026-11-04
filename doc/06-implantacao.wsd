@@ -1,0 +1,37 @@
+@startuml implantacao
+node "Dispositivo do Cliente" <<device>> {
+  artifact "Navegador\n(SPA Vite :5173)" as SPA
+}
+node "Proxy Reverso" <<executionEnvironment>> {
+  component "Nginx / LB\n(TLS, X-Forwarded-For)" as Px
+}
+node "Servidor de Aplicação" <<device>> {
+  node "Node.js ≥16\nTZ=America/Sao_Paulo" <<executionEnvironment>> {
+    artifact "server.js" as Srv
+    artifact "app.js (Express)" as App
+    artifact "emailOutboxWorker.js" as Wrk
+  }
+  folder "uploads/" as Up {
+    folder "ajustes (privado/LGPD)"
+    folder "deletados (privado)"
+    folder "cor_estampa | imagem_produto | empresa (público)"
+  }
+  folder "logs/ (rotação diária, 14d)" as Lg
+  file ".env" as Env
+}
+node "Servidor de Banco" <<device>> {
+  database "MySQL 8 (InnoDB)\nagenda-ajuste" as DB
+}
+cloud "Provedor SMTP" as SMTP
+cloud "API WhatsApp" as WA
+
+SPA --> Px : HTTPS
+Px --> App : HTTP :3000 (trust proxy)
+App --> DB : TCP 3306\n(pool de 10 conexões)
+Wrk --> DB : TCP 3306
+Wrk --> SMTP : SMTPS 465 / STARTTLS 587
+App ..> WA : HTTPS (axios)
+App --> Up : fs
+App --> Lg : winston
+Srv ..> Env : dotenv
+@enduml

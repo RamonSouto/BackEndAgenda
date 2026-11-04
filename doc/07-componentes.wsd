@@ -1,0 +1,66 @@
+@startuml componentes
+skinparam componentStyle uml2
+
+package "Agenda API" {
+  [Bootstrap\n(server.js)] as Boot
+  [Express App] as App
+
+  package "Camada HTTP" {
+    [Routes] as R
+    [Middlewares\n(auth, permission, error,\nrateLimit, upload, logger)] as MW
+    [Controllers] as C
+  }
+  package "Camada de Negócio" {
+    [Agendamento] as SAg
+    [Catálogo de Produtos] as SProd
+    [Sistema\n(empresa, parametrização)] as SSis
+    [E-mail\n(Outbox, Template, Transport)] as SMail
+    [Auditoria\n(LogService)] as SLog
+    [Upload] as SUp
+  }
+  package "Camada de Persistência" {
+    [Models] as M
+    [SqlUtils] as SQL
+    [Database Pool] as DBP
+  }
+  package "Transversal" {
+    [Utils\n(validators, ApiError,\ncrypto, acesso, arquivo)] as U
+    [Config\n(env, logger)] as Cfg
+  }
+  [EmailOutboxWorker] as W
+}
+
+database MySQL
+interface "REST /api" as IREST
+interface "SMTP" as ISMTP
+
+IREST - App
+Boot --> App
+Boot --> DBP
+Boot --> W
+App --> MW
+App --> R
+R --> MW
+R --> C
+C --> SAg
+C --> SProd
+C --> SSis
+SAg --> SMail
+SAg --> SLog
+SAg --> M
+SProd --> M
+SProd --> SUp
+SSis --> M
+SMail --> M
+SLog --> M
+M --> SQL
+SQL --> DBP
+DBP --> MySQL
+W --> SMail
+SMail --> ISMTP
+SAg ..> U
+MW ..> U
+C ..> U
+SAg ..> Cfg
+DBP ..> Cfg
+@enduml

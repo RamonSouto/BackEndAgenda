@@ -190,35 +190,31 @@ class PessoaService {
      * ⚠️ **BUG:** `cpfLimpo` é usado sem ser definido; o código usa `cpfLimpo` nas variáveis mas não o define.
      */
     async buscarPorCPF(cpf, usuarioLogadoId) {
-        try {
-            // const cpfLimpo = limparCPF(cpf);
+        const cpfLimpo = limparCPF(cpf ?? '');
 
-            if (!validators.validarCPF(cpf)) {
-                throw new Error('CPF inválido');
-            }
-
-            const pessoa = await PessoaModel.buscarPorCPF(cpfLimpo);
-
-            if (!pessoa) {
-                throw new Error('Pessoa não encontrada');
-            }
-
-            await LogService.registrar({
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_pessoas',
-                num_registro_id: pessoa.id,
-                des_detalhes: {
-                    tipo_consulta: 'buscar_por_cpf',
-                    cpf: cpfLimpo,
-                    pessoa_consultada: pessoa.nom_completo
-                }
-            });
-
-            return ocultarDadosSensiveis(pessoa);
-        } catch (error) {
-            throw error;
+        if (!validators.validarCPF(cpf)) {
+            throw new Error('CPF inválido');
         }
+
+        const pessoa = await PessoaModel.buscarPorCPF(cpfLimpo);
+
+        if (!pessoa) {
+            throw new Error('Pessoa não encontrada');
+        }
+
+        await LogService.registrar({
+            id_usuario: usuarioLogadoId,
+            des_acao: ACOES_LOG.CONSULTAR,
+            des_tabela: 'tab_pessoas',
+            num_registro_id: pessoa.id,
+            des_detalhes: {
+                tipo_consulta: 'buscar_por_cpf',
+                cpf: cpfLimpo,
+                pessoa_consultada: pessoa.nom_completo
+            }
+        });
+
+        return ocultarDadosSensiveis(pessoa);
     }
 
     /**
@@ -477,7 +473,7 @@ class PessoaService {
     async listarCostureirasDisponiveis(usuarioLogadoId) {
         try {
             const costureiras = await PessoaModel.buscarPorPapel(PAPEIS_PESSOA.COSTUREIRA);
-            const AgendamentoModel = require('../models/AgendamentoModel');
+            const AgendamentoModel = require('../models/agendamento/AgendamentoModel');
 
             const costureirasComStatus = await Promise.all(
                 costureiras.map(async (costureira) => {

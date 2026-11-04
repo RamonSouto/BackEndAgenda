@@ -1,0 +1,43 @@
+@startuml sequencia_fotos
+autonumber
+actor Costureira as U
+participant Routes as R
+participant FotoController as C
+participant FotoService as S
+participant "Multer/\nUploadService" as M
+participant FotoModel as FM
+participant Database as D
+participant "FileSystem" as FS
+
+U -> R : POST /:idAg/itens/:idItem/fotos (multipart)
+R -> R : validarId + papel + limiterUpload
+R -> C : validarAcessoUpload
+C -> S : validarAcessoItem(idAg, idItem, usuario)
+S -> FM : buscarContextoItem(idItem)
+alt outra costureira
+  S --> U : 403
+end
+R -> M : uploadMultiple('fotos', 10, 'ajustes')
+M -> FS : grava arquivos temporários
+R -> C : adicionar
+C -> S : adicionarFotos(params, usuario)
+S -> FS : detectarTipoImagem (magic bytes)
+S -> D : transaction(cb)
+activate D
+D -> FM : buscarContextoItem(..., FOR UPDATE)
+D -> FM : contarPorItem()
+alt total > MAX_POR_ITEM
+  D --> S : ValidationError (rollback)
+  S -> FS : _descartarArquivos()
+  S --> U : 422
+end
+loop cada arquivo
+  S -> FS : rename(tmp, ajustes/nome-padrão)
+  S -> FM : criar(dados, conn)
+end
+D --> S : commit / ids
+deactivate D
+S -> S : _registrarLog(UPLOAD)
+S --> C : {ids, total}
+C --> U : 201
+@enduml

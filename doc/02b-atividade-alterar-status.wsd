@@ -1,0 +1,25 @@
+@startuml atividade_status
+start
+:PATCH /:id/status;
+:Validar status ∈ STATUS_AGENDAMENTO;
+:buscarPorId + garantirAcessoAgendamento;
+if (Transição permitida?) then (não)
+  :400 Transição inválida;
+  stop
+endif
+if (novo = cancelado E faltam < 2h?) then (sim)
+  :400 Prazo de cancelamento;
+  stop
+endif
+:UPDATE ... WHERE ind_status = statusAtual\n(lock otimista);
+if (affectedRows = 0?) then (sim)
+  :409 Alterado por outro usuário;
+  stop
+endif
+:LogService.registrar;
+if (concluido ou cancelado?) then (sim)
+  :Enfileirar e-mail;
+endif
+:200 OK;
+stop
+@enduml

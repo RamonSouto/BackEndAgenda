@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">96.94% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>127/131</span>
+                <span class='fraction'>130/130</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">97.1% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>67/69</span>
+                <span class='fraction'>71/71</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">96.77% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>120/124</span>
+                <span class='fraction'>123/123</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -581,11 +581,7 @@
 <a name='L516'></a><a href='#L516'>516</a>
 <a name='L517'></a><a href='#L517'>517</a>
 <a name='L518'></a><a href='#L518'>518</a>
-<a name='L519'></a><a href='#L519'>519</a>
-<a name='L520'></a><a href='#L520'>520</a>
-<a name='L521'></a><a href='#L521'>521</a>
-<a name='L522'></a><a href='#L522'>522</a>
-<a name='L523'></a><a href='#L523'>523</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L519'></a><a href='#L519'>519</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -777,23 +773,19 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -802,10 +794,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1299,35 +1291,31 @@ class PessoaService {
      * ⚠️ **BUG:** `cpfLimpo` é usado sem ser definido; o código usa `cpfLimpo` nas variáveis mas não o define.
      */
     async buscarPorCPF(cpf, usuarioLogadoId) {
-        try {
-            // const cpfLimpo = limparCPF(cpf);
+        const cpfLimpo = limparCPF(cpf ?? '');
 &nbsp;
-            if (!validators.validarCPF(cpf)) {
-                throw new Error('CPF inválido');
-            }
-&nbsp;
-            const pessoa = await PessoaModel.buscarPorCPF(cpfLimpo);
-&nbsp;
-<span class="cstat-no" title="statement not covered" >            if (!pessoa) {</span>
-<span class="cstat-no" title="statement not covered" >                throw new Error('Pessoa não encontrada');</span>
-            }
-&nbsp;
-<span class="cstat-no" title="statement not covered" >            await LogService.registrar({</span>
-                id_usuario: usuarioLogadoId,
-                des_acao: ACOES_LOG.CONSULTAR,
-                des_tabela: 'tab_pessoas',
-                num_registro_id: pessoa.id,
-                des_detalhes: {
-                    tipo_consulta: 'buscar_por_cpf',
-                    cpf: cpfLimpo,
-                    pessoa_consultada: pessoa.nom_completo
-                }
-            });
-&nbsp;
-<span class="cstat-no" title="statement not covered" >            return ocultarDadosSensiveis(pessoa);</span>
-        } catch (error) {
-            throw error;
+        if (!validators.validarCPF(cpf)) {
+            throw new Error('CPF inválido');
         }
+&nbsp;
+        const pessoa = await PessoaModel.buscarPorCPF(cpfLimpo);
+&nbsp;
+        if (!pessoa) {
+            throw new Error('Pessoa não encontrada');
+        }
+&nbsp;
+        await LogService.registrar({
+            id_usuario: usuarioLogadoId,
+            des_acao: ACOES_LOG.CONSULTAR,
+            des_tabela: 'tab_pessoas',
+            num_registro_id: pessoa.id,
+            des_detalhes: {
+                tipo_consulta: 'buscar_por_cpf',
+                cpf: cpfLimpo,
+                pessoa_consultada: pessoa.nom_completo
+            }
+        });
+&nbsp;
+        return ocultarDadosSensiveis(pessoa);
     }
 &nbsp;
     /**
@@ -1586,7 +1574,7 @@ class PessoaService {
     async listarCostureirasDisponiveis(usuarioLogadoId) {
         try {
             const costureiras = await PessoaModel.buscarPorPapel(PAPEIS_PESSOA.COSTUREIRA);
-            const AgendamentoModel = require('../models/AgendamentoModel');
+            const AgendamentoModel = require('../models/agendamento/AgendamentoModel');
 &nbsp;
             const costureirasComStatus = await Promise.all(
                 costureiras.map(async (costureira) =&gt; {
@@ -1636,7 +1624,7 @@ module.exports = new PessoaService();
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-11-04T15:54:34.350Z
+                at 2026-11-04T17:53:41.466Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

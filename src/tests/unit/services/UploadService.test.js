@@ -16,6 +16,7 @@ const Service = require('../../../services/UploadService');
 const DIR = config.upload.directory;
 const DIA = 24 * 60 * 60 * 1000;
 const rel = (abs) => path.relative(process.cwd(), abs);
+const erroFs = (code) => Object.assign(new Error(code), { code });
 
 const criarArquivo = async (sub, nome, idadeMs = 0) => {
     const p = path.join(DIR, sub, nome);
@@ -46,6 +47,12 @@ describe('UploadService – configuração', () => {
         await expect(fsp.access(path.join(DIR, 'ajustes'))).resolves.toBeUndefined();
         await expect(fsp.access(path.join(DIR, 'deletados'))).resolves.toBeUndefined();
     });
+    // NOVO (linha 67)
+    it('inicializar: erro no mkdir é logado e não propaga', async () => {
+        jest.spyOn(fsp, 'mkdir').mockRejectedValueOnce(new Error('EACCES'));
+        await expect(Service.inicializar()).resolves.toBeUndefined();
+        expect(console.error).toHaveBeenCalledWith('Erro ao criar diretório de uploads:', 'EACCES');
+    });
     it('getMulterConfig expõe limite e filtro', () => {
         const cfg = Service.getMulterConfig();
         expect(cfg.limits.fileSize).toBe(1024);
@@ -64,6 +71,12 @@ describe('UploadService.getStorage', () => {
         const destino = await new Promise((res) => Service.getStorage().getDestination({}, {}, (e, d) => res(d)));
         expect(destino).toBe(path.join(DIR, 'imagem_ajuste'));
         await expect(fsp.access(destino)).resolves.toBeUndefined();
+    });
+    // NOVO (linha 93)
+    it('destination: erro no mkdir vai para cb(error)', async () => {
+        jest.spyOn(fsp, 'mkdir').mockRejectedValueOnce(new Error('falha'));
+        const erro = await new Promise((res) => Service.getStorage().getDestination({ uploadSubDir: 'x' }, {}, (e) => res(e)));
+        expect(erro).toEqual(expect.objectContaining({ message: 'falha' }));
     });
     it('ajustes → nome temporário sem extensão', async () => {
         expect(await nomeGerado({ uploadSubDir: 'ajustes' })).toMatch(/^tmp-\d+-[0-9a-f]{12}$/);
@@ -142,6 +155,17 @@ describe('UploadService.listarArquivosDiretorio', () => {
         await criarArquivo('', 'arquivo-no-lugar-de-pasta');
         await expect(Service.listarArquivosDiretorio('arquivo-no-lugar-de-pasta')).rejects.toThrow('Erro ao listar arquivos do diretório');
     });
+    // NOVO (linhas 332-333)
+    it('arquivo removido durante a listagem (stat ENOENT) é ignorado', async () => {
+        await criarArquivo('deletados', 'sumiu.jpg');
+        jest.spyOn(fsp, 'stat').mockRejectedValueOnce(erroFs('ENOENT'));
+        await expect(Service.listarArquivosDiretorio()).resolves.toEqual([]);
+    });
+    it('stat com erro diferente de ENOENT → lança', async () => {
+        await criarArquivo('deletados', 'trancado.jpg');
+        jest.spyOn(fsp, 'stat').mockRejectedValueOnce(erroFs('EACCES'));
+        await expect(Service.listarArquivosDiretorio()).rejects.toThrow('Erro ao listar arquivos do diretório');
+    });
 });
 
 describe('UploadService – limpezas', () => {
@@ -151,6 +175,11 @@ describe('UploadService – limpezas', () => {
         await expect(Service.limparArquivosAntigos(90)).resolves.toBe(1);
         await expect(fsp.access(velho)).rejects.toThrow();
         await expect(fsp.access(novo)).resolves.toBeUndefined();
+    });
+    // NOVO
+    it('limparArquivosAntigos usa padrão de 90 dias', async () => {
+        await criarArquivo('deletados', 'velho.jpg', 91 * DIA);
+        await expect(Service.limparArquivosAntigos()).resolves.toBe(1);
     });
     it('limparTemporarios remove só tmp-* antigos', async () => {
         const tmpVelho = await criarArquivo('ajustes', 'tmp-1-abc', 25 * 60 * 60 * 1000);

@@ -17,7 +17,7 @@ const CAMPOS_ATUALIZAVEIS = ['id_tipo_agendamento', 'id_produto_grade', 'id_prod
     'des_ajuste_produto', 'val_preco_servico', 'val_desconto_servico', 'ind_status'];
 
 
-const exec = async (sql, params, connection = null) => {
+const exec = async (sql, params, connection) => {
     if (connection) {
         const [rows] = await connection.execute(sql, params);
         return rows;

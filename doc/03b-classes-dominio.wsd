@@ -1,0 +1,202 @@
+@startuml classes_dominio
+skinparam classAttributeIconSize 0
+hide methods
+
+enum StatusAgendamento {
+  agendado
+  confirmado
+  concluido
+  cancelado
+  falta
+}
+
+enum StatusItem {
+  pendente
+  producao
+  concluido
+  cancelado
+}
+
+enum TipoFoto {
+  antes
+  depois
+}
+
+enum StatusOutbox {
+  pendente
+  processando
+  enviado
+  falha
+}
+
+class Estado {
+  - id : int
+  - nom_estado : string
+  - sgl_estado : char(2)
+}
+
+class Cidade {
+  - id : int
+  - nom_cidade : string
+  - cod_municipio_ibge : string
+}
+
+class Pessoa {
+  - id : int
+  - nom_completo : string
+  - num_cpf : char(11) {unique}
+  - des_email_1 : string
+  - des_senha : string
+  - ind_medico : bool
+  - ind_secretaria : bool
+  - ind_costureira : bool
+  - ind_paciente : bool
+  - ind_administrador : bool
+  - val_cor_hex : string
+  - ind_status : enum
+  - deleted_at : datetime
+}
+
+class Agendamento {
+  - id : int
+  - des_url_externa : uuid {unique}
+  - dta_agendamento : datetime
+  - ind_status : StatusAgendamento
+  - ind_paciente_compareceu : bool
+  - ind_slot_ativo : tinyint {generated}
+  - deleted_at : datetime
+}
+
+class AgendamentoItem {
+  - id : int
+  - val_preco_servico : decimal
+  - val_desconto_servico : decimal
+  - ind_status : StatusItem
+}
+
+class FotoItem {
+  - id : int
+  - des_caminho_arquivo : string
+  - ind_tipo_foto : TipoFoto
+  - num_tamanho_bytes : int
+}
+
+class TipoAgendamento {
+  - id : int
+  - des_tipo_agendamento : string
+}
+
+class Categoria {
+  - id : int
+  - nom_categoria : string
+}
+
+class Produto {
+  - id : int
+  - nom_produto : string
+  - ref_produto : string {unique}
+}
+
+class ProdutoGrade {
+  - id : int
+  - num_sku : string {unique}
+}
+
+class Tamanho {
+  - id : int
+  - cod_tamanho : string
+}
+
+class CorEstampa {
+  - id : int
+  - ind_tipo : enum(cor, estampa)
+}
+
+class ProdutoImagem {
+  - id : int
+  - des_url_imagem : string
+  - ind_principal : bool
+}
+
+class TipoServico {
+  - id : int
+  - des_tipo_ajuste : string
+}
+
+class ProdutoServico {
+  - id : int
+  - ind_ativo : bool
+}
+
+class PrecoProdutoServico {
+  - val_preco : decimal
+  - dta_inicio : date
+}
+
+class Empresa {
+  - num_cnpj : char(14)
+  - des_smtp_senha_enc : string
+}
+
+class EmailTemplate {
+  - ind_evento : enum
+  - des_corpo_html : text
+}
+
+class EmailOutbox {
+  - des_chave_idempotencia : string {unique}
+  - ind_status : StatusOutbox
+  - num_tentativas : int
+}
+
+class Parametrizacao {
+  - des_tipo_dia : enum(UTIL, SABADO)
+  - hra_inicio : time
+  - hra_fim : time
+}
+
+class Log {
+  - des_acao : string
+  - des_tabela : string
+  - des_detalhes : json
+}
+
+Estado "1" *-- "0..*" Cidade
+Cidade "1" <-- "0..*" Pessoa
+Cidade "1" <-- "0..*" Empresa
+
+Pessoa "1" <-- "0..*" Agendamento : paciente
+Pessoa "1" <-- "0..*" Agendamento : costureira
+Pessoa "0..1" <-- "0..*" Agendamento : secretária
+
+Agendamento "1" *-- "0..*" AgendamentoItem
+AgendamentoItem "1" *-- "0..10" FotoItem
+AgendamentoItem "0..*" --> "1" TipoAgendamento
+AgendamentoItem "0..*" --> "1" ProdutoGrade
+AgendamentoItem "0..*" --> "1" ProdutoServico
+
+Categoria "0..1" -- "0..*" Categoria : pai/filhas
+Categoria "0..1" <-- "0..*" Produto
+
+Produto "1" *-- "0..*" ProdutoGrade
+ProdutoGrade "0..*" --> "1" Tamanho
+ProdutoGrade "0..*" --> "0..1" CorEstampa
+
+Produto "0..1" *-- "0..*" ProdutoImagem
+ProdutoGrade "0..1" *-- "0..*" ProdutoImagem
+note right of ProdutoImagem
+  XOR (chk_produto_ou_grade):
+  a imagem pertence a Produto
+  ou a ProdutoGrade, não a ambos.
+end note
+
+Produto "1" -- "0..*" ProdutoServico
+TipoServico "1" -- "0..*" ProdutoServico
+ProdutoServico "1" *-- "0..*" PrecoProdutoServico
+
+Empresa "1" *-- "0..3" EmailTemplate
+Empresa "1" <-- "0..*" EmailOutbox
+Agendamento "0..1" <-- "0..*" EmailOutbox
+Pessoa "0..1" <-- "0..*" Log
+
+@enduml
