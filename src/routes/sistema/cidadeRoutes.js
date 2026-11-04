@@ -16,7 +16,7 @@ const router = express.Router();
 const CidadeController = require('../../controllers/sistema/CidadeController');
 const authMiddleware = require('../../middlewares/authMiddleware');
 
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
 /**
  * Rota para listar cidades.

@@ -7,8 +7,11 @@
  * @description Modelo de dados para categorias.
  * 
  * @requires ../../config/database
+ * @requires ../../utils/sqlUtils
  */
 const database = require('../../config/database');
+const { montarUpdate } = require('../../utils/sqlUtils');
+const CAMPOS_ATUALIZAVEIS = ['cod_tamanho', 'des_tamanho', 'des_categoria_tamanho', 'num_ordem_exibicao'];
 
 /**
  * Classe TamanhoModel.
@@ -85,30 +88,14 @@ class TamanhoModel {
      * @throws {Error} Se nenhum campo fornecido.
      */
     async atualizarTamanho(id, dados) {
-        const campos = [];
-        const valores = [];
-        Object.keys(dados).forEach(campo => {
-            if (dados[campo] !== undefined && campo !== 'id') {
-                campos.push(`${campo} = ?`);
-                valores.push(dados[campo]);
-            }
-        });
+        const { set, valores } = montarUpdate(dados, CAMPOS_ATUALIZAVEIS);
 
-        if (campos.length === 0) {
-            throw new Error('Nenhum campo para atualizar')
-        }
+        const sql = `UPDATE tab_tamanhos SET ${set} WHERE id = ? AND deleted_at IS NULL`;
 
-        valores.push(id);
-
-        const sql = `
-            UPDATE tab_tamanhos
-            SET ${campos.join(', ')}
-            WHERE id = ? AND deleted_at IS NULL
-          `;
-
-        const resultado = await database.query(sql, valores);
+        const resultado = await database.query(sql, [...valores, id]);
 
         return resultado.affectedRows > 0;
+
     }
 
     /**

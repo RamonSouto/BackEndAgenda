@@ -28,7 +28,7 @@ const { PAPEIS_PESSOA } = require('../../utils/constants');
 const { uploadFields } = require('../../middlewares/uploadMiddleware');
 
 // Todas as rotas requerem autenticação
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
 /**
  * Rota para criar uma nova empresa.

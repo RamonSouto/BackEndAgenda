@@ -1,8 +1,8 @@
-// src/routes/produto/tamanhoRoutes.js
+// src/routes/produto/gradeRoutes.js
 /**
  * @author Ramon David Souto
  * @version 1.0.0
- * @file src/routes/produto/tamanhoRoutes.js
+ * @file src/routes/produto/gradeRoutes.js
  * @description Rotas para gerenciamento de categorias
  * 
  * @requires express
@@ -21,7 +21,7 @@ const { validarBodyMiddleware } = require('../../middlewares/errorMiddleware');
 const { PAPEIS_PESSOA } = require('../../utils/constants');
 
 // Todas as rotas requerem autenticação
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
 /**
  * @route GET /api/produtos/grade_produto

@@ -5,7 +5,7 @@ const path = require('path');
 
 dotenv.config();
 
-module.exports = {
+const config = {
     env: process.env.NODE_ENV || 'development',
     port: process.env.PORT || 3000,
     apiUrl: process.env.API_URL || 'http://localhost:3000',
@@ -18,7 +18,8 @@ module.exports = {
         database: process.env.DB_DATABASE || 'agenda-ajuste',
         waitForConnections: true,
         connectionLimit: 10,
-        queueLimit: 0
+        queueLimit: 0,
+        timezone: 'local'
     },
 
     jwt: {
@@ -58,3 +59,11 @@ module.exports = {
         retencaoDias: parseInt(process.env.EMAIL_OUTBOX_RETENCAO_DIAS) || 90
     },
 };
+
+if (config.env === 'production') {
+    const obrigatorias = ['JWT_SECRET', 'DB_PASSWORD', 'DB_USERNAME', 'EMAIL_ENCRYPTION_KEY', 'ALLOWED_ORIGINS'];
+    const faltando = obrigatorias.filter((k) => !process.env[k]);
+    if (faltando.length) throw new Error(`Variáveis obrigatórias ausentes: ${faltando.join(', ')}`);
+}
+
+module.exports = config;

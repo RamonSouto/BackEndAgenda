@@ -236,6 +236,18 @@ const STATUS_EMAIL_OUTBOX = Object.freeze({
     FALHA: 'falha'
 });
 
+/**
+ * Status de agendamento que encerram o ciclo de vida (não aceitam edição).
+ * Fonte única para Services — evita listas divergentes espalhadas no código.
+ *
+ * @constant {string[]} STATUS_AGENDAMENTO_FINALIZADOS
+ */
+const STATUS_AGENDAMENTO_FINALIZADOS = Object.freeze([
+    STATUS_AGENDAMENTO.CONCLUIDO,
+    STATUS_AGENDAMENTO.CANCELADO,
+    STATUS_AGENDAMENTO.FALTA
+]);
+
 module.exports = {
     PAPEIS_PESSOA,
     COLUNAS_PAPEIS_PESSOA,
@@ -247,5 +259,6 @@ module.exports = {
     MENSAGENS,
     LIMITES_FOTO,
     EVENTOS_EMAIL,
-    STATUS_EMAIL_OUTBOX
+    STATUS_EMAIL_OUTBOX,
+    STATUS_AGENDAMENTO_FINALIZADOS
 };

@@ -9,11 +9,17 @@
  * @requires ../../services/produto/ImagemService
  * @requires ../../utils/constants
  * @requires ../../middlewares/errorMiddleware
+ * @requires ../../config/env
+ * @requires ../../services/UploadService
+ * @requires path
  */
 
 const ImagemService = require('../../services/produto/ImagemService');
 const { MENSAGENS } = require('../../utils/constants');
 const { asyncHandler } = require('../../middlewares/errorMiddleware');
+const config = require('../../config/env');
+const UploadService = require('../../services/UploadService');
+const path = require('path');
 
 /**
  * Classe ImagemController.
@@ -21,67 +27,36 @@ const { asyncHandler } = require('../../middlewares/errorMiddleware');
  */
 class ImagemController {
     /**
-     * Adiciona uma imagem a um produto ou grade.
-     * 
+     * Adiciona uma imagem a um produto ou grade. A regra "produto XOR grade"
+     * é validada no Service (imagemProdutoSchema); em caso de erro o arquivo é descartado.
+     *
      * @name adicionarImagemProduto
      * @function
      * @memberof ImagemController
      * @async
-     * 
+     *
      * @param {Object} req - Objeto de requisição.
-     * @param {Object} req.body - Dados da imagem (id_produto_grade ou id_produto).
-     * @param {Object} req.file - Arquivo enviado (campo 'foto').
+     * @param {Object} req.body - id_produto_grade OU id_produto, metadados.
+     * @param {Object} req.file - Arquivo (campo 'foto'), garantido por uploadSingle.
      * @param {Object} req.usuario - Usuário autenticado.
-     * @param {number} req.usuario.id - ID do usuário.
      * @param {Object} res - Objeto de resposta.
-     * 
-     * @returns {Promise<void>} - Resposta 201 com ID da imagem.
-     * 
-     * @throws {Error} 400 - Se nenhum arquivo for enviado.
-     * @throws {Error} 500 - Se não for informado produto ou grade ou ambos.
-     * 
+     *
+     * @returns {Promise<void>} - 201 com ID da imagem.
+     *
      * @example
      * POST /api/produtos/imagemProduto
-     * Body (multipart/form-data): foto: (arquivo), id_produto: 1
      */
     adicionarImagemProduto = asyncHandler(async (req, res) => {
-        console.log(req.body);
-        if (!req.file) {
-            return res.status(400).json({
-                sucesso: false,
-                mensagem: 'Nenhum arquivo foi enviado'
-            });
+        try {
+            const id = await ImagemService.adicionarImagemProduto(
+                { ...req.body, des_url_imagem: UploadService.caminhoRelativo(req.file) },
+                req.usuario.id
+            );
+            res.status(201).json({ sucesso: true, mensagem: MENSAGENS.SUCESSO.CRIADO, dados: { id } });
+        } catch (erro) {
+            await UploadService.deletarArquivo(req.file.path).catch(() => { }); // sem arquivo órfão
+            throw erro;
         }
-
-        req.body.des_url_imagem = req.file.path;
-
-        const temGrade = req.body.id_produto_grade !== undefined && req.body.id_produto_grade !== null && req.body.id_produto_grade !== '';
-
-        const temProduto = req.body.id_produto !== undefined && req.body.id_produto !== null && req.body.id_produto !== '';
-
-        if (!temGrade && !temProduto) {
-            return res.status(500).json({
-                sucesso: false,
-                mensagem: `${MENSAGENS.ERRO.VALIDACAO} É necessário informar ID produto Grade ou ID produto (pelo menos um).`,
-                dados: { body: req.body }
-            })
-        }
-
-        if (temGrade && temProduto) {
-            return res.status(500).json({
-                sucesso: false,
-                mensagem: `${MENSAGENS.ERRO.VALIDACAO} Informe apenas um dos campos: ID produto Grade ou ID produto.`,
-                dados: { body: req.body }
-            })
-        }
-
-        const produtoId = await ImagemService.adicionarImagemProduto(req.body, req.usuario.id);
-
-        return res.status(201).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.CRIADO,
-            dados: { id: produtoId }
-        })
     });
 
     /**
@@ -206,7 +181,7 @@ class ImagemController {
         // Se um novo arquivo foi enviado, sobrescreve o campo des_url_imagem
         // vindo do form-data (que chega como string em req.body).
         if (req.file) {
-            req.body.des_url_imagem = req.file.path.replace(/\\/g, '/'); // normaliza path Windows/Linux
+            req.body.des_url_imagem = path.relative(path.resolve(config.upload.directory), req.file.path).replace(/\\/g, '/');
         }
 
         const produto = await ImagemService.atualizarImagemProduto(id, req.body, req.usuario.id);

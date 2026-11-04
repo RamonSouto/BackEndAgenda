@@ -8,13 +8,16 @@
  * 
  * @requires ../../models/agendamento/tipoAgendamentoModel
  * @requires ../../utils/ApiError
+ * @requires ../../utils/validators
  * @requires ../LogService
+ * @requires ../../utils/constants
  */
 const TipoAgendamentoModel = require('../../models/agendamento/TipoAgendamentoModel');
-const ApiError = require('../../utils/ApiError');
+const { BadRequestError, NotFoundError } = require('../../utils/ApiError');
 const validators = require('../../utils/validators');
 const LogService = require('../LogService');
-const { ACOES_LOG } = require('../../utils/constants')
+const { ACOES_LOG, MENSAGENS } = require('../../utils/constants')
+
 class TipoAgendamentoService {
 
     async criar(dados, usuarioLogadoId) {

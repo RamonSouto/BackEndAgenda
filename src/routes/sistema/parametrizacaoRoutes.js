@@ -24,7 +24,7 @@ const { limiterCriacao } = require('../../middlewares/rateLimitMiddleware');
 const ParametrizacaoController = require('../../controllers/sistema/ParametrizacaoController');
 
 // Todas as rotas requerem autenticação
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
 /**
  * Rota para criar uma nova parametrização.

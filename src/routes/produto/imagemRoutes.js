@@ -22,7 +22,7 @@ const { limiterUpload } = require('../../middlewares/rateLimitMiddleware');
 const { uploadSingle, uploadSingleOptional } = require('../../middlewares/uploadMiddleware');
 
 // Todas as rotas requerem autenticação
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
 /**
  * @route POST /api/produtos/imagemProduto

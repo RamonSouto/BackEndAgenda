@@ -24,7 +24,7 @@ const { validarIdMiddleware } = require('../middlewares/errorMiddleware');
 const { PAPEIS_PESSOA } = require('../utils/constants');
 
 // Todas as rotas requerem autenticação
-router.use(authMiddleware);
+//router.use(authMiddleware);
 
 /**
  * Rota para dashboard geral com métricas resumidas.

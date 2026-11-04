@@ -26,7 +26,7 @@ const { limiterUpload } = require('../../middlewares/rateLimitMiddleware');
 const { uploadMultiple } = require('../../middlewares/uploadMiddleware');
 const { LIMITES_FOTO } = require('../../utils/constants');
 
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
 /**
  * @route POST /api/agendamentos/:idAgendamento/itens/:idItem/fotos

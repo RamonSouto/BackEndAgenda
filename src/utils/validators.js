@@ -250,7 +250,7 @@ const validators = {
         id_categoria: Joi.number().integer().required(),
         nom_produto: Joi.string().min(3).max(200).required(),
         num_sku: Joi.string().min(3).max(50),
-        des_produto: Joi.string().min(3).max(255),
+        des_produto: Joi.string().min(3).max(5000),
         ref_produto: Joi.string().min(3).max(50),
         val_preco_base: Joi.number().precision(2),
         ind_ativo: Joi.boolean().default(true).required()
@@ -262,7 +262,7 @@ const validators = {
      * @type {Joi.ObjectSchema}
      */
     tipoServicoSchema: Joi.object({
-        des_tipo_ajuste: Joi.string().min(3).max(200).required(),
+        des_tipo_ajuste: Joi.string().min(3).max(100).required(),
         ind_ativo: Joi.boolean().default(true).required()
     }),
 
@@ -294,7 +294,7 @@ const validators = {
      * @type {Joi.ObjectSchema}
      */
     categoriaProdutoSchema: Joi.object({
-        nom_categoria: Joi.string().min(3).max(50).required(),
+        nom_categoria: Joi.string().min(3).max(100).required(),
         id_pai: Joi.number().allow('', null),
     }),
 
@@ -316,9 +316,9 @@ const validators = {
      * @type {Joi.ObjectSchema}
      */
     corEstampaProdutoSchema: Joi.object({
-        nom_cor_estampa: Joi.string().min(3).max(50).required(),
+        nom_cor_estampa: Joi.string().min(3).max(100).required(),
         ind_tipo: Joi.string().valid('cor', 'estampa').required(),
-        val_codigo_hex: Joi.string().min(6).max(7).allow('', null),
+        val_codigo_hex: Joi.string().min(6).max(7).allow('', null).pattern(/^#?[0-9a-f]{6}$/i),
         des_imagem_url: Joi.string().max(500).allow('', null),
         num_ordem_exibicao: Joi.number().integer().allow('', null)
     }),
@@ -330,12 +330,12 @@ const validators = {
      */
     gradeProdutoSchema: Joi.object({
         id_produto: Joi.number().integer().required(),
-        id_variacao_cor_estampa: Joi.number().integer().required(),
+        id_variacao_cor_estampa: Joi.number().integer().allow(null),
         id_tamanho: Joi.number().integer().required(),
         num_sku: Joi.string().min(3).max(50).allow('', null),
         val_preco_variacao: Joi.number().precision(2),
         ind_ativo: Joi.boolean().required(),
-        num_codigo_barras: Joi.string().min(3).max(13).allow('', null)
+        num_codigo_barras: Joi.string().min(3).max(14).allow('', null)
     }),
 
     /**
@@ -347,8 +347,8 @@ const validators = {
     imagemProdutoSchema: Joi.object({
         id_produto_grade: Joi.allow(null, '', 'null', 'undefined').optional(),
         id_produto: Joi.allow(null, '', 'null', 'undefined').optional(),
-        des_titulo_imagem: Joi.string().min(3).max(500),
-        des_imagem: Joi.string().min(3).max(500),
+        des_titulo_imagem: Joi.string().min(3).max(50),
+        des_imagem: Joi.string().min(3).max(255),
         des_url_imagem: Joi.string().min(3).max(500).required(),
         num_ordem: Joi.number().integer(),
         ind_principal: Joi.boolean().truthy('true', '1').falsy('false', '0').default(false).required(),
@@ -396,9 +396,7 @@ const validators = {
         ind_administrador: Joi.boolean().default(false),
         nom_completo: Joi.string().max(255).required(),
         num_cpf: Joi.string().length(11).required().custom((value, helpers) => {
-            if (!validators.validarCPF(value)) {
-                return helpers.error('any.invalid', { message: 'CPF inválido' });
-            }
+            if (!validators.validarCPF(value)) return helpers.message('CPF inválido');
             return value;
         }),
         num_rg: Joi.string().max(20).required(),
@@ -415,37 +413,29 @@ const validators = {
         des_email_1: Joi.string().email().max(255).required(),
         des_email_2: Joi.string().email().max(255).allow('', null),
         des_senha: Joi.string().min(6).allow('', null),
-        val_cor_hex: Joi.string().min(6).max(6).allow('', null)
+        val_cor_hex: Joi.string().min(6).max(6).allow('', null).pattern(/^[0-9a-f]{6}$/i)
     }).custom((value, helpers) => {
-        const possuiAlgumPapel =
-            value.ind_medico ||
+        const possuiAlgumPapel = value.ind_medico ||
             value.ind_secretaria ||
             value.ind_costureira ||
             value.ind_paciente ||
             value.ind_administrador;
 
         if (!possuiAlgumPapel) {
-            return helpers.error('any.invalid', {
-                message: 'É necessário informar pelo menos um papel para a pessoa.'
-            });
+            return helpers.message('É necessário informar pelo menos um papel para a pessoa.');
         }
 
-        const exigeSenha =
-            value.ind_medico ||
+        const exigeSenha = value.ind_medico ||
             value.ind_secretaria ||
             value.ind_costureira ||
             value.ind_administrador;
 
         if (exigeSenha && !value.des_senha) {
-            return helpers.error('any.invalid', {
-                message: 'Senha é obrigatória para médico, secretária, costureira ou administrador.'
-            });
+            return helpers.message('Senha é obrigatória para médico, secretária, costureira ou administrador.');
         }
 
-        const exigeCor = value.ind_costureira;
-
-        if (exigeCor && !value.val_cor_hex) {
-            return helpers.error('any.invalid', { message: 'É necessário informar uma cor para a costureira' })
+        if (value.ind_costureira && !value.val_cor_hex) {
+            return helpers.message('É necessário informar uma cor para a costureira');
         }
 
         return value;
@@ -616,6 +606,49 @@ const validators = {
      */
     smtpTesteSchema: Joi.object({
         des_destinatario: Joi.string().email().max(255).required()
+    }),
+
+    /**
+     * Atualização parcial do cabeçalho do agendamento (PUT /api/agendamentos/:id).
+     * Status e costureira possuem endpoints próprios e NÃO são aceitos aqui.
+     *
+     * @type {Joi.ObjectSchema}
+     */
+    agendamentoUpdateSchema: Joi.object({
+        id_secretaria: Joi.number().integer().positive().allow(null),
+        dta_agendamento: Joi.date().greater('now')
+            .messages({ 'date.greater': 'A data do agendamento deve ser futura' }),
+        des_observacoes_geral: Joi.string().max(2000).allow('', null),
+        des_observacoes_costureira: Joi.string().max(2000).allow('', null)
+    }).min(1),
+
+    /**
+     * Atualização parcial de item agendado (PATCH /api/agendamentos/:idAgendamento/itens/:idItem).
+     * Preço NÃO é aceito do cliente: é recalculado no Service a partir do preço vigente.
+     *
+     * @type {Joi.ObjectSchema}
+     */
+    produtoAgendadoUpdateSchema: Joi.object({
+        id_tipo_agendamento: Joi.number().integer().positive(),
+        id_produto_grade: Joi.number().integer().positive(),
+        id_produto_servico: Joi.number().integer().positive(),
+        des_ajuste_produto: Joi.string().max(1000).allow('', null),
+        val_desconto_servico: Joi.number().min(0).precision(2),
+        ind_status: Joi.string().valid('pendente', 'producao', 'concluido', 'cancelado')
+    }).min(1),
+
+    /**
+     * Filtros de listagem de agendamentos (query string).
+     *
+     * @type {Joi.ObjectSchema}
+     */
+    filtroAgendamentoSchema: Joi.object({
+        id_costureira: Joi.number().integer().positive(),
+        dta_inicio: Joi.date().iso(),
+        dta_fim: Joi.date().iso().min(Joi.ref('dta_inicio')),
+        ind_status: Joi.string().valid('agendado', 'confirmado', 'concluido', 'cancelado', 'falta'),
+        pagina: Joi.number().integer().min(1).default(1),
+        limite: Joi.number().integer().min(1).max(100).default(20)
     }),
 
 };

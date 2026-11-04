@@ -1,16 +1,21 @@
-// src/models/agendamento/ProdutoAgendamentoModel.js
+// src/models/agendamento/AgendamentoProdutoModel
 
 /**
  * @author Ramon David Souto
  * @version 1.0.0
- * @file src/models/agendamento/ProdutoAgendamentoModel.js
+ * @file src/models/agendamento/AgendamentoProdutoModel
  * @description Modelo de dados para itens de serviço vinculados a um
  * agendamento (tab_produto_agendamento). Também resolve o preço vigente
  * do serviço consultando tab_preco_produto_servico.
  * 
  * @requires ../../config/database
+ * @requires ../../utils/sqlUtils
  */
 const database = require('../../config/database');
+const { montarUpdate } = require('../../utils/sqlUtils');
+const CAMPOS_ATUALIZAVEIS = ['id_tipo_agendamento', 'id_produto_grade', 'id_produto_servico',
+    'des_ajuste_produto', 'val_preco_servico', 'val_desconto_servico', 'ind_status'];
+
 
 const exec = async (sql, params, connection = null) => {
     if (connection) {
@@ -56,7 +61,6 @@ class AgendamentoProdutoModel {
      * @param {string} [dados.des_ajuste_produto]
      * @param {number} dados.val_preco_servico
      * @param {number} [dados.val_desconto_servico]
-     * @param {Object|null} [connection]
      * @returns {Promise<number>} ID inserido.
      */
     async criar(dados) {
@@ -65,7 +69,7 @@ class AgendamentoProdutoModel {
             INSERT INTO tab_agendamento_item
                 (id_agendamento, id_tipo_agendamento, id_produto_grade, id_produto_servico,
                  des_ajuste_produto, val_preco_servico, val_desconto_servico, ind_status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'pendente')
         `;
 
         const valores = [
@@ -76,7 +80,6 @@ class AgendamentoProdutoModel {
             dados.des_ajuste_produto ?? null,
             dados.val_preco_servico,
             dados.val_desconto_servico ?? 0,
-            dados.ind_status = 'pendente'
         ];
 
         const resultado = await database.query(sql, valores);
@@ -140,27 +143,15 @@ class AgendamentoProdutoModel {
      * @returns {Promise<boolean>}
      */
     async atualizar(id, dados) {
-        const campos = [];
-        const valores = [];
-        Object.keys(dados).forEach(campo => {
-            if (dados[campo] !== undefined && campo !== 'id') {
-                campos.push(`${campo} = ?`);
-                valores.push(dados[campo]);
-            }
-        });
 
-        if (campos.length === 0) {
-            throw new Error('Nenhum campo para atualizar');
-        }
-        valores.push(id);
+        const { set, valores } = montarUpdate(dados, CAMPOS_ATUALIZAVEIS);
 
-        const sql = `
-            UPDATE tab_agendamento_item
-            SET ${campos.join(', ')}
-            WHERE id = ? AND deleted_at IS NULL
-        `;
-        const resultado = await database.query(sql, valores);
+        const sql = `UPDATE tab_agendamento_item SET ${set} WHERE id = ? AND deleted_at IS NULL`;
+
+        const resultado = await database.query(sql, [...valores, id]);
+
         return resultado.affectedRows > 0;
+
     }
 
     /**

@@ -9,11 +9,15 @@
  * @requires ../../services/produto/CorEstampaService
  * @requires ../../utils/constants
  * @requires ../../middlewares/errorMiddleware
+ * @requires ../../config/env
+ * @requires path
  */
 
 const CorEstampaService = require('../../services/produto/CorEstampaService');
 const { MENSAGENS } = require('../../utils/constants');
 const { asyncHandler } = require('../../middlewares/errorMiddleware');
+const path = require('path');
+const config = require('../../config/env');
 
 /**
  * Classe CorEstampaController.
@@ -44,7 +48,7 @@ class CorEstampaController {
     adicionarCorEstampa = asyncHandler(async (req, res) => {
 
         if (req.file) {
-            req.body.des_imagem_url = req.file.path
+            req.body.des_imagem_url = path.relative(path.resolve(config.upload.directory), req.file.path).replace(/\\/g, '/');
         }
 
         const corEstampaId = await CorEstampaService.adicionarCorEstampa(
@@ -148,7 +152,7 @@ class CorEstampaController {
         const { id } = req.params;
 
         if (req.file) {
-            req.body.des_imagem_url = req.file.path
+            req.body.des_imagem_url = path.relative(path.resolve(config.upload.directory), req.file.path).replace(/\\/g, '/');
         }
 
         const corEstampa = await CorEstampaService.atualizarCorEstampa(id, req.body, req.usuario.id);

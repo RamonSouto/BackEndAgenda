@@ -394,6 +394,21 @@ class UploadService {
 
         return total;
     }
+
+    /**
+     * Converte o caminho absoluto do Multer em caminho relativo ao diretório de uploads (barra '/').
+     *
+     * @method caminhoRelativo
+     * @memberof UploadService
+     * @param {Object} arquivo - req.file do Multer.
+     * @returns {string} Ex.: 'imagem_produto/abc.jpg'.
+     *
+     * @example
+     * UploadService.caminhoRelativo(req.file);
+     */
+    caminhoRelativo(arquivo) {
+        return path.relative(path.resolve(config.upload.directory), arquivo.path).replace(/\\/g, '/');
+    }
 }
 
 module.exports = new UploadService();

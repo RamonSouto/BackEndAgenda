@@ -15,10 +15,20 @@
  */
 
 const rateLimit = require('express-rate-limit');
-const ApiError = require('../utils/ApiError');
-const { MENSAGENS } = require('../utils/constants');
 const logger = require('../config/logger');
-const { optional, options } = require('joi');
+/**
+ * Lê inteiro positivo de variável de ambiente com fallback.
+ *
+ * @function envInt
+ * @private
+ * @param {string} chave
+ * @param {number} padrao
+ * @returns {number}
+ */
+const envInt = (chave, padrao) => {
+    const valor = Number.parseInt(process.env[chave], 10);
+    return Number.isInteger(valor) && valor > 0 ? valor : padrao;
+};
 /**
  * Middleware de rate limiting geral para todas as rotas.
  * 
@@ -33,8 +43,8 @@ const { optional, options } = require('joi');
  * app.use('/api', limiterGeral);
  */
 const limiterGeral = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 10000, // máximo de 100 requisições por IP
+    windowMs: envInt('RATE_LIMIT_GERAL_WINDOW_MS', 15 * 60 * 1000),
+    max: envInt('RATE_LIMIT_GERAL_MAX', 10000),
     message: {
         sucesso: false,
         mensagem: 'Muitas requisições',

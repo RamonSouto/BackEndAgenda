@@ -25,7 +25,7 @@ const { apenasAdminMiddleware, papelMiddleware } = require('../../middlewares/pe
 const { validarBodyMiddleware } = require('../../middlewares/errorMiddleware');
 
 // Todas as rotas requerem autenticação
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
 /**
  * @route GET /api/produtos/produto

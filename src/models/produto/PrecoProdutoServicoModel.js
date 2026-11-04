@@ -7,8 +7,11 @@
  * @description Modelo de dados para categorias.
  * 
  * @requires ../../config/database
+ * @requires ../../utils/sqlUtils
  */
 const database = require('../../config/database');
+const { montarUpdate } = require('../../utils/sqlUtils');
+const CAMPOS_ATUALIZAVEIS = ['val_preco', 'dta_inicio'];
 
 /**
  * Classe PrecoProdutoServicoModel.
@@ -68,6 +71,8 @@ class PrecoProdutoServicoModel {
         const sql = `
       SELECT id, id_produto_servico, val_preco, dta_inicio, created_at, updated_at, deleted_at
       FROM tab_preco_produto_servico
+      WHERE deleted_at IS NULL
+      ORDER BY id_produto_servico, dta_inicio DESC
     `;
 
         return await database.query(sql);
@@ -83,28 +88,11 @@ class PrecoProdutoServicoModel {
      */
     async atualizarPrecoProdutoServico(id, dados) {
 
-        const campos = [];
-        const valores = [];
-        Object.keys(dados).forEach(campo => {
-            if (dados[campo] !== undefined && campo !== 'id') {
-                campos.push(`${campo} = ?`);
-                valores.push(dados[campo]);
-            }
-        });
+        const { set, valores } = montarUpdate(dados, CAMPOS_ATUALIZAVEIS);
 
-        if (campos.length === 0) {
-            throw new Error('Nenhum campo para atualizar')
-        }
+        const sql = `UPDATE tab_preco_produto_servico SET ${set} WHERE id = ? AND deleted_at IS NULL`;
 
-        valores.push(id);
-
-        const sql = `
-        UPDATE tab_preco_produto_servico
-        SET ${campos.join(', ')}
-        WHERE id = ? AND deleted_at IS NULL
-      `;
-
-        const resultado = await database.query(sql, valores);
+        const resultado = await database.query(sql, [...valores, id]);
 
         return resultado.affectedRows > 0;
     }

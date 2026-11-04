@@ -25,7 +25,7 @@ const { apenasAdminMiddleware, secretariaOuAdminMiddleware } = require('../middl
 const { validarIdMiddleware, validarBodyMiddleware } = require('../middlewares/errorMiddleware');
 const { limiterCriacao } = require('../middlewares/rateLimitMiddleware');
 
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
 /**
  * Rota para listar costureiras com disponibilidade.

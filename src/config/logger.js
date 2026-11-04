@@ -25,13 +25,11 @@ const fs = require('fs');
 const config = require('./env');
 const { getContext } = require('../utils/loggerContext');
 
+
 // ---------------------------------------------------------------------------
 // Diretório de logs
 // ---------------------------------------------------------------------------
-const LOG_DIR = path.join(__dirname, '../../logs');
-if (!fs.existsSync(LOG_DIR)) {
-    fs.mkdirSync(LOG_DIR, { recursive: true });
-}
+const LOG_DIR = path.resolve(config.logger.directory);
 
 // ---------------------------------------------------------------------------
 // Formatos
@@ -50,23 +48,24 @@ const SENSITIVE_KEYS = new Set([
     'num_cpf', 'cpf', 'num_cnpj', 'cnpj', 'des_smtp_senha', 'des_smtp_senha_enc', 'smtp_senha', 'pass'
 ]);
 
+const mascarar = (valor, vistos = new WeakSet()) => {
+    if (!valor || typeof valor !== 'object' || valor instanceof Date || valor instanceof Error) return valor;
+    if (vistos.has(valor)) return '[Circular]';
+    vistos.add(valor);
+    if (Array.isArray(valor)) return valor.map((v) => mascarar(v, vistos));
+    return Object.fromEntries(Object.entries(valor).map(([k, v]) =>
+        [k, SENSITIVE_KEYS.has(k.toLowerCase()) ? '***' : mascarar(v, vistos)]));
+};
+
 /**
  * Formatter recursivo que substitui valores sensíveis por "***".
  * Funciona em objetos aninhados e arrays.
  */
 const maskSensitiveFormat = winston.format((info) => {
-    const maskValue = (obj) => {
-        if (!obj || typeof obj !== 'object') return obj;
-        for (const key of Object.keys(obj)) {
-            if (SENSITIVE_KEYS.has(String(key).toLowerCase())) {
-                obj[key] = '***';
-            } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-                maskValue(obj[key]);
-            }
-        }
-        return obj;
-    };
-    return maskValue(info);
+    for (const k of Object.keys(info)) {
+        info[k] = SENSITIVE_KEYS.has(k.toLowerCase()) ? '***' : mascarar(info[k]);
+    }
+    return info;
 });
 
 /**
@@ -103,7 +102,7 @@ const devFormat = printf(({ level, message, timestamp, requestId, stack, ...meta
 // Logger
 // ---------------------------------------------------------------------------
 const logger = winston.createLogger({
-    level: config.env === 'production' ? 'info' : 'debug',
+    level: config.logger.level,
     defaultMeta: {
         service: 'agenda-ajuste',
         env: config.env,
@@ -144,38 +143,6 @@ const logger = winston.createLogger({
             )
         })
     ]
-    // transports: [
-    //     // 1) Erros → arquivo dedicado
-    //     new winston.transports.File({
-    //         filename: path.join(LOG_DIR, 'error.log'),
-    //         level: 'error',
-    //         maxsize: 5 * 1024 * 1024,
-    //         maxFiles: 5,
-    //         tailable: true,
-    //         format: combine(
-    //             timestamp(),
-    //             injectContextFormat(),
-    //             maskSensitiveFormat(),
-    //             errors({ stack: true }),
-    //             json()
-    //         )
-    //     }),
-
-    //     // 2) Tudo (HTTP, warnings, info) → arquivo geral
-    //     new winston.transports.File({
-    //         filename: path.join(LOG_DIR, 'combined.log'),
-    //         maxsize: 10 * 1024 * 1024,
-    //         maxFiles: 10,
-    //         tailable: true,
-    //         format: combine(
-    //             timestamp(),
-    //             injectContextFormat(),
-    //             maskSensitiveFormat(),
-    //             errors({ stack: true }),
-    //             json()
-    //         )
-    //     })
-    // ]
 });
 
 // Console apenas fora de produção

@@ -23,7 +23,7 @@ const { limiterUpload } = require('../../middlewares/rateLimitMiddleware');
 const { uploadSingleOptional } = require('../../middlewares/uploadMiddleware');
 
 // Todas as rotas requerem autenticação
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
 /**
  * @route GET /api/produtos/cor_estampa

@@ -49,7 +49,7 @@ class Database {
         try {
             this.pool = mysql.createPool(config.database);
 
-            console.log('✅ Conectado com sucesso ao MySQL!');
+            //console.log('✅ Conectado com sucesso ao MySQL!');
 
             // Testar conexão
             const connection = await this.pool.getConnection();
@@ -83,32 +83,19 @@ class Database {
     }
 
     /**
-     * Executa uma query SQL com parâmetros.
-     * 
+     * Executa query parametrizada (prepared statement) direto no pool.
+     * `pool.execute` já adquire e libera a conexão — sem gerenciamento manual.
+     *
      * @method query
      * @memberof Database
      * @async
-     * @param {string} sql - A query SQL a ser executada.
-     * @param {Array} [params=[]] - Parâmetros para a query (prepared statement).
-     * @returns {Promise<Array>} Linhas retornadas pela query.
-     * @throws {Error} Se a query falhar.
-     * 
-     * @description
-     * - Obtém uma conexão do pool.
-     * - Executa a query com `connection.execute()` (prepared statement).
-     * - Libera a conexão ao final (no `finally`).
-     * 
-     * @example
-     * const rows = await database.query('SELECT * FROM tab_pessoas WHERE id = ?', [1]);
+     * @param {string} sql
+     * @param {Array} [params=[]]
+     * @returns {Promise<Array|Object>}
      */
     async query(sql, params = []) {
-        const connection = await this.pool.getConnection();
-        try {
-            const [rows] = await connection.execute(sql, params);
-            return rows;
-        } finally {
-            connection.release();
-        }
+        const [rows] = await this.getPool().execute(sql, params);
+        return rows;
     }
 
     /**

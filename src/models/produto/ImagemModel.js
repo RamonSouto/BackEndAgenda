@@ -7,8 +7,11 @@
  * @description Modelo de dados para categorias.
  * 
  * @requires ../../config/database
+ * @requires ../../utils/sqlUtils
  */
 const database = require('../../config/database');
+const { montarUpdate } = require('../../utils/sqlUtils');
+const CAMPOS_ATUALIZAVEIS = ['des_titulo_imagem', 'des_imagem', 'des_url_imagem', 'num_ordem', 'ind_principal'];
 
 /**
  * Classe ImagemModel.
@@ -59,6 +62,8 @@ class ImagemModel {
         const sql = `
           SELECT id, id_produto_grade, id_produto, des_url_imagem, des_titulo_imagem, des_imagem, num_ordem, ind_principal, created_at, updated_at, deleted_at
           FROM tab_produto_imagens
+          WHERE deleted_at IS NULL
+          ORDER BY num_ordem
         `;
 
         return await database.query(sql);
@@ -69,17 +74,17 @@ class ImagemModel {
      * 
      * @method buscarImagemProdutoId
      * @param {number} id - ID da imagem.
-     * @returns {Promise<Array|null>} Array com uma imagem (ou vazio).
+     * @returns {Promise<Object|null>} Imagem ou null.
      */
     async buscarImagemProdutoId(id) {
         const sql = `
-          SELECT id, id_produto_grade, id_produto, des_url_imagem, num_ordem, ind_principal, created_at, updated_at, deleted_at
+          SELECT id, id_produto_grade, id_produto, des_url_imagem, des_titulo_imagem, des_imagem, num_ordem, ind_principal, created_at, updated_at, deleted_at
           FROM tab_produto_imagens
           WHERE id = ? AND deleted_at IS NULL
         `;
 
         const resultado = await database.query(sql, [id]);
-        return resultado || null;
+        return resultado[0] || null;
     }
 
     /**
@@ -127,29 +132,11 @@ class ImagemModel {
      * @returns {Promise<boolean>}
      */
     async atualizarImagemProduto(id, dados) {
+        const { set, valores } = montarUpdate(dados, CAMPOS_ATUALIZAVEIS);
 
-        const campos = [];
-        const valores = [];
-        Object.keys(dados).forEach(campo => {
-            if (dados[campo] !== undefined && campo !== 'id') {
-                campos.push(`${campo} = ?`);
-                valores.push(dados[campo]);
-            }
-        });
+        const sql = `UPDATE tab_produto_imagens SET ${set} WHERE id = ? AND deleted_at IS NULL`;
 
-        if (campos.length === 0) {
-            throw new Error('Nenhum campo para atualizar')
-        }
-
-        valores.push(id);
-
-        const sql = `
-            UPDATE tab_produto_imagens
-            SET ${campos.join(', ')}
-            WHERE id = ? AND deleted_at IS NULL
-          `;
-
-        const resultado = await database.query(sql, valores);
+        const resultado = await database.query(sql, [...valores, id]);
 
         return resultado.affectedRows > 0;
     }

@@ -18,6 +18,8 @@
 const express = require('express');
 const router = express.Router();
 
+const authMiddleware = require('../middlewares/authMiddleware');
+
 // Importar rotas
 const authRoutes = require('./authRoutes');
 
@@ -124,12 +126,15 @@ router.get('/', (req, res) => {
 
 // Registrar rotas
 router.use('/auth', authRoutes);
+router.use('/public/agendamentos', publicAgendamentoRoutes);
+
+// Daqui pra baixo, JWT verificado UMA vez por requisição.
+router.use(authMiddleware);
 
 // Módulo de Pessoa
 router.use('/pessoas', pessoaRoutes);
 
 // Módulo de Agendamento
-router.use('/public/agendamentos', publicAgendamentoRoutes);
 router.use('/agendamentos', fotoProdutoAgendamentoRoutes);
 router.use('/agendamentos', tipoAgendamentoRoutes);
 router.use('/agendamentos', agendamentoRoutes);

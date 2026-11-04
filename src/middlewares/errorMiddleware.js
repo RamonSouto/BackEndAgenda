@@ -14,6 +14,8 @@
 
 const { MENSAGENS } = require('../utils/constants');
 const logger = require('../config/logger');
+const EM_PRODUCAO = process.env.NODE_ENV === 'production';
+const CHAVES_PROIBIDAS = new Set(['__proto__', 'constructor', 'prototype']);
 
 /**
  * Middleware para rotas não encontradas (404).
@@ -75,9 +77,11 @@ const errorMiddleware = (err, req, res, next) => {
 
         switch (err.code) {
             case 'ER_DUP_ENTRY':
-                mensagem = 'Registro duplicado';
+                mensagem = err.sqlMessage?.includes('uq_agenda_costureira_slot')
+                    ? MENSAGENS.ERRO.COSTUREIRA_OCUPADA : 'Registro duplicado';
                 statusCode = 409;
                 break;
+
             case 'ER_NO_REFERENCED_ROW_2':
                 mensagem = 'Referência inválida';
                 statusCode = 400;
@@ -94,8 +98,9 @@ const errorMiddleware = (err, req, res, next) => {
 
         return res.status(statusCode).json({
             sucesso: false,
-            mensagem: mensagem,
-            erro: err.sqlMessage || err.message
+            mensagem,
+            ...(err.code === 'ER_SIGNAL_EXCEPTION' || !EM_PRODUCAO ? { erro: err.sqlMessage || err.message } : {}),
+            requestId: req.id
         });
     }
 
@@ -119,13 +124,13 @@ const errorMiddleware = (err, req, res, next) => {
 
     // Erro genérico
     const statusCode = err.statusCode || err.status || 500;
-    const mensagem = statusCode === 500 ? MENSAGENS.ERRO.SERVIDOR : err.message;
-
+    const ehInterno = statusCode >= 500;
     return res.status(statusCode).json({
         sucesso: false,
-        mensagem: mensagem,
-        erro: err.message,
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+        mensagem: ehInterno ? MENSAGENS.ERRO.SERVIDOR : err.message,
+        ...(!ehInterno || !EM_PRODUCAO ? { erro: err.message } : {}),
+        ...(!EM_PRODUCAO && { stack: err.stack }),
+        requestId: req.id // permite ao suporte achar o log sem expor detalhes
     });
 };
 
@@ -149,32 +154,29 @@ const asyncHandler = (fn) => {
 };
 
 /**
- * Factory para middleware que valida parâmetros de rota como números inteiros positivos.
- * 
+ * Factory que valida parâmetros de rota como inteiros positivos (apenas dígitos).
+ *
  * @function validarIdMiddleware
- * @param {string} [paramName='id'] - Nome do parâmetro na rota (ex: 'id', 'userId').
- * @returns {Function} Middleware que valida e converte o parâmetro.
- * 
+ * @param {string} [paramName='id']
+ * @returns {Function}
+ *
  * @example
- * router.get('/usuario/:id', validarIdMiddleware('id'), (req, res) => {
- *   // req.params.id é um número
- * });
+ * router.get('/:id', validarIdMiddleware('id'), controller);
  */
-const validarIdMiddleware = (paramName = 'id') => {
-    return (req, res, next) => {
-        const id = parseInt(req.params[paramName]);
+const validarIdMiddleware = (paramName = 'id') => (req, res, next) => {
+    const bruto = String(req.params[paramName] ?? '');
+    const id = Number(bruto);
 
-        if (isNaN(id) || id <= 0) {
-            return res.status(400).json({
-                sucesso: false,
-                mensagem: MENSAGENS.ERRO.VALIDACAO,
-                erro: `${paramName} deve ser um número inteiro positivo`
-            });
-        }
-
-        req.params[paramName] = id;
-        next();
-    };
+    // /^\d+$/ rejeita '12abc', '1e3', '-1', ' 5'; isSafeInteger evita overflow.
+    if (!/^\d+$/.test(bruto) || !Number.isSafeInteger(id) || id <= 0) {
+        return res.status(400).json({
+            sucesso: false,
+            mensagem: MENSAGENS.ERRO.VALIDACAO,
+            erro: `${paramName} deve ser um número inteiro positivo`
+        });
+    }
+    req.params[paramName] = id;
+    next();
 };
 
 /**
@@ -226,10 +228,8 @@ const sanitizarInputMiddleware = (req, res, next) => {
 
         if (obj !== null && typeof obj === 'object') {
             const sanitizado = {};
-            for (const key in obj) {
-                if (obj.hasOwnProperty(key)) {
-                    sanitizado[key] = sanitizar(obj[key]);
-                }
+            for (const [chave, valor] of Object.entries(obj)) {
+                if (!CHAVES_PROIBIDAS.has(chave)) sanitizado[chave] = sanitizar(valor);
             }
             return sanitizado;
         }

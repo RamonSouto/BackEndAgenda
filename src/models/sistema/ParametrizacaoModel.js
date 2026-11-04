@@ -8,9 +8,12 @@
  * Gerencia operações CRUD, ativação/desativação e soft delete na tabela `tab_parametrizacao`.
  * 
  * @requires ../config/database
+ * @requires ../utils/sqlUtils
  */
 
 const database = require('../../config/database');
+const { montarUpdate } = require('../../utils/sqlUtils');
+const CAMPOS_ATUALIZAVEIS = ['des_tipo_dia', 'hra_inicio', 'hra_fim', 'qtd_minutos_intervalo', 'ind_ativo'];
 
 /**
  * Classe ParametrizacaoModel.
@@ -343,30 +346,15 @@ class ParametrizacaoModel {
      * await parametrizacaoModel.atualizar(1, { qtd_minutos_intervalo: 90 });
      */
     async atualizar(id, dados) {
-        const campos = [];
-        const valores = [];
 
-        Object.keys(dados).forEach(campo => {
-            if (dados[campo] !== undefined && campo !== 'id') {
-                campos.push(`${campo} = ?`);
-                valores.push(dados[campo]);
-            }
-        });
+        const { set, valores } = montarUpdate(dados, CAMPOS_ATUALIZAVEIS);
 
-        if (campos.length === 0) {
-            throw new Error('Nenhum campo para atualizar');
-        }
+        const sql = `UPDATE tab_parametrizacao SET ${set} WHERE id = ? AND deleted_at IS NULL`;
 
-        valores.push(id);
+        const resultado = await database.query(sql, [...valores, id]);
 
-        const sql = `
-            UPDATE tab_parametrizacao 
-            SET ${campos.join(', ')}
-            WHERE id = ? AND deleted_at IS NULL
-        `;
-
-        const resultado = await database.query(sql, valores);
         return resultado.affectedRows > 0;
+
     }
 
     /**

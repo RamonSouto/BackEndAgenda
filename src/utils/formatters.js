@@ -30,7 +30,7 @@ module.exports = {
      * a regex falhará. Utilize `limparCPF()` antes se necessário.
      */
     formatarCPF(cpf) {
-        const num = limparCPF(cpf);
+        const num = this.limparCPF(cpf);
         return num.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     },
 
@@ -45,7 +45,7 @@ module.exports = {
      * formatarCEP('12345678'); // '12345-678'
      */
     formatarCEP(cep) {
-        const num = limparCEP(cep);
+        const num = this.limparCEP(cep);
         return num.replace(/(\d{5})(\d{3})/, '$1-$2');
     },
 
@@ -65,7 +65,7 @@ module.exports = {
      * Recomenda-se usar `limparTelefone()` primeiro.
      */
     formatarTelefone(telefone) {
-        const num = limparTelefone(telefone);
+        const num = this.limparTelefone(telefone);
         if (num.length === 11) {
             return num.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
         }

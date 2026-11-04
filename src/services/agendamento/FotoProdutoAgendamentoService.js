@@ -394,7 +394,7 @@ class FotoProdutoAgendamentoService {
      * @param {number} id
      * @param {Object} usuario - req.usuario.
      * @returns {Promise<boolean>}
-     * @throws {NotFoundError|ValidationError}
+     * @throws {NotFoundError|ForbiddenError|ValidationError}
      *
      * @example
      * await FotoProdutoAgendamentoService.deletar(10, req.usuario);
@@ -409,6 +409,7 @@ class FotoProdutoAgendamentoService {
                 const registro = await FotoModel.buscarPorId(id, conn, true);
                 if (!registro) throw new NotFoundError('Foto não encontrada');
 
+                this._validarAcesso(usuario, registro);
                 this._validarStatusEditavel(registro);
 
                 origem = resolverCaminhoSeguro(UPLOAD_ROOT, registro.des_caminho_arquivo);

@@ -6,11 +6,12 @@
  * @file src/controllers/agendamento/TipoAgendamentoController.js
  * @description Controller HTTP para tipos de agendamento.
  * 
- * @requires ../../services/agendamento/tipoAgendamentoService
+ * @requires ../../services/agendamento/TipoAgendamentoService
+ * @requires ../../middlewares/errorMiddleware
  */
 const TipoAgendamentoService = require('../../services/agendamento/TipoAgendamentoService');
 
-const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+const { asyncHandler } = require('../../middlewares/errorMiddleware');
 
 class TipoAgendamentoController {
 
@@ -59,7 +60,6 @@ class TipoAgendamentoController {
 
         res.status(200).json({
             sucesso: true,
-            mensagem: tipoAgendamento.length,
             dados: tipoAgendamento
         });
     });
@@ -72,7 +72,7 @@ class TipoAgendamentoController {
 
         const { id } = req.params;
 
-        const tipoAgendamento = await TipoAgendamentoService.atualizar(id, req.body, req.usuario);
+        const tipoAgendamento = await TipoAgendamentoService.atualizar(id, req.body, req.usuario.id);
 
         res.status(200).json({
             sucesso: true,

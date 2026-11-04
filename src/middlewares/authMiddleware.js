@@ -75,11 +75,11 @@ const authMiddleware = async (req, res, next) => {
 
         // Verificar e decodificar token
         try {
-            const decoded = jwt.verify(token, config.jwt.secret);
+            const decoded = jwt.verify(token, config.jwt.secret, { algorithms: ['HS256'] });
 
             // Adicionar informações do usuário ao request
             req.usuario = {
-                id: decoded.id,
+                id: Number(decoded.id),
                 cpf: decoded.cpf,
                 papeis: Array.isArray(decoded.papeis) ? decoded.papeis : []
             };

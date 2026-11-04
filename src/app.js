@@ -12,8 +12,6 @@
  * @requires helmet
  * @requires path
  * @requires ./config/env
- * @requires ./middlewares/authMiddleware
- * @requires ./middlewares/logMiddleware
  * @requires ./middlewares/errorMiddleware
  * @requires ./middlewares/rateLimitMiddleware
  * @requires ./middlewares/requestLoggerMiddleware
@@ -29,8 +27,6 @@ const config = require('./config/env');
 const requestLoggerMiddleware = require('./middlewares/requestLoggerMiddleware');
 
 // Middlewares
-const authMiddleware = require('./middlewares/authMiddleware');
-const logMiddleware = require('./middlewares/logMiddleware');
 const {
     notFoundMiddleware,
     errorMiddleware,
@@ -53,30 +49,32 @@ const swaggerDocument = YAML.load(path.join(__dirname, '../swagger.yaml'));
 class App {
     constructor() {
         this.app = express();
-        this.app.set('trust proxy', true);
-        this.app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+        this.app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS ?? 1));
         this.configureMiddlewares();
+        if (config.env !== 'production') {
+            this.app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument)); // não expõe o mapa da API em prod
+        }
         this.configureRoutes();
         this.configureErrorHandling();
     }
 
     /**
      * Configura todos os middlewares da aplicação.
-     * 
+     *
      * @method configureMiddlewares
      * @returns {void}
-     * 
+     *
      * @description
-     * Os middlewares são aplicados na seguinte ordem:
-     * 1. **helmet** – segurança (headers HTTP).
-     * 2. **cors** – compartilhamento de recursos entre origens.
-     * 3. **limiterGeral** – rate limiting por IP.
-     * 4. **express.json** – parser de JSON com limite de 10MB.
-     * 5. **express.urlencoded** – parser de formulários URL-encoded.
-     * 6. **sanitizarInputMiddleware** – limpeza de dados de entrada (trim).
-     * 7. **express.static** – servir arquivos estáticos da pasta `uploads`.
-     * 8. **logMiddleware** – registro de logs de requisições.
-     * 9. **trust proxy** – reconfiguração (redundante).
+     * Os middlewares são aplicados na seguinte ordem
+     * (`trust proxy` é definido no construtor):
+     * 1. **helmet** – headers de segurança HTTP.
+     * 2. **cors** – origens permitidas via `ALLOWED_ORIGINS`.
+     * 3. **requestLoggerMiddleware** – requestId e log HTTP.
+     * 4. **limiterGeral** – rate limiting por IP.
+     * 5. **express.json** – parser JSON (limite 1 MB).
+     * 6. **express.urlencoded** – parser de formulários (limite 1 MB).
+     * 7. **sanitizarInputMiddleware** – trim recursivo e bloqueio de prototype pollution.
+     * 8. **express.static** – whitelist de pastas públicas (LGPD).
      */
     configureMiddlewares() {
         // Segurança
@@ -84,26 +82,28 @@ class App {
             crossOriginResourcePolicy: { policy: "cross-origin" }
         }));
 
+        const origens = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
+
         // CORS
         this.app.use(cors({
-            origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+            origin: origens.length ? origens : false,
             methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-            allowedHeaders: ['Content-Type', 'Authorization'],
+            allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
+            exposedHeaders: ['X-Request-Id'],
             credentials: true
         }));
 
-        // Rate limiting
+        // Correlação/log HTTP + rate limiting
+        this.app.use(requestLoggerMiddleware);
         this.app.use(limiterGeral);
 
         // Body parser
-        this.app.use(express.json({ limit: '10mb' }));
-        this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+        this.app.use(express.json({ limit: '1mb' }));
+        this.app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
         // Sanitizar input
         this.app.use(sanitizarInputMiddleware);
 
-        // Servir arquivos estáticos (uploads)
-        //this.app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
         // Servir arquivos estáticos (uploads) — WHITELIST (LGPD)
         // Somente pastas sem dados pessoais são públicas.
@@ -113,21 +113,13 @@ class App {
         const staticOptions = {
             dotfiles: 'deny',
             index: false,
-            fallthrough: true
+            fallthrough: true,
+            maxAge: `7d`
         };
 
         ['cor_estampa', 'imagem_produto', 'empresa'].forEach((pasta) => {
             this.app.use(`/uploads/${pasta}`, express.static(path.join(uploadsDir, pasta), staticOptions));
         });
-
-
-        this.app.use(requestLoggerMiddleware);
-
-        // Log de requisições
-        this.app.use(logMiddleware);
-
-        // Trust proxy (para obter IP real em ambientes de produção)
-        this.app.set('trust proxy', 1);
 
         console.log('✅ Middlewares configurados');
     }

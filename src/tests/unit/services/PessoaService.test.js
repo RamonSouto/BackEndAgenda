@@ -1,360 +1,223 @@
 // src/tests/unit/services/PessoaService.test.js
 jest.mock('../../../models/PessoaModel', () => ({
-    buscarPorCPF: jest.fn(),
-    buscarPorId: jest.fn(),
-    criar: jest.fn(),
-    atualizar: jest.fn(),
-    deletar: jest.fn(),
-    listar: jest.fn()
+    criar: jest.fn(), buscarPorId: jest.fn(), buscarPorCPF: jest.fn(), buscarPorPapel: jest.fn(),
+    listar: jest.fn(), atualizar: jest.fn(), deletar: jest.fn()
 }));
+jest.mock('../../../services/LogService', () => ({ registrar: jest.fn() }));
+jest.mock('../../../config/logger', () => ({ debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
+jest.mock('bcryptjs', () => ({ hash: jest.fn(async (s) => `hash:${s}`) }));
+// BUG: o service faz require('../models/AgendamentoModel'), mas o arquivo está em models/agendamento/.
+// O mock virtual simula esse caminho para cobrir a lógica. Corrija o require no service.
+jest.mock('../../../models/AgendamentoModel', () => ({ buscarAgendamentoAtivoCostureira: jest.fn() }), { virtual: true });
 
-jest.mock('../../../services/LogService', () => ({
-    registrar: jest.fn(),
-}));
-
-jest.mock('../../../utils/validators', () => ({
-    validarCPF: jest.fn(),
-    cpfValido: jest.fn(),
-    pessoaSchema: {
-        validate: jest.fn()
-    },
-    agendamentoSchema: {
-        validate: jest.fn()
-    },
-    loginSchema: {
-        validate: jest.fn()
-    },
-    comparecimentoSchema: {
-        validate: jest.fn()
-    }
-}));
-
-jest.mock('../../../utils/formatters', () => ({
-    limparCPF: jest.fn(cpf => cpf.replace(/\D/g, '')),
-    limparCEP: jest.fn(cep => cep.replace(/\D/g, '')),
-    limparTelefone: jest.fn(tel => tel.replace(/\D/g, '')),
-    ocultarDadosSensiveis: jest.fn(pessoa => {
-        if (!pessoa) return pessoa;
-        const { des_senha, ...pessoaSemSenha } = pessoa;
-        return pessoaSemSenha;
-    })
-}))
-
-jest.mock('bcryptjs', () => ({
-    hash: jest.fn().mockResolvedValue('hashedPassword123'),
-    compare: jest.fn(),
-}));
-
-const PessoaService = require('../../../services/PessoaService');
+const bcrypt = require('bcryptjs');
 const PessoaModel = require('../../../models/PessoaModel');
 const LogService = require('../../../services/LogService');
-// const TestHelpers = require('../../helpers/testHelpers');
-const validators = require('../../../utils/validators')
-const { ocultarDadosSensiveis } = require('../../../utils/formatters');
-const bcrypt = require('bcryptjs');
+const AgendamentoModel = require('../../../models/AgendamentoModel');
+const Service = require('../../../services/PessoaService');
 
-const TestHelpers = {
-    generatePessoaData(tipo = 'paciente') {
-        const base = {
-            id_cidade: 5418,
-            ind_tipo_pessoa: tipo,
-            ind_status: 'ativo',
-            nom_completo: `Teste ${tipo} ${Date.now()}`,
-            num_cpf: '12345678909',
-            num_rg: '1234567',
-            dta_nascimento: '1990-01-15',
-            des_logradouro: 'Rua Teste',
-            num_endereco: '123',
-            num_cep: '74000000',
-            nom_bairro: 'Centro',
-            num_celular_1: '62999999999',
-            ind_whatsapp_1: true,
-            des_email_1: `teste.${Date.now()}@email.com`
-        };
+const CPF = '11144477735';
+const payload = (extra = {}) => ({
+    id_cidade: 1, nom_completo: 'Ana', num_cpf: CPF, num_rg: '123', dta_nascimento: '1990-01-01',
+    des_logradouro: 'Rua A', num_endereco: '10', num_cep: '74000000', nom_bairro: 'Centro',
+    num_celular_1: '(62) 98888-7777', des_email_1: 'ana@x.com', ind_paciente: true, ...extra
+});
+const pessoaDb = (extra = {}) => ({ id: 1, nom_completo: 'Ana', num_cpf: CPF, des_senha: 'h', ind_paciente: 1, ...extra });
 
-        if (['secretaria', 'costureira', 'administrador', 'medico'].includes(tipo)) {
-            base.des_senha = 'senha123';
-        }
+beforeEach(() => jest.clearAllMocks());
 
-        return base;
-    }
-};
+describe('PessoaService – helpers', () => {
+    it('extrairPapeis', () => {
+        expect(Service.extrairPapeis({ ind_medico: 1, ind_administrador: true })).toEqual(['medico', 'administrador']);
+        expect(Service.extrairPapeis({
+            ind_medico: 1, ind_secretaria: 1, ind_costureira: 1, ind_paciente: 1, ind_administrador: 1
+        })).toHaveLength(5);
+    });
+    it('possuiAlgumPapel', () => {
+        expect(Service.possuiAlgumPapel({ ind_paciente: 1 })).toBeTruthy();
+        expect(Service.possuiAlgumPapel({})).toBeFalsy();
+    });
+});
 
-describe('PessoaService - Testes de Unidade', () => {
+describe('PessoaService.criar', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        PessoaModel.buscarPorCPF.mockResolvedValue(null);
+        PessoaModel.criar.mockResolvedValue(1);
+        PessoaModel.buscarPorId.mockResolvedValue(pessoaDb());
     });
 
-    describe('criar', () => {
-        it('deve criar pessoa com dados válidos', async () => {
-            // Arrange
-            const dadosPessoa = TestHelpers.generatePessoaData('paciente');
-            const dadosValidos = { ...dadosPessoa, num_cpf: '12345678909' };
+    it('paciente: sanitiza telefone, cria, loga e oculta sensíveis', async () => {
+        const r = await Service.criar(payload(), 99);
+        expect(PessoaModel.criar).toHaveBeenCalledWith(expect.objectContaining({ num_celular_1: '62988887777', ind_status: 'ativo' }));
+        expect(bcrypt.hash).not.toHaveBeenCalled();
+        expect(LogService.registrar).toHaveBeenCalledWith(expect.objectContaining({
+            id_usuario: 99, des_acao: 'criar', num_registro_id: 1,
+            des_detalhes: expect.objectContaining({ papeis: ['paciente'] })
+        }));
+        expect(r).not.toHaveProperty('des_senha');
+        expect(r).not.toHaveProperty('num_cpf');
+    });
+    it('sanitiza celular 2', async () => {
+        await Service.criar(payload({ num_celular_2: '(62) 3333-4444' }), 1);
+        expect(PessoaModel.criar.mock.calls[0][0].num_celular_2).toBe('6233334444');
+    });
+    it('aplica hash na senha', async () => {
+        await Service.criar(payload({ ind_secretaria: true, des_senha: '123456' }), 1);
+        expect(PessoaModel.criar).toHaveBeenCalledWith(expect.objectContaining({ des_senha: 'hash:123456' }));
+    });
+    it.each([
+        [{ nom_completo: undefined }, /^Erro de validação:/],
+        [{ ind_paciente: false }, /pelo menos um papel/],
+        [{ ind_paciente: false, ind_medico: true }, /Senha é obrigatória/],
+        [{ ind_costureira: true, des_senha: '123456' }, /cor para a costureira/],
+        [{ num_cpf: '11111111111' }, /Erro de validação/]
+    ])('validação %j', async (extra, msg) => {
+        await expect(Service.criar(payload(extra), 1)).rejects.toThrow(msg);
+        expect(PessoaModel.criar).not.toHaveBeenCalled();
+    });
+    it('CPF duplicado', async () => {
+        PessoaModel.buscarPorCPF.mockResolvedValue({ id: 2 });
+        await expect(Service.criar(payload(), 1)).rejects.toThrow('CPF já cadastrado');
+    });
+    it.failing('CPF/CEP com máscara deveriam ser aceitos (limpeza ocorre APÓS o Joi)', async () => {
+        await expect(Service.criar(payload({ num_cpf: '111.444.777-35', num_cep: '74000-000' }), 1)).resolves.toBeDefined();
+    });
+    it.failing('CPF duplicado deveria ser ConflictError (409)', async () => {
+        PessoaModel.buscarPorCPF.mockResolvedValue({ id: 2 });
+        await expect(Service.criar(payload(), 1)).rejects.toMatchObject({ statusCode: 409 });
+    });
+});
 
-            validators.pessoaSchema.validate.mockReturnValue({
-                error: null,
-                value: dadosValidos
-            });
+describe('PessoaService – consultas', () => {
+    it('buscarPorId encontrado/não encontrado', async () => {
+        PessoaModel.buscarPorId.mockResolvedValueOnce(pessoaDb()).mockResolvedValueOnce(null);
+        await expect(Service.buscarPorId(1, 9)).resolves.not.toHaveProperty('des_senha');
+        expect(LogService.registrar).toHaveBeenCalledWith(expect.objectContaining({ des_acao: 'consultar', num_registro_id: 1 }));
+        await expect(Service.buscarPorId(2, 9)).rejects.toThrow('Recurso não encontrado');
+    });
+    it('buscarPorCPF inválido', async () => {
+        await expect(Service.buscarPorCPF('123', 1)).rejects.toThrow('CPF inválido');
+    });
+    it('buscarPorCPF válido hoje lança ReferenceError (cpfLimpo)', async () => {
+        await expect(Service.buscarPorCPF(CPF, 1)).rejects.toThrow(ReferenceError);
+    });
+    it.failing('buscarPorCPF válido deveria retornar pessoa (cpfLimpo não definido)', async () => {
+        PessoaModel.buscarPorCPF.mockResolvedValue(pessoaDb());
+        await expect(Service.buscarPorCPF('111.444.777-35', 1)).resolves.toMatchObject({ id: 1 });
+        expect(PessoaModel.buscarPorCPF).toHaveBeenCalledWith(CPF);
+    });
+    it.each([['listar', 'listar', {}], ['listarPorPapel', 'buscarPorPapel', 'paciente']])('%s oculta sensíveis e loga total', async (metodo, modelo, arg) => {
+        PessoaModel[modelo].mockResolvedValue([pessoaDb(), pessoaDb({ id: 2 })]);
+        const r = await Service[metodo](arg, 1);
+        expect(r).toHaveLength(2);
+        r.forEach((p) => expect(p).not.toHaveProperty('des_senha'));
+        expect(LogService.registrar.mock.calls[0][0].des_detalhes.total_registros).toBe(2);
+    });
+    it.each([['listar', 'listar'], ['listarPorPapel', 'buscarPorPapel']])('%s propaga erro', async (metodo, modelo) => {
+        PessoaModel[modelo].mockRejectedValue(new Error('db'));
+        await expect(Service[metodo]('x', 1)).rejects.toThrow('db');
+    });
+    it('listar usa filtros padrão', async () => {
+        PessoaModel.listar.mockResolvedValue([]);
+        await Service.listar(undefined, 1);
+        expect(PessoaModel.listar).toHaveBeenCalledWith({});
+    });
+});
 
-            // validarCPF.mockReturnValue(true);
-            // PessoaModel.buscarPorCPF.mockResolvedValue(null);
-            // PessoaModel.criar.mockResolvedValue(1);
-            // PessoaModel.buscarPorId.mockResolvedValue({ id: 1, ...dadosPessoa });
-            // LogService.registrar.mockResolvedValue(1);
-
-            // Act
-            const resultado = await PessoaService.criar(dadosPessoa, 1);
-
-            // Assert
-            expect(resultado).toHaveProperty('id');
-            expect(validators.pessoaSchema.validate).toHaveBeenCalledWith(dadosPessoa);
-            expect(PessoaModel.buscarPorCPF).toHaveBeenCalled();
-            expect(PessoaModel.criar).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    nom_completo: dadosPessoa.nom_completo,
-                })
-            );
-            expect(LogService.registrar).toHaveBeenCalled();
-        });
-
-        // it('deve lançar erro quando CPF é inválido', async () => {
-        //     // Arrange
-        //     const dadosPessoa = TestHelpers.generatePessoaData('paciente');
-        //     dadosPessoa.num_cpf = '12345678901';
-        //     validarCPF.mockReturnValue(false);
-
-        //     // Act & Assert
-        //     await expect(
-        //         PessoaService.criar(dadosPessoa, 1)
-        //     ).rejects.toThrow('CPF inválido');
-
-        //     expect(PessoaModel.criar).not.toHaveBeenCalled();
-        // });
-
-        // it('deve lançar erro quando CPF já existe', async () => {
-        //     // Arrange
-        //     const dadosPessoa = TestHelpers.generatePessoaData('paciente');
-        //     validarCPF.mockReturnValue(true);
-        //     PessoaModel.buscarPorCPF.mockResolvedValue({ id: 99, num_cpf: dadosPessoa.num_cpf });
-
-        //     // Act & Assert
-        //     await expect(
-        //         PessoaService.criar(dadosPessoa, 1)
-        //     ).rejects.toThrow('CPF já cadastrado');
-
-        //     expect(PessoaModel.criar).not.toHaveBeenCalled();
-        // });
-
-        // it('deve criar hash de senha para tipos que necessitam', async () => {
-        //     // Arrange
-        //     const dadosPessoa = TestHelpers.generatePessoaData('secretaria');
-        //     validarCPF.mockReturnValue(true);
-        //     PessoaModel.buscarPorCPF.mockResolvedValue(null);
-        //     PessoaModel.criar.mockResolvedValue(1);
-        //     PessoaModel.buscarPorId.mockResolvedValue({ id: 1, ...dadosPessoa });
-        //     LogService.registrar.mockResolvedValue(1);
-
-        //     // Act
-        //     await PessoaService.criar(dadosPessoa, 1);
-
-        //     // Assert
-        //     expect(PessoaModel.criar).toHaveBeenCalledWith(
-        //         expect.objectContaining({
-        //             des_senha: expect.any(String)
-        //         })
-        //     );
-
-        //     // Verificar que a senha foi hasheada (não é a senha original)
-        //     const chamada = PessoaModel.criar.mock.calls[0][0];
-        //     expect(chamada.des_senha).not.toBe('senha123');
-        // });
-
-        // it('deve validar idade mínima de 18 anos', async () => {
-        //     // Arrange
-        //     const dadosPessoa = TestHelpers.generatePessoaData('paciente');
-        //     dadosPessoa.dta_nascimento = new Date().toISOString().split('T')[0]; // Data de hoje
-        //     validarCPF.mockReturnValue(true);
-        //     PessoaModel.buscarPorCPF.mockResolvedValue(null);
-
-        //     // Act & Assert
-        //     await expect(
-        //         PessoaService.criar(dadosPessoa, 1)
-        //     ).rejects.toThrow('Idade mínima de 18 anos');
-        // });
+describe('PessoaService.atualizar', () => {
+    beforeEach(() => {
+        PessoaModel.buscarPorId.mockResolvedValue(pessoaDb());
+        PessoaModel.atualizar.mockResolvedValue(true);
     });
 
-    // describe('buscarPorId', () => {
-    //     it('deve buscar pessoa por ID', async () => {
-    //         // Arrange
-    //         const pessoaMock = {
-    //             id: 1,
-    //             nom_completo: 'Teste Usuario',
-    //             ind_tipo_pessoa: 'paciente'
-    //         };
-    //         PessoaModel.buscarPorId.mockResolvedValue(pessoaMock);
+    it('não encontrado', async () => {
+        PessoaModel.buscarPorId.mockResolvedValue(null);
+        await expect(Service.atualizar(1, {}, 1)).rejects.toThrow('Recurso não encontrado');
+    });
+    it('sanitiza campos, aplica hash e loga', async () => {
+        await Service.atualizar(1, { num_cep: '74000-000', num_celular_2: '(62) 3333-4444', des_senha: 'nova123' }, 9);
+        expect(PessoaModel.atualizar).toHaveBeenCalledWith(1, { num_cep: '74000000', num_celular_2: '6233334444', des_senha: 'hash:nova123' });
+        expect(LogService.registrar).toHaveBeenCalledWith(expect.objectContaining({ des_acao: 'editar', id_usuario: 9 }));
+    });
+    it('sanitiza celular 1', async () => {
+        await Service.atualizar(1, { num_celular_1: '(62) 98888-7777' }, 1);
+        expect(PessoaModel.atualizar).toHaveBeenCalledWith(1, { num_celular_1: '62988887777' });
+    });
+    it('mesmo CPF não verifica duplicidade', async () => {
+        await Service.atualizar(1, { num_cpf: '111.444.777-35' }, 1);
+        expect(PessoaModel.buscarPorCPF).not.toHaveBeenCalled();
+    });
+    it('CPF novo livre segue fluxo', async () => {
+        PessoaModel.buscarPorCPF.mockResolvedValue(null);
+        await expect(Service.atualizar(1, { num_cpf: '52998224725' }, 1)).resolves.toBeDefined();
+        expect(PessoaModel.buscarPorCPF).toHaveBeenCalledWith('52998224725');
+    });
+    it('CPF novo duplicado', async () => {
+        PessoaModel.buscarPorCPF.mockResolvedValue({ id: 2 });
+        await expect(Service.atualizar(1, { num_cpf: '52998224725' }, 1)).rejects.toThrow('CPF já cadastrado');
+    });
+    it('remover todos os papéis', async () => {
+        await expect(Service.atualizar(1, { ind_paciente: false }, 1)).rejects.toThrow('ao menos um papel');
+    });
+    it('papel que exige senha sem senha existente', async () => {
+        PessoaModel.buscarPorId.mockResolvedValue(pessoaDb({ des_senha: null }));
+        await expect(Service.atualizar(1, { ind_medico: true }, 1)).rejects.toThrow(/Senha é obrigatória/);
+    });
+    it('senha existente dispensa nova', async () => {
+        await expect(Service.atualizar(1, { ind_medico: true }, 1)).resolves.toBeDefined();
+        expect(bcrypt.hash).not.toHaveBeenCalled();
+    });
+    it('falha na persistência', async () => {
+        PessoaModel.atualizar.mockResolvedValue(false);
+        await expect(Service.atualizar(1, { nom_completo: 'X' }, 1)).rejects.toThrow('Erro ao atualizar pessoa');
+    });
+    it.failing('dados inválidos deveriam ser rejeitados (sem validação Joi no update)', async () => {
+        await expect(Service.atualizar(1, { des_email_1: 'nao-e-email' }, 1)).rejects.toThrow();
+    });
+    it.failing('tornar costureira sem cor deveria falhar', async () => {
+        await expect(Service.atualizar(1, { ind_costureira: true }, 1)).rejects.toThrow(/cor/);
+    });
+});
 
-    //         // Act
-    //         const resultado = await PessoaService.buscarPorId(1, 1);
+describe('PessoaService – deletar / ativarDesativar', () => {
+    it('deletar', async () => {
+        PessoaModel.buscarPorId.mockResolvedValue(pessoaDb());
+        PessoaModel.deletar.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+        await expect(Service.deletar(1, 9)).resolves.toBe(true);
+        expect(LogService.registrar).toHaveBeenCalledWith(expect.objectContaining({ des_acao: 'deletar' }));
+        await expect(Service.deletar(1, 9)).rejects.toThrow('Erro ao deletar pessoa');
+    });
+    it('deletar inexistente', async () => {
+        PessoaModel.buscarPorId.mockResolvedValue(null);
+        await expect(Service.deletar(1, 9)).rejects.toThrow('Recurso não encontrado');
+    });
+    it.each([['ativo', 'ativar'], ['inativo', 'desativar']])('ativarDesativar(%s)', async (status, acao) => {
+        PessoaModel.buscarPorId.mockResolvedValue(pessoaDb());
+        await expect(Service.ativarDesativar(1, status, 9)).resolves.toBe(true);
+        expect(PessoaModel.atualizar).toHaveBeenCalledWith(1, { ind_status: status });
+        expect(LogService.registrar.mock.calls[0][0].des_detalhes.acao).toBe(acao);
+    });
+    it('ativarDesativar inexistente', async () => {
+        PessoaModel.buscarPorId.mockResolvedValue(null);
+        await expect(Service.ativarDesativar(1, 'ativo', 9)).rejects.toThrow('Recurso não encontrado');
+    });
+    it.failing('status inválido deveria ser rejeitado', async () => {
+        PessoaModel.buscarPorId.mockResolvedValue(pessoaDb());
+        await expect(Service.ativarDesativar(1, 'banido', 9)).rejects.toThrow();
+    });
+});
 
-    //         // Assert
-    //         expect(resultado).toEqual(pessoaMock);
-    //         expect(PessoaModel.buscarPorId).toHaveBeenCalledWith(1);
-    //     });
-
-    //     it('deve lançar erro quando pessoa não existe', async () => {
-    //         // Arrange
-    //         PessoaModel.buscarPorId.mockResolvedValue(null);
-
-    //         // Act & Assert
-    //         await expect(
-    //             PessoaService.buscarPorId(999, 1)
-    //         ).rejects.toThrow('Pessoa não encontrada');
-    //     });
-
-    //     it('deve omitir senha do resultado', async () => {
-    //         // Arrange
-    //         const pessoaMock = {
-    //             id: 1,
-    //             nom_completo: 'Teste Usuario',
-    //             des_senha: 'hashedPassword'
-    //         };
-    //         PessoaModel.buscarPorId.mockResolvedValue(pessoaMock);
-
-    //         // Act
-    //         const resultado = await PessoaService.buscarPorId(1, 1);
-
-    //         // Assert
-    //         expect(resultado).not.toHaveProperty('des_senha');
-    //     });
-    // });
-
-    // describe('atualizar', () => {
-    //     it('deve atualizar pessoa com sucesso', async () => {
-    //         // Arrange
-    //         const dadosAtualizacao = {
-    //             nom_completo: 'Nome Atualizado',
-    //             des_email_1: 'novo@email.com'
-    //         };
-    //         const pessoaExistente = {
-    //             id: 1,
-    //             num_cpf: '00000000000'
-    //         };
-
-    //         PessoaModel.buscarPorId.mockResolvedValue(pessoaExistente);
-    //         PessoaModel.atualizar.mockResolvedValue(true);
-    //         PessoaModel.buscarPorId.mockResolvedValueOnce(pessoaExistente)
-    //             .mockResolvedValueOnce({ ...pessoaExistente, ...dadosAtualizacao });
-    //         LogService.registrar.mockResolvedValue(1);
-
-    //         // Act
-    //         const resultado = await PessoaService.atualizar(1, dadosAtualizacao, 1);
-
-    //         // Assert
-    //         expect(resultado.nom_completo).toBe('Nome Atualizado');
-    //         expect(PessoaModel.atualizar).toHaveBeenCalled();
-    //         expect(LogService.registrar).toHaveBeenCalled();
-    //     });
-
-    //     it('deve lançar erro ao tentar alterar CPF', async () => {
-    //         // Arrange
-    //         const dadosAtualizacao = {
-    //             num_cpf: '11111111111'
-    //         };
-    //         const pessoaExistente = {
-    //             id: 1,
-    //             num_cpf: '00000000000'
-    //         };
-
-    //         PessoaModel.buscarPorId.mockResolvedValue(pessoaExistente);
-
-    //         // Act & Assert
-    //         await expect(
-    //             PessoaService.atualizar(1, dadosAtualizacao, 1)
-    //         ).rejects.toThrow('Não é possível alterar o CPF');
-    //     });
-
-    //     it('deve lançar erro quando pessoa não existe', async () => {
-    //         // Arrange
-    //         PessoaModel.buscarPorId.mockResolvedValue(null);
-
-    //         // Act & Assert
-    //         await expect(
-    //             PessoaService.atualizar(999, { nom_completo: 'Teste' }, 1)
-    //         ).rejects.toThrow('Pessoa não encontrada');
-    //     });
-    // });
-
-    // describe('deletar', () => {
-    //     it('deve fazer soft delete com sucesso', async () => {
-    //         // Arrange
-    //         const pessoaExistente = {
-    //             id: 1,
-    //             nom_completo: 'Teste Usuario'
-    //         };
-
-    //         PessoaModel.buscarPorId.mockResolvedValue(pessoaExistente);
-    //         PessoaModel.deletar.mockResolvedValue(true);
-    //         LogService.registrar.mockResolvedValue(1);
-
-    //         // Act
-    //         await PessoaService.deletar(1, 1);
-
-    //         // Assert
-    //         expect(PessoaModel.deletar).toHaveBeenCalledWith(1);
-    //         expect(LogService.registrar).toHaveBeenCalled();
-    //     });
-
-    //     it('deve lançar erro quando pessoa não existe', async () => {
-    //         // Arrange
-    //         PessoaModel.buscarPorId.mockResolvedValue(null);
-
-    //         // Act & Assert
-    //         await expect(
-    //             PessoaService.deletar(999, 1)
-    //         ).rejects.toThrow('Pessoa não encontrada');
-
-    //         expect(PessoaModel.deletar).not.toHaveBeenCalled();
-    //     });
-    // });
-
-    // describe('listar', () => {
-    //     it('deve listar pessoas com filtros', async () => {
-    //         // Arrange
-    //         const pessoasMock = [
-    //             { id: 1, nom_completo: 'Pessoa 1' },
-    //             { id: 2, nom_completo: 'Pessoa 2' }
-    //         ];
-    //         const filtros = {
-    //             ind_tipo_pessoa: 'paciente',
-    //             ind_status: 'ativo'
-    //         };
-
-    //         PessoaModel.listar.mockResolvedValue(pessoasMock);
-
-    //         // Act
-    //         const resultado = await PessoaService.listar(filtros, 1);
-
-    //         // Assert
-    //         expect(resultado).toHaveLength(2);
-    //         expect(PessoaModel.listar).toHaveBeenCalledWith(filtros);
-    //     });
-
-    //     it('deve omitir senha de todas as pessoas', async () => {
-    //         // Arrange
-    //         const pessoasMock = [
-    //             { id: 1, nom_completo: 'Pessoa 1', des_senha: 'hash1' },
-    //             { id: 2, nom_completo: 'Pessoa 2', des_senha: 'hash2' }
-    //         ];
-
-    //         PessoaModel.listar.mockResolvedValue(pessoasMock);
-
-    //         // Act
-    //         const resultado = await PessoaService.listar({}, 1);
-
-    //         // Assert
-    //         resultado.forEach(pessoa => {
-    //             expect(pessoa).not.toHaveProperty('des_senha');
-    //         });
-    //     });
-    // });
+describe('PessoaService.listarCostureirasDisponiveis', () => {
+    it('marca disponibilidade e loga', async () => {
+        PessoaModel.buscarPorPapel.mockResolvedValue([pessoaDb({ id: 1 }), pessoaDb({ id: 2 })]);
+        AgendamentoModel.buscarAgendamentoAtivoCostureira.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 50 });
+        const r = await Service.listarCostureirasDisponiveis(9);
+        expect(r[0]).toMatchObject({ disponivel: true, agendamento_ativo: null });
+        expect(r[1]).toMatchObject({ disponivel: false, agendamento_ativo: { id: 50 } });
+        expect(LogService.registrar.mock.calls[0][0].des_detalhes).toMatchObject({ total: 2, disponiveis: 1 });
+    });
+    it('propaga erro', async () => {
+        PessoaModel.buscarPorPapel.mockRejectedValue(new Error('db'));
+        await expect(Service.listarCostureirasDisponiveis(9)).rejects.toThrow('db');
+    });
 });

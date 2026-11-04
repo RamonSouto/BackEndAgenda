@@ -9,8 +9,10 @@
  * Todos os métodos aceitam `connection` opcional para participar de transações.
  *
  * @requires ../../config/database
+ * @requires ../../utils/sqlUtils
  */
 const database = require('../../config/database');
+const { executar } = require('../../utils/sqlUtils')
 
 /**
  * Executa a query na conexão de transação (se houver) ou no pool.
@@ -125,7 +127,8 @@ class FotoProdutoAgendamentoModel {
     }
 
     /**
-     * Busca uma foto ativa por ID, com o contexto do item e do agendamento.
+     * Busca uma foto ativa por ID, com contexto do item e do agendamento.
+     * Ignora fotos cujo item ou agendamento foi removido (soft delete) — evita acesso a dado órfão (LGPD).
      *
      * @method buscarPorId
      * @param {number} id
@@ -141,14 +144,15 @@ class FotoProdutoAgendamentoModel {
                    a.ind_status AS ind_status_agendamento,
                    a.id_costureira
             FROM tab_agendamento_item_fotos f
-            INNER JOIN tab_agendamento_item ai ON (ai.id = f.id_produto_agendamento)
-            INNER JOIN tab_agendamento a ON (a.id = ai.id_agendamento)
+            INNER JOIN tab_agendamento_item ai ON (ai.id = f.id_produto_agendamento AND ai.deleted_at IS NULL)
+            INNER JOIN tab_agendamento a ON (a.id = ai.id_agendamento AND a.deleted_at IS NULL)
             WHERE f.id = ? AND f.deleted_at IS NULL
             ${bloquear ? 'FOR UPDATE' : ''}
         `;
-        const resultado = await exec(sql, [id], connection);
+        const resultado = await executar(sql, [id], connection);
         return resultado[0] || null;
     }
+
 
     /**
      * Soft delete da foto, atualizando o caminho para a pasta de deletados.

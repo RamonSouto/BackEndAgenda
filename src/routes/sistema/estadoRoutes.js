@@ -22,7 +22,7 @@ const { apenasAdminMiddleware, secretariaOuAdminMiddleware } = require('../../mi
 const { validarIdMiddleware, validarBodyMiddleware } = require('../../middlewares/errorMiddleware');
 const { limiterCriacao } = require('../../middlewares/rateLimitMiddleware');
 
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
 /**
  * Rota para listar estados.

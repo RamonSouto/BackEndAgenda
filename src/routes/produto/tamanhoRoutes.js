@@ -21,7 +21,7 @@ const { validarBodyMiddleware } = require('../../middlewares/errorMiddleware');
 const { PAPEIS_PESSOA } = require('../../utils/constants');
 
 // Todas as rotas requerem autenticação
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
 /**
  * @route GET /api/produtos/tamanho

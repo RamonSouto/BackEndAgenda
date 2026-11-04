@@ -8,8 +8,11 @@
  * Gerencia operações CRUD, ativação/desativação e soft delete na tabela `tab_empresa`.
  * 
  * @requires ../config/database
+ * @requires ../../utils/sqlUtils
  */
 const database = require('../../config/database');
+const { montarUpdate } = require('../../utils/sqlUtils');
+const CAMPOS_ATUALIZAVEIS = ['nom_categoria', 'id_pai'];
 /**
  * Classe EmpresaModel.
  * @class EmpresaModel
@@ -253,30 +256,37 @@ class EmpresaModel {
      */
     async atualizar(id, dados) {
 
-        const campos = [];
-        const valores = [];
+        const { set, valores } = montarUpdate(dados, CAMPOS_ATUALIZAVEIS);
 
-        Object.keys(dados).forEach(campo => {
-            if (dados[campo] !== undefined && campo !== 'id') {
-                campos.push(`${campo} = ?`);
-                valores.push(dados[campo]);
-            }
-        });
+        const sql = `UPDATE tab_categorias_produtos SET ${set} WHERE id = ? AND deleted_at IS NULL`;
 
-        if (campos.length === 0) {
-            throw new Error('Nenhum campo para atualizar');
-        }
+        const resultado = await database.query(sql, [...valores, id]);
 
-        valores.push(id);
-
-        const sql = `
-            UPDATE tab_empresa 
-            SET ${campos.join(', ')}
-            WHERE id = ? AND deleted_at IS NULL
-        `;
-
-        const resultado = await database.query(sql, valores);
         return resultado.affectedRows > 0;
+        // const campos = [];
+        // const valores = [];
+
+        // Object.keys(dados).forEach(campo => {
+        //     if (dados[campo] !== undefined && campo !== 'id') {
+        //         campos.push(`${campo} = ?`);
+        //         valores.push(dados[campo]);
+        //     }
+        // });
+
+        // if (campos.length === 0) {
+        //     throw new Error('Nenhum campo para atualizar');
+        // }
+
+        // valores.push(id);
+
+        // const sql = `
+        //     UPDATE tab_empresa 
+        //     SET ${campos.join(', ')}
+        //     WHERE id = ? AND deleted_at IS NULL
+        // `;
+
+        // const resultado = await database.query(sql, valores);
+        // return resultado.affectedRows > 0;
     }
 
     /**

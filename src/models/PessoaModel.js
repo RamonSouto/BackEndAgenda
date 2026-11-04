@@ -11,9 +11,17 @@
  * 
  * @requires ../config/database
  * @requires ../utils/constants
+ * @requires ../utils/sqlUtils
  */
 const database = require('../config/database');
 const { COLUNAS_PAPEIS_PESSOA } = require('../utils/constants');
+const { montarUpdate } = require('../utils/sqlUtils');
+const CAMPOS_ATUALIZAVEIS = ['id_cidade', 'ind_status', 'nom_completo', 'num_cpf', 'num_rg',
+    'dta_nascimento', 'des_logradouro', 'num_endereco', 'des_complemento', 'num_cep',
+    'nom_bairro', 'num_celular_1', 'ind_whatsapp_1', 'num_celular_2', 'ind_whatsapp_2',
+    'des_email_1', 'des_email_2', 'des_senha', 'num_tentativas_login', 'dta_ultimo_login',
+    'dta_bloqueio_login', 'ind_medico', 'ind_secretaria', 'ind_costureira', 'ind_paciente',
+    'ind_administrador', 'val_cor_hex'];
 
 /**
  * Classe PessoaModel.
@@ -269,30 +277,38 @@ class PessoaModel {
      * await pessoaModel.atualizar(1, { ind_status: 'inativo' });
      */
     async atualizar(id, dados) {
-        const campos = [];
-        const valores = [];
 
-        Object.keys(dados).forEach(campo => {
-            if (dados[campo] !== undefined && campo !== 'id') {
-                campos.push(`${campo} = ?`);
-                valores.push(dados[campo]);
-            }
-        });
+        const { set, valores } = montarUpdate(dados, CAMPOS_ATUALIZAVEIS);
 
-        if (campos.length === 0) {
-            throw new Error('Nenhum campo para atualizar');
-        }
+        const sql = `UPDATE tab_pessoas SET ${set} WHERE id = ? AND deleted_at IS NULL`;
 
-        valores.push(id);
+        const resultado = await database.query(sql, [...valores, id]);
 
-        const sql = `
-            UPDATE tab_pessoas
-            SET ${campos.join(', ')}
-            WHERE id = ? AND deleted_at IS NULL
-        `;
-
-        const resultado = await database.query(sql, valores);
         return resultado.affectedRows > 0;
+        // const campos = [];
+        // const valores = [];
+
+        // Object.keys(dados).forEach(campo => {
+        //     if (dados[campo] !== undefined && campo !== 'id') {
+        //         campos.push(`${campo} = ?`);
+        //         valores.push(dados[campo]);
+        //     }
+        // });
+
+        // if (campos.length === 0) {
+        //     throw new Error('Nenhum campo para atualizar');
+        // }
+
+        // valores.push(id);
+
+        // const sql = `
+        //     UPDATE tab_pessoas
+        //     SET ${campos.join(', ')}
+        //     WHERE id = ? AND deleted_at IS NULL
+        // `;
+
+        // const resultado = await database.query(sql, valores);
+        // return resultado.affectedRows > 0;
     }
 
     /**
@@ -413,14 +429,6 @@ class PessoaModel {
         const resultado = await database.query(sql, [id]);
         return resultado[0] || null;
     }
-
-
-
-
-
-
-
-
 }
 
 module.exports = new PessoaModel();

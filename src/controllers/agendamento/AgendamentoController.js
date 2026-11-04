@@ -1,107 +1,143 @@
-// src/controllers/agendamento/agendamentoController.js
+// src/controllers/agendamento/AgendamentoController.js
 
 /**
  * @author Ramon David Souto
- * @version 1.0.0
- * @file src/controllers/agendamento/agendamentoController.js
- * @description Controller HTTP para agendamentos (acesso interno/privado).
- * O fluxo público reutiliza `criarAgendamento` e `buscarPorUuidPublico`,
- * mas via publicAgendamentoRoutes/Controller próprio (sem exigir auth).
- * 
- * @requires ../../services/agendamento/agendamentoService
+ * @version 1.1.0
+ * @file src/controllers/agendamento/AgendamentoController.js
+ * @description Controller HTTP de agendamentos (canal interno e público).
+ * GET lê de req.query; mutações de req.body. Sempre repassa `req.usuario.id`
+ * (ou o objeto quando a regra depende de papel) ao Service.
+ *
+ * @requires ../../middlewares/errorMiddleware
+ * @requires ../../services/agendamento/AgendamentoService
+ * @requires ../../utils/constants
  */
 const { asyncHandler } = require('../../middlewares/errorMiddleware');
-const agendamentoService = require('../../services/agendamento/AgendamentoService');
+const AgendamentoService = require('../../services/agendamento/AgendamentoService');
 const { MENSAGENS } = require('../../utils/constants');
-
 
 class AgendamentoController {
 
     /**
-     * Cria um novo agendamento (via canal interno/privado).
-     * @example POST /api/agendamentos
+     * Cria um agendamento (canal interno).
+     *
+     * @name criar
+     * @function
+     * @memberof AgendamentoController
+     * @async
+     *
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.body - Dados do agendamento.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {Object} res - Objeto de resposta.
+     *
+     * @returns {Promise<void>} - 201 com o agendamento.
+     *
+     * @example
+     * POST /api/agendamentos
      */
     criar = asyncHandler(async (req, res) => {
-
-        const agendamento = await agendamentoService.criar(req.body, req.usuario.id);
-
-        res.status(201).json({
-            sucesso: true,
-            mensagem: 'Agendamento criado com sucesso',
-            dados: agendamento
-        });
+        const dados = await AgendamentoService.criar(req.body, req.usuario.id);
+        res.status(201).json({ sucesso: true, mensagem: 'Agendamento criado com sucesso', dados });
     });
 
     /**
-     * Lista agendamentos com filtros e paginação.
-     * @example GET /api/agendamentos?status=agendado&idCostureira=3&pagina=1&limite=20
+     * Lista agendamentos paginados (filtros via query string).
+     *
+     * @name listar
+     * @function
+     * @memberof AgendamentoController
+     * @async
+     *
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.query - Filtros e paginação.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {Object} res - Objeto de resposta.
+     *
+     * @returns {Promise<void>} - Página de dados + total real.
+     *
+     * @example
+     * GET /api/agendamentos?pagina=1&limite=20
      */
     listar = asyncHandler(async (req, res) => {
-
-        const body = req.body;
-
-        const agendamento = await agendamentoService.listarAgendamentos(body, req.usuario.id);
-
-        res.status(200).json({
-            sucesso: true,
-            mensagem: agendamento.length,
-            dados: agendamento
-        });
+        const { dados, total } = await AgendamentoService.listarAgendamentos(req.query, req.usuario);
+        res.status(200).json({ sucesso: true, total, dados });
     });
 
     /**
-     * Busca um agendamento por ID.
-     * @example GET /api/agendamentos/:id
+     * Busca agendamento completo por ID.
+     *
+     * @name buscarPorId
+     * @function
+     * @memberof AgendamentoController
+     * @async
+     *
+     * @param {Object} req - Objeto de requisição.
+     * @param {number} req.params.id - ID do agendamento.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {Object} res - Objeto de resposta.
+     *
+     * @returns {Promise<void>} - Agendamento com itens.
+     *
+     * @example
+     * GET /api/agendamentos/10
      */
     buscarPorId = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        const agendamento = await agendamentoService.buscarAgendamentoCompleto(id, req.usuario.id);
-
-        res.status(200).json({
-            sucesso: true,
-            mensagem: agendamento.length,
-            dados: agendamento
-        });
+        const dados = await AgendamentoService.buscarAgendamentoCompleto(req.params.id, req.usuario);
+        res.status(200).json({ sucesso: true, dados });
     });
 
     /**
-     * Atualiza dados gerais de um agendamento.
-     * @example PUT /api/agendamentos/:id
+     * Atualiza dados gerais do agendamento.
+     *
+     * @name atualizar
+     * @function
+     * @memberof AgendamentoController
+     * @async
+     *
+     * @param {Object} req - Objeto de requisição.
+     * @param {number} req.params.id - ID do agendamento.
+     * @param {Object} req.body - Campos editáveis.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {Object} res - Objeto de resposta.
+     *
+     * @returns {Promise<void>} - Agendamento atualizado.
+     *
+     * @example
+     * PUT /api/agendamentos/10
      */
     atualizar = asyncHandler(async (req, res) => {
-
-        const { id } = req.params
-
-        const dados = await agendamentoService.atualizar(id, req.body, req.usuario);
-
-        res.status(200).json({
-            sucesso: true,
-            mensagem: 'Agendamento atualizado',
-            dados
-        });
+        const dados = await AgendamentoService.atualizar(req.params.id, req.body, req.usuario.id);
+        res.status(200).json({ sucesso: true, mensagem: 'Agendamento atualizado', dados });
     });
 
     /**
-     * Troca a costureira responsável pelo agendamento.
-     * @example PATCH /api/agendamentos/:id/costureira { "id_costureira": 5, "motivo": "férias" }
+     * Troca a costureira responsável.
+     *
+     * @name trocarCostureira
+     * @function
+     * @memberof AgendamentoController
+     * @async
+     *
+     * @param {Object} req - Objeto de requisição.
+     * @param {number} req.params.id - ID do agendamento.
+     * @param {Object} req.body - { id_costureira, des_motivo? }.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {Object} res - Objeto de resposta.
+     *
+     * @returns {Promise<void>} - Agendamento atualizado.
+     *
+     * @example
+     * PATCH /api/agendamentos/10/costureira
      */
     trocarCostureira = asyncHandler(async (req, res) => {
-
         const { id_costureira, des_motivo } = req.body;
-
-        const dados = await agendamentoService.trocarCostureira(req.params.id, id_costureira, des_motivo, req.usuario);
-
-        res.status(200).json({
-            sucesso: true,
-            mensagem: 'Costureira alterada com sucesso',
-            dados
-        });
+        const dados = await AgendamentoService.trocarCostureira(req.params.id, id_costureira, des_motivo, req.usuario);
+        res.status(200).json({ sucesso: true, mensagem: 'Costureira alterada com sucesso', dados });
     });
 
     /**
-     * Atualiza o status do agendamento (máquina de estados) e dispara e-mail quando aplicável.
+     * Altera o status (repassa o usuário completo para checagem de escopo).
      *
      * @name atualizarStatus
      * @function
@@ -118,103 +154,111 @@ class AgendamentoController {
      *
      * @example
      * PATCH /api/agendamentos/10/status
-     * Body: { "status": "concluido" }
      */
     atualizarStatus = asyncHandler(async (req, res) => {
-        const dados = await agendamentoService.alterarStatus(req.params.id, req.body.status, req.usuario.id);
+        const dados = await AgendamentoService.alterarStatus(req.params.id, req.body.status, req.usuario);
         res.status(200).json({ sucesso: true, mensagem: 'Status atualizado', dados });
     });
 
-
     /**
      * Remove (soft delete) um agendamento.
-     * @example DELETE /api/agendamentos/:id
+     *
+     * @name deletar
+     * @function
+     * @memberof AgendamentoController
+     * @async
+     *
+     * @param {Object} req - Objeto de requisição.
+     * @param {number} req.params.id - ID do agendamento.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {Object} res - Objeto de resposta.
+     *
+     * @returns {Promise<void>} - Mensagem de sucesso.
+     *
+     * @example
+     * DELETE /api/agendamentos/10
      */
     deletar = asyncHandler(async (req, res) => {
-
-        const { id } = req.params;
-
-        await agendamentoService.deletarAgendamento(id, req.usuario);
-
-        res.status(200).json({
-            sucesso: true,
-            mensagem: MENSAGENS.SUCESSO.DELETADO
-        });
+        await AgendamentoService.deletarAgendamento(req.params.id, req.usuario.id);
+        res.status(200).json({ sucesso: true, mensagem: MENSAGENS.SUCESSO.DELETADO });
     });
 
     /**
-     * Verifica disponibilidade de horário para uma costureira.
-     * @example GET /api/agendamentos/disponibilidade?idCostureira=3&data=2026-09-20 14:00:00
+     * Verifica disponibilidade (canal interno e público — mesma regra).
+     *
+     * @name verificarDisponibilidade
+     * @function
+     * @memberof AgendamentoController
+     * @async
+     *
+     * @param {Object} req - Objeto de requisição.
+     * @param {number} req.query.id_costureira - ID da costureira.
+     * @param {string} req.query.data - 'YYYY-MM-DD HH:MM:SS'.
+     * @param {Object} res - Objeto de resposta.
+     *
+     * @returns {Promise<void>} - { disponivel, motivo? }.
+     *
+     * @example
+     * GET /api/agendamentos/disponibilidade?id_costureira=3&data=2026-11-20 14:00:00
      */
     verificarDisponibilidade = asyncHandler(async (req, res) => {
+        const idCostureira = Number(req.query.id_costureira);
+        const { data } = req.query;
 
-        const { id_costureira, data } = req.body;
+        if (!Number.isInteger(idCostureira) || idCostureira <= 0 || typeof data !== 'string') {
+            return res.status(400).json({ sucesso: false, mensagem: 'id_costureira e data são obrigatórios' });
+        }
 
-        const disponivel = await agendamentoService.verificarDisponibilidade(id_costureira, data);
-
-        res.status(200).json({
-            sucesso: true,
-            dados: {
-                disponivel
-            }
-        });
+        const dados = await AgendamentoService.verificarDisponibilidade(idCostureira, data);
+        res.status(200).json({ sucesso: true, dados });
     });
 
+    /** Alias mantido para a rota pública (mesma implementação — DRY). */
+    verificarDisponibilidadePublica = this.verificarDisponibilidade;
+
     /**
-     * Cria um agendamento via fluxo público (sem autenticação).
-     * 
+     * Cria agendamento pelo fluxo público (sem autenticação).
+     *
      * @name criarPublico
      * @function
      * @memberof AgendamentoController
      * @async
-     * 
+     *
+     * @param {Object} req - Objeto de requisição.
+     * @param {Object} req.body - { num_cpf, id_costureira, dta_agendamento, des_observacoes_geral? }.
+     * @param {Object} res - Objeto de resposta.
+     *
+     * @returns {Promise<void>} - 201 com dados mínimos + UUID.
+     *
      * @example
-     * POST /api/publico/agendamentos
-     * Body: { num_cpf: '11144477735', id_costureira: 2, dta_agendamento: '...', item: {...} }
+     * POST /api/public/agendamentos
      */
     criarPublico = asyncHandler(async (req, res) => {
-        const dados = await agendamentoService.criarAgendamentoPublico(req.body);
-        res.status(201).json({
-            sucesso: true,
-            mensagem: 'Agendamento realizado com sucesso',
-            dados
-
-        });
+        const dados = await AgendamentoService.criarAgendamentoPublico(req.body);
+        res.status(201).json({ sucesso: true, mensagem: 'Agendamento realizado com sucesso', dados });
     });
 
     /**
-     * Consulta um agendamento pelo UUID público (des_url_externa).
-     * 
+     * Consulta pública por UUID.
+     *
      * @name buscarPorUuidPublico
      * @function
      * @memberof AgendamentoController
      * @async
-     * 
+     *
+     * @param {Object} req - Objeto de requisição.
+     * @param {string} req.params.uuid - UUID v4 público.
+     * @param {Object} res - Objeto de resposta.
+     *
+     * @returns {Promise<void>} - Dados mínimos do agendamento.
+     *
      * @example
-     * GET /api/publico/agendamentos/a1b2c3d4-...
+     * GET /api/public/agendamentos/3f2b8c1e-9a4d-4e7b-8c21-5d6f7a8b9c0d
      */
     buscarPorUuidPublico = asyncHandler(async (req, res) => {
-        const dados = await agendamentoService.buscarPorUuidPublico(req.params.uuid);
-        res.status(200).json({
-            sucesso: true,
-            dados
-
-        });
-    });
-
-    /**
-     * Verifica disponibilidade (canal público, via query string).
-     * @example GET /api/public/agendamentos/disponibilidade?id_costureira=3&data=2026-11-20 14:00:00
-     */
-    verificarDisponibilidadePublica = asyncHandler(async (req, res) => {
-        const { id_costureira, data } = req.query;
-        if (!Number.isInteger(Number(id_costureira)) || typeof data !== 'string') {
-            return res.status(400).json({ sucesso: false, mensagem: 'id_costureira e data são obrigatórios' });
-        }
-        const dados = await agendamentoService.verificarDisponibilidade(Number(id_costureira), data);
+        const dados = await AgendamentoService.buscarPorUuidPublico(req.params.uuid);
         res.status(200).json({ sucesso: true, dados });
     });
-
 }
 
 module.exports = new AgendamentoController();

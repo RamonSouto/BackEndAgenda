@@ -21,7 +21,9 @@ const generateRequestId = () => crypto.randomUUID();
 
 
 const requestLoggerMiddleware = (req, res, next) => {
-    const requestId = req.headers['x-request-id'] || generateRequestId();
+    // const requestId = req.headers['x-request-id'] || generateRequestId();
+    const idCliente = req.headers['x-request-id'];
+    const requestId = /^[\w-]{8,64}$/.test(idCliente || '') ? idCliente : crypto.randomUUID();
     const startNs = process.hrtime.bigint();
 
     // Expõe o ID para o cliente (útil em suporte/depuração)

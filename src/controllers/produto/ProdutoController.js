@@ -9,16 +9,12 @@
  * tipos de serviço, associações produto-serviço e preços.
  * 
  * @requires ../services/produto/ProdutoService
- * @requires ../services/UploadService
  * @requires ../utils/constants
  * @requires ../middlewares/errorMiddleware
- * @requires path
  */
 const ProdutoService = require('../../services/produto/ProdutoService.js');
-const UploadService = require('../../services/UploadService');
 const { MENSAGENS } = require('../../utils/constants');
 const { asyncHandler } = require('../../middlewares/errorMiddleware');
-const path = require('path');
 
 /**
  * Classe ProdutoController.

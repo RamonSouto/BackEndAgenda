@@ -168,7 +168,7 @@ class CategoriaService {
             const categoriaExiste = await CategoriaModel.buscarCategoriaPorId(id);
 
             if (!categoriaExiste) {
-                throw new Error(MENSAGENS.ERRO.NAO_ENCONTRADO)
+                throw new NotFoundError(MENSAGENS.ERRO.NAO_ENCONTRADO)
             }
 
             const atualizado = await CategoriaModel.atualizarCategoria(id, dados);

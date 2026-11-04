@@ -1,4 +1,4 @@
-// src/models/agendamento/tipoAgendamentoModel.js
+// src/models/agendamento/TipoAgendamentoModel.js
 
 /**
  * @author Ramon David Souto
@@ -8,8 +8,11 @@
  * Camada pura de persistência (sem regra de negócio).
  * 
  * @requires ../../config/database
+ * @requires ../../utils/sqlUtils
  */
 const database = require('../../config/database');
+const { montarUpdate } = require('../../utils/sqlUtils');
+const CAMPOS_ATUALIZAVEIS = ['des_tipo_agendamento', 'ind_ativo'];
 
 class TipoAgendamentoModel {
 
@@ -45,11 +48,12 @@ class TipoAgendamentoModel {
     static async listar() {
         const sql = `
             SELECT id, des_tipo_agendamento, ind_ativo, created_at, updated_at, deleted_at
-            FROM tab_tipo_agendamento;
+            FROM tab_tipo_agendamento
+            WHERE deleted_at IS NULL
+            ORDER BY des_tipo_agendamento
         `;
 
-        const resultado = await database.query(sql);
-        return resultado || null;
+        return database.query(sql);
     }
 
     /**
@@ -78,31 +82,14 @@ class TipoAgendamentoModel {
      * @returns {Promise<Object|null>}
      */
     static async atualizar(id, dados) {
-        const campos = [];
-        const valores = [];
+        const { set, valores } = montarUpdate(dados, CAMPOS_ATUALIZAVEIS);
 
-        Object.keys(dados).forEach(campo => {
-            if (dados[campo] !== undefined && campo !== 'id') {
-                campos.push(`${campo} = ?`);
-                valores.push(dados[campo]);
-            }
-        });
+        const sql = `UPDATE tab_tipo_agendamento SET ${set} WHERE id = ? AND deleted_at IS NULL`;
 
-        if (campos.length === 0) {
-            throw new Error('Nenhum campo para atualizar');
-        }
+        const resultado = await database.query(sql, [...valores, id]);
 
-        valores.push(id);
-
-        const sql = `
-            UPDATE tab_tipo_agendamento 
-            SET ${campos.join(', ')}
-            WHERE id = ? AND deleted_at IS NULL
-        `;
-
-
-        const resultado = await database.query(sql, valores);
         return resultado.affectedRows > 0;
+
     }
 
     /**

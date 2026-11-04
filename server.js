@@ -15,7 +15,7 @@
  * @requires ./src/config/env
  */
 
-require('dotenv').config();
+//require('dotenv').config();
 
 const app = require('./src/app');
 const database = require('./src/config/database');
@@ -53,9 +53,10 @@ class Server {
             console.clear();
             console.log('\n🚀 Iniciando servidor...\n');
 
+            validarChave();
             // Conectar ao banco de dados
             await this.connectDatabase();
-            validarChave();
+
             // Inicializar serviço de upload
             await this.initializeUploadService();
 
@@ -150,30 +151,27 @@ class Server {
      * @returns {void}
      */
     setupShutdownHandlers() {
+        let encerrando = false;
         // Graceful shutdown
         const gracefulShutdown = async (signal) => {
-            console.log(`\n\n⚠️  Sinal ${signal} recebido. Encerrando servidor...`);
+            if (encerrando) return;
+            encerrando = true;
+            console.log(`\n⚠️  Sinal ${signal} recebido. Encerrando servidor...`);
 
-            if (this.server) {
-                EmailOutboxWorker.parar();
-                this.server.close(async () => {
-                    console.log('🔌 Servidor HTTP encerrado');
+            EmailOutboxWorker.parar(); // sempre, mesmo sem HTTP ativo
 
-                    try {
-                        await database.close();
-                        console.log('✅ Recursos liberados com sucesso');
-                        process.exit(0);
-                    } catch (error) {
-                        console.error('❌ Erro ao liberar recursos:', error);
-                        process.exit(1);
-                    }
-                });
+            // Timeout de segurança registrado ANTES de qualquer await
+            setTimeout(() => { console.error('⚠️  Forçando encerramento...'); process.exit(1); }, 10000).unref();
 
-                // Forçar encerramento após 10 segundos
-                setTimeout(() => {
-                    console.error('⚠️  Forçando encerramento...');
-                    process.exit(1);
-                }, 10000);
+            const fecharHttp = () => new Promise((r) => (this.server ? this.server.close(r) : r()));
+
+            try {
+                await fecharHttp();
+                await database.close();
+                process.exit(signal === 'uncaughtException' || signal === 'unhandledRejection' ? 1 : 0);
+            } catch (error) {
+                console.error('❌ Erro ao liberar recursos:', error);
+                process.exit(1);
             }
         };
 

@@ -7,8 +7,11 @@
  * @description Modelo de dados para categorias.
  * 
  * @requires ../../config/database
+ * @requires ../../utils/sqlUtils
  */
 const database = require('../../config/database');
+const { montarUpdate } = require('../../utils/sqlUtils');
+const CAMPOS_ATUALIZAVEIS = ['nom_categoria', 'id_pai'];
 
 /**
  * Classe CategoriaModel.
@@ -66,6 +69,7 @@ class CategoriaModel {
         const sql = `
           SELECT id, nom_categoria, id_pai, created_at, updated_at, deleted_at
           FROM tab_categorias_produtos
+          WHERE deleted_at IS NULL
         `;
 
         return await database.query(sql);
@@ -81,28 +85,12 @@ class CategoriaModel {
      * @throws {Error} Se nenhum campo for fornecido.
      */
     async atualizarCategoria(id, dados) {
-        const campos = [];
-        const valores = [];
-        Object.keys(dados).forEach(campo => {
-            if (dados[campo] !== undefined && campo !== 'id') {
-                campos.push(`${campo} = ?`);
-                valores.push(dados[campo]);
-            }
-        });
 
-        if (campos.length === 0) {
-            throw new Error('Nenhum campo para atualizar')
-        }
+        const { set, valores } = montarUpdate(dados, CAMPOS_ATUALIZAVEIS);
 
-        valores.push(id);
+        const sql = `UPDATE tab_categorias_produtos SET ${set} WHERE id = ? AND deleted_at IS NULL`;
 
-        const sql = `
-          UPDATE tab_categorias_produtos
-          SET ${campos.join(', ')}
-          WHERE id = ? AND deleted_at IS NULL
-        `;
-
-        const resultado = await database.query(sql, valores);
+        const resultado = await database.query(sql, [...valores, id]);
 
         return resultado.affectedRows > 0;
     }

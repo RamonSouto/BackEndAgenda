@@ -17,6 +17,7 @@ const LogService = require('../LogService');
 const { ACOES_LOG, MENSAGENS } = require('../../utils/constants');
 const validators = require('../../utils/validators');
 const { NotFoundError } = require('../../utils/ApiError');
+const UploadService = require('../UploadService')
 
 /**
  * Classe ImagemService.
