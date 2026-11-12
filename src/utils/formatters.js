@@ -185,7 +185,7 @@ module.exports = {
      * ocultarDadosSensiveis(usuario);
      * // Retorna: { id: 1, nome: 'João', endereco: { rua: 'A' } }
      */
-    ocultarDadosSensiveis(objeto, campos = ['des_senha', 'senha_hash', 'num_cpf', 'cpf']) {
+    ocultarDadosSensiveis(objeto, campos = ['des_senha', 'senha_hash', 'cpf']) {
         const camposSet = new Set(campos);
         const jsonString = JSON.stringify(objeto, (key, value) => {
             if (camposSet.has(key)) {

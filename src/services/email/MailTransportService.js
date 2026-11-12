@@ -48,7 +48,7 @@ class MailTransportService {
             throw erro;
         }
 
-        const versao = `${cfg.updated_ad?.getTime?.() || cfg.updated_ad}`;
+        const versao = `${cfg.updated_at?.getTime?.() || cfg.updated_at}`;
         const emCache = this.cache.get(idEmpresa);
         if (emCache && emCache.versao === versao) return emCache;
 

@@ -425,7 +425,8 @@ const validators = {
             return helpers.message('É necessário informar pelo menos um papel para a pessoa.');
         }
 
-        const exigeSenha = value.ind_medico ||
+        const exigeSenha =
+            // value.ind_medico ||
             value.ind_secretaria ||
             value.ind_costureira ||
             value.ind_administrador;

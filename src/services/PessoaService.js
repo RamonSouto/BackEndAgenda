@@ -341,7 +341,7 @@ class PessoaService {
             }
 
             const exigeSenha =
-                dadosFinais.ind_medico ||
+                // dadosFinais.ind_medico ||
                 dadosFinais.ind_secretaria ||
                 dadosFinais.ind_costureira ||
                 dadosFinais.ind_administrador;

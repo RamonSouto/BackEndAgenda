@@ -37,8 +37,14 @@ class AgendamentoController {
      * POST /api/agendamentos
      */
     criar = asyncHandler(async (req, res) => {
+
         const dados = await AgendamentoService.criar(req.body, req.usuario.id);
-        res.status(201).json({ sucesso: true, mensagem: 'Agendamento criado com sucesso', dados });
+
+        res.status(201).json({
+            sucesso: true,
+            mensagem: 'Agendamento criado com sucesso',
+            dados
+        });
     });
 
     /**
@@ -60,8 +66,14 @@ class AgendamentoController {
      * GET /api/agendamentos?pagina=1&limite=20
      */
     listar = asyncHandler(async (req, res) => {
-        const { dados, total } = await AgendamentoService.listarAgendamentos(req.query, req.usuario);
-        res.status(200).json({ sucesso: true, total, dados });
+
+        const { dados, total } = await AgendamentoService.listarAgendamentos(req.body, req.usuario);
+
+        res.status(200).json({
+            sucesso: true,
+            total,
+            dados
+        });
     });
 
     /**

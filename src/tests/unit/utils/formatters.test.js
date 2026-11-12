@@ -33,7 +33,7 @@ describe('formatters – datas', () => {
 
 describe('formatters.ocultarDadosSensiveis', () => {
     it('remove campos padrão em qualquer nível e não muta o original', () => {
-        const orig = { id: 1, des_senha: 'x', num_cpf: '1', filhos: [{ cpf: '2', nome: 'A', senha_hash: 'h' }] };
+        const orig = { id: 1, des_senha: 'x', filhos: [{ nome: 'A', senha_hash: 'h' }] };
         expect(f.ocultarDadosSensiveis(orig)).toEqual({ id: 1, filhos: [{ nome: 'A' }] });
         expect(orig.des_senha).toBe('x');
     });

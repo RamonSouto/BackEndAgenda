@@ -150,7 +150,7 @@ describe('EmpresaModel', () => {
         await expect(EmpresaModel.buscarConfigSmtp(1)).resolves.toEqual({ id: 1 });
         await expect(EmpresaModel.buscarConfigSmtp(1)).resolves.toBeNull();
     });
-    it.failing('buscarConfigSmtp deveria selecionar updated_at (typo updated_ad)', async () => {
+    it('buscarConfigSmtp deveria selecionar updated_at (typo updated_at)', async () => {
         await EmpresaModel.buscarConfigSmtp(1);
         expect(q()[0]).toMatch(/updated_at/);
     });

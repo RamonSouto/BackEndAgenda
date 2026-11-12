@@ -42,7 +42,7 @@ class EmailConfigService {
         const cfg = await EmpresaModel.buscarConfigSmtp(idEmpresa);
         if (!cfg) throw new NotFoundError('Empresa não encontrada');
 
-        const { des_smtp_senha_enc, updated_ad, ...publico } = cfg;
+        const { des_smtp_senha_enc, updated_at, ...publico } = cfg;
         return { ...publico, ind_senha_configurada: Boolean(des_smtp_senha_enc) };
     }
 
@@ -102,7 +102,9 @@ class EmailConfigService {
      * await EmailConfigService.testarSmtp(1, { des_destinatario: 'admin@x.com' });
      */
     async testarSmtp(idEmpresa, dados) {
+
         const { error, value } = validators.smtpTesteSchema.validate(dados);
+
         if (error) throw new BadRequestError(error.details[0].message);
 
         try {
@@ -110,7 +112,7 @@ class EmailConfigService {
             return await MailTransportService.enviar(idEmpresa, {
                 para: value.des_destinatario,
                 assunto: 'Teste de configuração SMTP',
-                html: '<p>Configuração SMTP funcionando.</p>',
+                html: '<p>Configuração <b><span style="color: green;">SMTP</span></b> funcionando.</p>',
                 texto: 'Configuração SMTP funcionando.'
             });
         } catch (erro) {

@@ -109,7 +109,7 @@ class AgendamentoService {
 
         const tipoDia = diaSemana === 6 ? 'SABADO' : 'UTIL';
         const parametrizacoes = await ParametrizacaoModel.buscarParametrizacaoPorTipoAtivo(tipoDia);
-        const parametrizacao = parametrizacoes.find((p) => Boolean(p.ind_ativo));
+        const parametrizacao = [parametrizacoes].find((p) => Boolean(p.ind_ativo));
 
         if (!parametrizacao) throw new BadRequestError(`Não há horário de atendimento configurado para ${tipoDia}`);
 
@@ -354,12 +354,15 @@ class AgendamentoService {
      * const { dados, total } = await AgendamentoService.listarAgendamentos({ pagina: 1 }, req.usuario);
      */
     async listarAgendamentos(filtros, usuario) {
+
         const { error, value } = validators.filtroAgendamentoSchema.validate(filtros, { stripUnknown: true });
+
         if (error) throw new BadRequestError(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
 
         if (restritoAosProprios(usuario)) value.id_costureira = usuario.id;
 
         const [dados, total] = await Promise.all([AgendamentoModel.listar(value), AgendamentoModel.contar(value)]);
+
         return { dados, total };
     }
 

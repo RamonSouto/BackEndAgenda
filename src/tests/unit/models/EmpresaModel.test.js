@@ -78,10 +78,10 @@ describe('EmpresaModel – consultas', () => {
         await expect(Model.buscarConfigSmtp(1)).resolves.toMatchObject({ des_smtp_host: 'smtp.x' });
         await expect(Model.buscarConfigSmtp(1)).resolves.toBeNull();
     });
-    it.failing('buscarConfigSmtp deveria selecionar updated_at (typo updated_ad)', async () => {
+    it.failing('buscarConfigSmtp deveria selecionar updated_at (typo updated_at)', async () => {
         database.query.mockResolvedValue([]);
         await Model.buscarConfigSmtp(1);
-        expect(database.query.mock.calls[0][0]).not.toMatch(/updated_ad/);
+        expect(database.query.mock.calls[0][0]).not.toMatch(/updated_at/);
     });
 });
 

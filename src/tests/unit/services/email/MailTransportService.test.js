@@ -21,7 +21,7 @@ const cfgBase = (over = {}) => ({
     des_smtp_email_remetente: 'no-reply@x.com',
     nom_smtp_remetente: 'Ateliê',
     nom_fantasia: 'Fantasia',
-    updated_ad: new Date('2026-01-01T00:00:00Z'),
+    updated_at: new Date('2026-01-01T00:00:00Z'),
     ...over
 });
 
@@ -90,17 +90,17 @@ describe('MailTransportService._obterTransporter', () => {
         expect(nodemailer.createTransport).toHaveBeenCalledTimes(1);
     });
 
-    it('recria e fecha o antigo quando updated_ad muda', async () => {
+    it('recria e fecha o antigo quando updated_at muda', async () => {
         const a = await svc._obterTransporter(1);
-        EmpresaModel.buscarConfigSmtp.mockResolvedValue(cfgBase({ updated_ad: new Date('2026-02-01') }));
+        EmpresaModel.buscarConfigSmtp.mockResolvedValue(cfgBase({ updated_at: new Date('2026-02-01') }));
         const b = await svc._obterTransporter(1);
         expect(a.transporter.close).toHaveBeenCalled();
         expect(b).not.toBe(a);
         expect(nodemailer.createTransport).toHaveBeenCalledTimes(2);
     });
 
-    it('aceita updated_ad como string', async () => {
-        EmpresaModel.buscarConfigSmtp.mockResolvedValue(cfgBase({ updated_ad: '2026-01-01 00:00:00' }));
+    it('aceita updated_at como string', async () => {
+        EmpresaModel.buscarConfigSmtp.mockResolvedValue(cfgBase({ updated_at: '2026-01-01 00:00:00' }));
         const { versao } = await svc._obterTransporter(1);
         expect(versao).toBe('2026-01-01 00:00:00');
     });

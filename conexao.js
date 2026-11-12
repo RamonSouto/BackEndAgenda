@@ -1,5 +1,6 @@
 // conexao.js
 const bcrypt = require('bcryptjs/dist/bcrypt');
+const { criptografar } = require('./src/utils/cryptoUtils');
 // const db = require('./src/config/database');
 // const PessoaModel = require('./src/models/PessoaModel');
 // const PessoaService = require('./src/services/PessoaService');
@@ -33,7 +34,8 @@ const bcrypt = require('bcryptjs/dist/bcrypt');
 // };
 
 async function testarConexao() {
-    console.log(await bcrypt.hash('admin123', 10));
+    // console.log(await criptografar('ZE71m9y8sX5Y4bmUHt'));
+    console.log(await bcrypt.hash('Admin123', 10));
     // try {
 
 

@@ -329,7 +329,7 @@ class EmpresaModel {
         const sql = `
             SELECT id, nom_fantasia, num_celular_1, ind_smtp_ativo, des_smtp_host, num_smtp_porta,
             ind_smtp_seguro, des_smtp_usuario, des_smtp_senha_enc,
-            des_smtp_email_remetente, nom_smtp_remetente, updated_ad
+            des_smtp_email_remetente, nom_smtp_remetente, updated_at
             FROM tab_empresa
             WHERE id = ? AND deleted_at IS NULL
             `;

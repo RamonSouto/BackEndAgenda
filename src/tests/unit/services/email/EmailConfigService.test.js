@@ -20,7 +20,7 @@ const svc = require('../../../../services/email/EmailConfigService');
 const cfgDb = (over = {}) => ({
     id_empresa: 1, ind_smtp_ativo: 1, des_smtp_host: 'smtp.x.com', num_smtp_porta: 587,
     ind_smtp_seguro: 0, des_smtp_usuario: 'user', des_smtp_email_remetente: 'no-reply@x.com',
-    nom_smtp_remetente: 'Ateliê', des_smtp_senha_enc: 'enc', updated_ad: new Date(), ...over
+    nom_smtp_remetente: 'Ateliê', des_smtp_senha_enc: 'enc', updated_at: new Date(), ...over
 });
 
 const payload = (over = {}) => ({
@@ -42,10 +42,10 @@ describe('EmailConfigService.obterSmtp', () => {
         await expect(svc.obterSmtp(1)).rejects.toBeInstanceOf(NotFoundError);
     });
 
-    it('remove senha/updated_ad e expõe ind_senha_configurada', async () => {
+    it('remove senha/updated_at e expõe ind_senha_configurada', async () => {
         const r = await svc.obterSmtp(1);
         expect(r).not.toHaveProperty('des_smtp_senha_enc');
-        expect(r).not.toHaveProperty('updated_ad');
+        expect(r).not.toHaveProperty('updated_at');
         expect(r).toMatchObject({ des_smtp_host: 'smtp.x.com', ind_senha_configurada: true });
     });
 
