@@ -11,7 +11,7 @@
  */
 const { montarUpdate, executar } = require('../../utils/sqlUtils');
 
-const CAMPOS_ATUALIZAVEIS = ['dta_agendamento', 'id_secretaria', 'des_observacoes_geral', 'des_observacoes_costureira'];
+const CAMPOS_ATUALIZAVEIS = ['dta_agendamento', 'id_secretaria', 'dta_confirmacao', 'ind_status', 'des_observacoes_geral', 'des_observacoes_costureira'];
 
 /** Coluna de data preenchida em cada transição de status. */
 const COLUNA_DATA_STATUS = {
@@ -141,8 +141,13 @@ class AgendamentoModel {
 
         // LIMIT/OFFSET interpolados: inteiros já saneados acima (mysql2.execute não aceita ? em LIMIT de forma estável).
         const sql = `
-            SELECT a.id, a.dta_agendamento, a.ind_status, a.des_url_externa,
-                   a.id_paciente, a.id_costureira,
+            SELECT a.id, 
+                   a.dta_agendamento,
+                   DATE_ADD(a.dta_agendamento, INTERVAL 15 MINUTE) AS dta_agendamento_to,
+                   a.ind_status,
+                   a.des_url_externa,
+                   a.id_paciente,
+                   a.id_costureira,
                    p.nom_completo AS nom_paciente,
                    c.nom_completo AS nom_costureira,
                    c.val_cor_hex AS val_cor_costureira

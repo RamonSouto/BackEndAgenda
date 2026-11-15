@@ -117,8 +117,7 @@ class FotoProdutoAgendamentoModel {
      */
     async listarPorItem(idItem) {
         const sql = `
-            SELECT id, id_produto_agendamento, ind_tipo_foto, nom_original,
-                   num_tamanho_bytes, created_at
+            SELECT id, id_produto_agendamento, des_caminho_arquivo, nom_original, num_tamanho_bytes, ind_tipo_foto, created_at, updated_at, deleted_at
             FROM tab_agendamento_item_fotos
             WHERE id_produto_agendamento = ? AND deleted_at IS NULL
             ORDER BY ind_tipo_foto ASC, created_at ASC

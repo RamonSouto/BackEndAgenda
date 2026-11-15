@@ -150,9 +150,10 @@ class FotoProdutoAgendamentoService {
         return {
             id: foto.id,
             id_produto_agendamento: foto.id_produto_agendamento,
-            ind_tipo_foto: foto.ind_tipo_foto,
+            des_caminho_arquivo: foto.des_caminho_arquivo,
             nom_original: foto.nom_original,
             num_tamanho_bytes: foto.num_tamanho_bytes,
+            ind_tipo_foto: foto.ind_tipo_foto,
             created_at: foto.created_at,
             url_arquivo: `/api/agendamentos/fotos/${foto.id}/arquivo`
         };
@@ -208,6 +209,8 @@ class FotoProdutoAgendamentoService {
     async adicionarFotos({ idAgendamento, idItem, ind_tipo_foto, arquivos }, usuario) {
         const temporarios = (arquivos || []).map((a) => path.resolve(a.path));
         const definitivos = [];
+        let transacaoConcluida = false;
+
 
         try {
             const { error, value } = validators.fotoProdutoAgendamentoSchema.validate({
@@ -268,7 +271,9 @@ class FotoProdutoAgendamentoService {
                 return novosIds;
             });
 
-            await this._registrarLog({
+            transacaoConcluida = true;
+
+            await LogService.registrar({
                 id_usuario: usuario.id,
                 des_acao: ACOES_LOG.UPLOAD,
                 des_tabela: TABELA,
@@ -277,7 +282,7 @@ class FotoProdutoAgendamentoService {
                     id_agendamento: value.id_agendamento,
                     id_item: value.id_item,
                     ind_tipo_foto: value.ind_tipo_foto,
-                    ids_fotos: ids
+                    id_fotos: ids
                 }
             });
 
@@ -287,7 +292,9 @@ class FotoProdutoAgendamentoService {
 
             return { ids, total: ids.length };
         } catch (error) {
-            await this._descartarArquivos([...temporarios, ...definitivos]);
+            if (!transacaoConcluida) {
+                await this._descartarArquivos([...temporarios, ...definitivos]);
+            }
             throw error;
         }
     }
@@ -312,7 +319,7 @@ class FotoProdutoAgendamentoService {
 
         const fotos = await FotoModel.listarPorItem(idItem);
 
-        await this._registrarLog({
+        await LogService.registrar({
             id_usuario: usuario.id,
             des_acao: ACOES_LOG.LISTAR,
             des_tabela: TABELA,
@@ -373,7 +380,7 @@ class FotoProdutoAgendamentoService {
             throw new NotFoundError('Arquivo não encontrado');
         }
 
-        await this._registrarLog({
+        await LogService.registrar({
             id_usuario: usuario.id,
             des_acao: ACOES_LOG.CONSULTAR,
             des_tabela: TABELA,
@@ -433,7 +440,7 @@ class FotoProdutoAgendamentoService {
                 return registro;
             });
 
-            await this._registrarLog({
+            await LogService.registrar({
                 id_usuario: usuario.id,
                 des_acao: ACOES_LOG.DELETAR,
                 des_tabela: TABELA,

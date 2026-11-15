@@ -620,7 +620,9 @@ const validators = {
         dta_agendamento: Joi.date().greater('now')
             .messages({ 'date.greater': 'A data do agendamento deve ser futura' }),
         des_observacoes_geral: Joi.string().max(2000).allow('', null),
-        des_observacoes_costureira: Joi.string().max(2000).allow('', null)
+        des_observacoes_costureira: Joi.string().max(2000).allow('', null),
+        ind_status: Joi.string().valid('agendado', 'confirmado', 'concluido', 'cancelado', 'falta'),
+        dta_confirmacao: Joi.date().iso()
     }).min(1),
 
     /**

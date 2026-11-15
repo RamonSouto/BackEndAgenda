@@ -67,7 +67,7 @@ class AgendamentoController {
      */
     listar = asyncHandler(async (req, res) => {
 
-        const { dados, total } = await AgendamentoService.listarAgendamentos(req.body, req.usuario);
+        const { dados, total } = await AgendamentoService.listarAgendamentos(req.query, req.usuario);
 
         res.status(200).json({
             sucesso: true,
