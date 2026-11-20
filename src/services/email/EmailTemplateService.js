@@ -81,11 +81,15 @@ class EmailTemplateService {
      * await EmailTemplateService.salvar(1, 'agendamento_cadastrado', { des_assunto: 'Oi {{nome_cliente}}', des_corpo_html: '<p>...</p>' }, 1);
      */
     async salvar(idEmpresa, evento, dados, usuarioLogadoId) {
+
         const ev = this._validarEvento(evento);
+
         const { error, value } = validators.emailTemplateSchema.validate(dados, { stripUnknown: true });
+
         if (error) throw new BadRequestError(error.details[0].message);
 
         const invalidos = tpl.placeholdersInvalidos(value.des_assunto, value.des_corpo_html);
+
         if (invalidos.length) {
             throw new BadRequestError(
                 `Placeholders desconhecidos: ${invalidos.join(', ')}. Permitidos: ${tpl.PLACEHOLDERS.join(', ')}`
@@ -93,6 +97,7 @@ class EmailTemplateService {
         }
 
         const corpoSeguro = tpl.sanitizarTemplate(value.des_corpo_html);
+
         const assuntoSeguro = value.des_assunto.replace(/[\r\n]+/g, ' ').trim();
 
         await EmailTemplateModel.salvar(idEmpresa, ev,
@@ -156,6 +161,65 @@ class EmailTemplateService {
             texto: tpl.htmlParaTexto(html)
         };
     }
+
+    /**
+     * Busca o template de um evento.
+     *
+     * @method buscarPorEvento
+     * @memberof EmailTemplateService
+     * @async
+     * @param {number} idEmpresa - ID da empresa.
+     * @param {string} evento - Evento.
+     * @returns {Promise<Object>} Template.
+     * @throws {BadRequestError} Evento inválido.
+     * @throws {NotFoundError} Template inexistente.
+     *
+     * @example
+     * const t = await EmailTemplateService.buscarPorEvento(1, 'agendamento_cancelado');
+     */
+    async buscarPorEvento(idEmpresa, evento) {
+        const ev = this._validarEvento(evento);
+        const template = await EmailTemplateModel.buscarPorEvento(idEmpresa, ev);
+        if (!template) throw new NotFoundError('Template não encontrado');
+        return template;
+    }
+
+    /**
+     * Exclui o template do evento. O conteúdo removido fica na auditoria.
+     *
+     * @method deletar
+     * @memberof EmailTemplateService
+     * @async
+     * @param {number} idEmpresa - ID da empresa.
+     * @param {string} evento - Evento.
+     * @param {number} usuarioLogadoId - ID do usuário logado.
+     * @returns {Promise<boolean>} true se removido.
+     * @throws {BadRequestError} Evento inválido.
+     * @throws {NotFoundError} Template inexistente.
+     *
+     * @example
+     * await EmailTemplateService.deletar(1, 'agendamento_cancelado', 1);
+     */
+    async deletar(idEmpresa, evento, usuarioLogadoId) {
+        const atual = await this.buscarPorEvento(idEmpresa, evento);
+        await EmailTemplateModel.deletar(idEmpresa, atual.ind_evento);
+
+        await LogService.registrar({
+            id_usuario: usuarioLogadoId,
+            des_acao: ACOES_LOG.DELETAR,
+            des_tabela: 'tab_email_template',
+            num_registro_id: atual.id,
+            des_detalhes: {
+                id_empresa: idEmpresa,
+                evento: atual.ind_evento,
+                des_assunto: atual.des_assunto,
+                des_corpo_html: atual.des_corpo_html
+            }
+        });
+
+        return true;
+    }
+
 }
 
 module.exports = new EmailTemplateService();

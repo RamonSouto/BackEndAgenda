@@ -414,3 +414,26 @@ describe('AgendamentoService – fluxo público', () => {
         expect(LogService.registrar).toHaveBeenCalledWith(expect.objectContaining({ id_usuario: 5 }));
     });
 });
+
+describe('_validarMedico', () => {
+    beforeEach(() => jest.resetAllMocks());
+
+    it('aceita médico ativo', async () => {
+        PessoaModel.buscarPorId.mockResolvedValue({ ind_medico: 1, ind_status: 'ativo' });
+        await expect(Service._validarMedico(5)).resolves.toBeUndefined();
+    });
+
+    it.each([
+        ['inexistente', null],
+        ['não é médico', { ind_medico: 0, ind_status: 'ativo' }],
+        ['inativo', { ind_medico: 1, ind_status: 'inativo' }]
+    ])('rejeita %s', async (_, pessoa) => {
+        PessoaModel.buscarPorId.mockResolvedValue(pessoa);
+        await expect(Service._validarMedico(5)).rejects.toThrow(BadRequestError);
+    });
+
+    it('usa mensagem neutra quando informada', async () => {
+        PessoaModel.buscarPorId.mockResolvedValue(null);
+        await expect(Service._validarMedico(5, 'neutra')).rejects.toThrow('neutra');
+    });
+});

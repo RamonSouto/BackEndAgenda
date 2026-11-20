@@ -143,8 +143,20 @@ class EmailController {
      * PUT /api/sistema/empresa/1/email-templates/agendamento_cadastrado
      */
     salvarTemplate = asyncHandler(async (req, res) => {
-        const dados = await EmailTemplateService.salvar(req.params.idEmpresa, req.params.evento, req.body, req.usuario.id);
-        res.status(200).json({ sucesso: true, mensagem: MENSAGENS.SUCESSO.ATUALIZADO, dados });
+
+        const dados = await EmailTemplateService.salvar(
+            req.params.idEmpresa,
+            req.params.evento,
+            req.body,
+            req.usuario.id
+        );
+
+        res.status(200).json(
+            {
+                sucesso: true,
+                mensagem: MENSAGENS.SUCESSO.ATUALIZADO,
+                dados
+            });
     });
 
     /**
@@ -213,6 +225,54 @@ class EmailController {
     reprocessarOutbox = asyncHandler(async (req, res) => {
         await EmailOutboxService.reprocessar(req.params.id);
         res.status(200).json({ sucesso: true, mensagem: 'Mensagem recolocada na fila' });
+    });
+
+    /**
+     * Busca o template de um evento.
+     *
+     * @name obterTemplate
+     * @function
+     * @memberof EmailController
+     * @async
+     *
+     * @param {Object} req - Objeto de requisição.
+     * @param {number} req.params.idEmpresa - ID da empresa.
+     * @param {string} req.params.evento - Evento.
+     * @param {Object} res - Objeto de resposta.
+     *
+     * @returns {Promise<void>} - Template do evento.
+     *
+     * @example
+     * GET /api/sistema/empresa/1/email-templates/agendamento_cadastrado
+     */
+    obterTemplate = asyncHandler(async (req, res) => {
+        const dados = await EmailTemplateService.buscarPorEvento(req.params.idEmpresa, req.params.evento);
+        res.status(200).json({ sucesso: true, dados });
+    });
+
+    /**
+     * Exclui o template de um evento.
+     *
+     * @name deletarTemplate
+     * @function
+     * @memberof EmailController
+     * @async
+     *
+     * @param {Object} req - Objeto de requisição.
+     * @param {number} req.params.idEmpresa - ID da empresa.
+     * @param {string} req.params.evento - Evento.
+     * @param {Object} req.usuario - Usuário autenticado.
+     * @param {number} req.usuario.id - ID do usuário.
+     * @param {Object} res - Objeto de resposta.
+     *
+     * @returns {Promise<void>} - Mensagem de sucesso.
+     *
+     * @example
+     * DELETE /api/sistema/empresa/1/email-templates/agendamento_cancelado
+     */
+    deletarTemplate = asyncHandler(async (req, res) => {
+        await EmailTemplateService.deletar(req.params.idEmpresa, req.params.evento, req.usuario.id);
+        res.status(200).json({ sucesso: true, mensagem: MENSAGENS.SUCESSO.DELETADO });
     });
 }
 

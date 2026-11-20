@@ -55,10 +55,11 @@ class RelatorioController {
      * GET /api/relatorios/auditoria?data_inicio=2025-01-01&data_fim=2025-01-31
      */
     auditoria = asyncHandler(async (req, res) => {
+
         const filtros = {
             id_usuario: req.query.id_usuario,
-            des_acao: req.query.acao,
-            des_tabela: req.query.tabela,
+            des_acao: req.query.des_acao,
+            des_tabela: req.query.des_tabela,
             data_inicio: req.query.data_inicio,
             data_fim: req.query.data_fim,
             limite: req.query.limite || 100

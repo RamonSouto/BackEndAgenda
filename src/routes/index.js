@@ -124,6 +124,19 @@ router.get('/', (req, res) => {
     });
 });
 
+
+router.get('/teste', async (req, res) => {
+    try {
+        const { default: conexao } = await import('../../conexao.js');
+        const resultado = await conexao.teste();
+        res.json(resultado);
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
 // Registrar rotas
 router.use('/auth', authRoutes);
 router.use('/public/agendamentos', publicAgendamentoRoutes);

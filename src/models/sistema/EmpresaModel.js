@@ -263,30 +263,6 @@ class EmpresaModel {
         const resultado = await database.query(sql, [...valores, id]);
 
         return resultado.affectedRows > 0;
-        // const campos = [];
-        // const valores = [];
-
-        // Object.keys(dados).forEach(campo => {
-        //     if (dados[campo] !== undefined && campo !== 'id') {
-        //         campos.push(`${campo} = ?`);
-        //         valores.push(dados[campo]);
-        //     }
-        // });
-
-        // if (campos.length === 0) {
-        //     throw new Error('Nenhum campo para atualizar');
-        // }
-
-        // valores.push(id);
-
-        // const sql = `
-        //     UPDATE tab_empresa 
-        //     SET ${campos.join(', ')}
-        //     WHERE id = ? AND deleted_at IS NULL
-        // `;
-
-        // const resultado = await database.query(sql, valores);
-        // return resultado.affectedRows > 0;
     }
 
     /**

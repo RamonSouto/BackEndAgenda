@@ -32,7 +32,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>107/107</span>
+                <span class='fraction'>106/106</span>
             </div>
         
             
@@ -718,7 +718,14 @@
 <a name='L653'></a><a href='#L653'>653</a>
 <a name='L654'></a><a href='#L654'>654</a>
 <a name='L655'></a><a href='#L655'>655</a>
-<a name='L656'></a><a href='#L656'>656</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L656'></a><a href='#L656'>656</a>
+<a name='L657'></a><a href='#L657'>657</a>
+<a name='L658'></a><a href='#L658'>658</a>
+<a name='L659'></a><a href='#L659'>659</a>
+<a name='L660'></a><a href='#L660'>660</a>
+<a name='L661'></a><a href='#L661'>661</a>
+<a name='L662'></a><a href='#L662'>662</a>
+<a name='L663'></a><a href='#L663'>663</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1145,20 +1152,22 @@
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">11x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">11x</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">8x</span>
-<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1254,6 +1263,11 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1800,7 +1814,8 @@ const validators = {
             return helpers.message('É necessário informar pelo menos um papel para a pessoa.');
         }
 &nbsp;
-        const exigeSenha = value.ind_medico ||
+        const exigeSenha =
+            // value.ind_medico ||
             value.ind_secretaria ||
             value.ind_costureira ||
             value.ind_administrador;
@@ -1845,6 +1860,7 @@ const validators = {
         id_paciente: Joi.number().integer().required(),
         id_costureira: Joi.number().integer().required(),
         id_secretaria: Joi.number().integer().allow(null),
+        id_medico: Joi.number().integer().positive().allow(null),
         dta_agendamento: Joi.date().greater('now').required()
             .messages({ 'date.greater': 'A data do agendamento deve ser futura' }),
         des_observacoes_geral: Joi.string().max(2000).allow('', null),
@@ -1911,6 +1927,7 @@ const validators = {
             return value;
         }),
         id_costureira: Joi.number().integer().required(),
+        id_medico: Joi.number().integer().positive().allow(null),
         dta_agendamento: Joi.date().greater('now').required()
             .messages({ 'date.greater': 'A data do agendamento deve ser futura' }),
         des_observacoes_geral: Joi.string().max(1000).allow('', null),
@@ -1991,10 +2008,13 @@ const validators = {
      */
     agendamentoUpdateSchema: Joi.object({
         id_secretaria: Joi.number().integer().positive().allow(null),
+        id_medico: Joi.number().integer().positive().allow(null),
         dta_agendamento: Joi.date().greater('now')
             .messages({ 'date.greater': 'A data do agendamento deve ser futura' }),
         des_observacoes_geral: Joi.string().max(2000).allow('', null),
-        des_observacoes_costureira: Joi.string().max(2000).allow('', null)
+        des_observacoes_costureira: Joi.string().max(2000).allow('', null),
+        ind_status: Joi.string().valid('agendado', 'confirmado', 'concluido', 'cancelado', 'falta'),
+        dta_confirmacao: Joi.date().iso()
     }).min(1),
 &nbsp;
     /**
@@ -2019,6 +2039,7 @@ const validators = {
      */
     filtroAgendamentoSchema: Joi.object({
         id_costureira: Joi.number().integer().positive(),
+        id_medico: Joi.number().integer().positive(),
         dta_inicio: Joi.date().iso(),
         dta_fim: Joi.date().iso().min(Joi.ref('dta_inicio')),
         ind_status: Joi.string().valid('agendado', 'confirmado', 'concluido', 'cancelado', 'falta'),
@@ -2035,7 +2056,7 @@ module.exports = validators;</pre></td></tr></table></pre>
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-11-10T14:06:55.656Z
+                at 2026-11-15T07:27:04.471Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

@@ -71,6 +71,20 @@ class EmailTemplateModel {
         ]);
         return resultado.affectedRows > 0;
     }
+
+    /**
+     * Exclui fisicamente o template do evento (a tabela não possui soft delete).
+     *
+     * @method deletar
+     * @param {number} idEmpresa - ID da empresa.
+     * @param {string} evento - Evento (EVENTOS_EMAIL).
+     * @returns {Promise<boolean>} true se removeu.
+     */
+    async deletar(idEmpresa, evento) {
+        const sql = 'DELETE FROM tab_email_template WHERE id_empresa = ? AND ind_evento = ?';
+        const resultado = await database.query(sql, [idEmpresa, evento]);
+        return resultado.affectedRows > 0;
+    }
 }
 
 module.exports = new EmailTemplateModel();

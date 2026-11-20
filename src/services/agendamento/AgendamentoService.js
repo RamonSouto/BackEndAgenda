@@ -51,6 +51,8 @@ const EVENTO_POR_STATUS = {
     [STATUS_AGENDAMENTO.CANCELADO]: EVENTOS_EMAIL.CANCELADO
 };
 
+const MSG_MEDICO_INVALIDO = 'Médico informado é inválido ou inativo';
+
 class AgendamentoService {
 
     _diff(atual, novos) {
@@ -87,6 +89,24 @@ class AgendamentoService {
         const secretaria = await PessoaModel.buscarPorId(idSecretaria);
         if (!secretaria || !secretaria.ind_secretaria || secretaria.ind_status !== 'ativo') {
             throw new BadRequestError('Secretária informada é inválida ou inativa');
+        }
+    }
+
+    /**
+     * Valida o médico (papel + ativo). Chamado só quando id_medico vem no payload.
+     * Busca por PK (1 SELECT). Não aplica nenhuma regra de horário (é só indicação).
+     *
+     * @method _validarMedico
+     * @private
+     * @async
+     * @param {number} idMedico
+     * @param {string} [mensagem] - Permite mensagem neutra no fluxo público.
+     * @throws {BadRequestError}
+     */
+    async _validarMedico(idMedico, mensagem = MSG_MEDICO_INVALIDO) {
+        const medico = await PessoaModel.buscarPorId(idMedico);
+        if (!medico || !medico.ind_medico || medico.ind_status !== 'ativo') {
+            throw new BadRequestError(mensagem);
         }
     }
 
@@ -218,9 +238,13 @@ class AgendamentoService {
 
         const dataHora = new Date(value.dta_agendamento);
 
-        const validarPessoa = await this._validarPessoas(value.id_paciente, value.id_costureira, value.id_secretaria);
+        await this._validarPessoas(value.id_paciente, value.id_costureira, value.id_secretaria);
 
-        const validarHorario = await this._validarJanelaHorario(dataHora);
+        if (value.id_medico) {
+            await this._validarMedico(value.id_medico);
+        }
+
+        await this._validarJanelaHorario(dataHora);
 
         const dtaFormatada = formatarDataHoraDB(dataHora)
 
@@ -245,6 +269,7 @@ class AgendamentoService {
                 id_paciente: value.id_paciente,
                 id_costureira: value.id_costureira,
                 id_secretaria: value.id_secretaria,
+                id_medico: value.id_medico,
                 dta_agendamento: value.dta_agendamento,
                 des_observacoes_geral: value.des_observacoes_geral,
                 des_observacoes_costureira: value.des_observacoes_costureira
@@ -300,11 +325,15 @@ class AgendamentoService {
 
         if (value.id_secretaria) await this._validarSecretaria(value.id_secretaria);
 
+        if (value.id_medico && value.id_medico !== atual.id_medico) {
+            await this._validarMedico(value.id_medico);
+        }
+
         await AgendamentoModel.atualizar(id, value);
 
         await LogService.registrar({
             id_usuario: usuarioLogadoId,
-            des_acao: ACOES_LOG.AGENDAMENTO_EDITAR,
+            des_acao: ACOES_LOG.EDITAR,
             des_tabela: 'tab_agendamento',
             num_registro_id: id,
             des_detalhes: {
@@ -404,7 +433,7 @@ class AgendamentoService {
 
         await LogService.registrar({
             id_usuario: usuario.id,
-            des_acao: ACOES_LOG.AGENDAMENTO_EDITAR,
+            des_acao: ACOES_LOG.EDITAR,
             des_tabela: 'tab_agendamento',
             num_registro_id: idAgendamento,
             des_detalhes: {
@@ -461,7 +490,7 @@ class AgendamentoService {
 
         await LogService.registrar({
             id_usuario: usuario.id,
-            des_acao: novoStatus === STATUS_AGENDAMENTO.CANCELADO ? ACOES_LOG.AGENDAMENTO_CANCELAR : ACOES_LOG.AGENDAMENTO_EDITAR,
+            des_acao: novoStatus === STATUS_AGENDAMENTO.CANCELADO ? ACOES_LOG.CANCELAR : ACOES_LOG.EDITAR,
             des_tabela: 'tab_agendamento',
             num_registro_id: id,
             des_detalhes: { status_anterior: agendamento.ind_status, status_novo: novoStatus }
@@ -507,6 +536,7 @@ class AgendamentoService {
                 nom_paciente: agendamento.nom_paciente,
                 id_costureira: agendamento.id_costureira,
                 id_secretaria: agendamento.id_secretaria,
+                id_medico: agendamento.id_medico,
                 nom_costureira: agendamento.nom_costureira,
                 ind_status: agendamento.ind_status,
                 dta_agendamento: agendamento.dta_agendamento,
@@ -554,7 +584,10 @@ class AgendamentoService {
      * @throws {NotFoundError|BadRequestError|ConflictError}
      */
     async criarAgendamentoPublico(dados) {
+        const MSG_NEUTRA = 'Não foi possível concluir o agendamento. Entre em contato com a clínica.';
+
         const { error, value } = validators.publicAgendamentoSchema.validate(dados);
+
         if (error) {
             throw new BadRequestError(`${MENSAGENS.ERRO.VALIDACAO}: ${error.details[0].message}`);
         }
@@ -562,16 +595,18 @@ class AgendamentoService {
         const paciente = await PessoaModel.buscarPorCpf(value.num_cpf);
         if (!paciente || !paciente.ind_paciente || paciente.ind_status !== 'ativo') {
             // Mensagem neutra: não confirma se o CPF existe (anti-enumeração/LGPD).
-            throw new BadRequestError('Não foi possível concluir o agendamento. Entre em contato com a clínica.');
+            // throw new BadRequestError('Não foi possível concluir o agendamento. Entre em contato com a clínica.');
+            throw new BadRequestError(MSG_NEUTRA);
         }
 
         // Auditoria: o próprio paciente é o autor
         const resultado = await this.criar({
             id_paciente: paciente.id,
             id_costureira: value.id_costureira,
+            id_medico: value.id_medico,
             dta_agendamento: value.dta_agendamento,
             des_observacoes_geral: value.des_observacoes_geral
-        }, paciente.id);
+        }, paciente.id, { mensagemMedico: MSG_NEUTRA });
 
         // Retorno reduzido (LGPD)
         return {

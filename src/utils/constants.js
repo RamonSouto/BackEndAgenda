@@ -126,11 +126,7 @@ const ACOES_LOG = {
     CONSULTAR: 'consultar',
     LISTAR: 'listar',
     UPLOAD: 'upload',
-    AGENDAMENTO_CRIAR: 'agendamento_criar',
-    AGENDAMENTO_EDITAR: 'agendamento_editar',
-    AGENDAMENTO_CANCELAR: 'agendamento_cancelar',
-    COMPARECIMENTO: 'registrar_comparecimento',
-    OBSERVACAO: 'adicionar_observacao'
+    CANCELAR: 'cancelar'
 };
 
 /**
@@ -190,7 +186,7 @@ const MENSAGENS = {
         CPF_EXISTENTE: 'CPF já cadastrado',
         CREDENCIAIS_INVALIDAS: 'Credenciais inválidas',
         CONTA_BLOQUEADA: 'Conta bloqueada por excesso de tentativas',
-        COSTUREIRA_OCUPADA: 'Costureira já possui um agendamento ativo neste horario',
+        COSTUREIRA_OCUPADA: 'Costureira já possui um agendamento ativo neste horário',
         PRAZO_CANCELAMENTO: 'Não é possível cancelar com menos de 2 horas de antecedência',
         CATEGORIA_PAI: 'Categoria pai não encontrado',
         CATEGORIA_FILHO: 'Não é possível excluir esta categoria, pois há outras subcategoria(s) vinculada(s) a ela'

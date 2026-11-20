@@ -216,10 +216,11 @@ class LogService {
             const filtrosLimpos = Object.fromEntries(
                 Object.entries(filtros).filter(([_, v]) => v !== undefined && v !== null)
             );
-            Object.entries(filtrosLimpos).forEach(([key, value]) => {
-                console.log(`${key}: ${value} Tipo:` + typeof parseInt(value));
-            })
-            console.log(filtrosLimpos);
+            // Object.entries(filtrosLimpos).forEach(([key, value]) => {
+            //     console.log(`${key}: ${value} Tipo:` + typeof parseInt(value));
+            // })
+
+            console.log(filtros);
 
             const logs = await LogModel.listar(filtrosLimpos);
 

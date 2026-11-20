@@ -227,7 +227,7 @@ class ParametrizacaoModel {
      * const id = await parametrizacaoModel.buscarTipoDesativadoMaisRecente('UTIL', 1);
      */
     async buscarTipoDesativadoMaisRecente(tipo, id) {
-        let sql = `SELECT id
+        let sql = `SELECT count(id)
             FROM tab_parametrizacao tp 
             WHERE tp.des_tipo_dia  = ?
             AND   tp.ind_ativo = 0

@@ -15,7 +15,54 @@
 const { format, parseISO } = require('date-fns');
 const { ptBR } = require('date-fns/locale');
 
+
+// const limparCPF = (cpf) => cpf.replace(/[^\d]/g, '');
+// const limparCEP = (cep) => cep.replace(/[^\d]/g, '');
+// const limparTelefone = (telefone) => telefone.replace(/[^\d]/g, '');
+
 module.exports = {
+    /**
+     * Remove todos os caracteres não numéricos de uma string CPF.
+     * 
+     * @function limparCPF
+     * @param {string} cpf - String contendo o CPF (com ou sem máscara).
+     * @returns {string} Apenas os dígitos numéricos.
+     * 
+     * @example
+     * limparCPF('123.456.789-01'); // '12345678901'
+     */
+    limparCPF(cpf) {
+        return cpf.replace(/[^\d]/g, '');
+    },
+
+    /**
+     * Remove todos os caracteres não numéricos de uma string CEP.
+     * 
+     * @function limparCEP
+     * @param {string} cep - String contendo o CEP (com ou sem hífen).
+     * @returns {string} Apenas os dígitos numéricos.
+     * 
+     * @example
+     * limparCEP('12345-678'); // '12345678'
+     */
+    limparCEP(cep) {
+        return cep.replace(/[^\d]/g, '');
+    },
+
+    /**
+     * Remove todos os caracteres não numéricos de uma string telefone.
+     * 
+     * @function limparTelefone
+     * @param {string} telefone - String contendo o telefone (com parênteses, traços, etc.).
+     * @returns {string} Apenas os dígitos numéricos.
+     * 
+     * @example
+     * limparTelefone('(11) 98888-7777'); // '11988887777'
+     */
+    limparTelefone(telefone) {
+        return telefone.replace(/[^\d]/g, '');
+    },
+
     /**
      * Formata uma string numérica para o padrão de CPF (XXX.XXX.XXX-XX).
      * 
@@ -30,7 +77,7 @@ module.exports = {
      * a regex falhará. Utilize `limparCPF()` antes se necessário.
      */
     formatarCPF(cpf) {
-        const num = this.limparCPF(cpf);
+        const num = limparCPF(cpf);
         return num.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     },
 
@@ -45,7 +92,7 @@ module.exports = {
      * formatarCEP('12345678'); // '12345-678'
      */
     formatarCEP(cep) {
-        const num = this.limparCEP(cep);
+        const num = limparCEP(cep);
         return num.replace(/(\d{5})(\d{3})/, '$1-$2');
     },
 
@@ -65,7 +112,7 @@ module.exports = {
      * Recomenda-se usar `limparTelefone()` primeiro.
      */
     formatarTelefone(telefone) {
-        const num = this.limparTelefone(telefone);
+        const num = telefone.replace(/[^\d]/g, '');
         if (num.length === 11) {
             return num.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
         }
@@ -121,48 +168,6 @@ module.exports = {
     formatarDataHoraDB(data, formato = 'yyyy-MM-dd HH:mm:ss') {
         if (!data) return null;
         return format(typeof data === 'string' ? parseISO(data) : data, formato);
-    },
-
-    /**
-     * Remove todos os caracteres não numéricos de uma string CPF.
-     * 
-     * @function limparCPF
-     * @param {string} cpf - String contendo o CPF (com ou sem máscara).
-     * @returns {string} Apenas os dígitos numéricos.
-     * 
-     * @example
-     * limparCPF('123.456.789-01'); // '12345678901'
-     */
-    limparCPF(cpf) {
-        return cpf.replace(/[^\d]/g, '');
-    },
-
-    /**
-     * Remove todos os caracteres não numéricos de uma string CEP.
-     * 
-     * @function limparCEP
-     * @param {string} cep - String contendo o CEP (com ou sem hífen).
-     * @returns {string} Apenas os dígitos numéricos.
-     * 
-     * @example
-     * limparCEP('12345-678'); // '12345678'
-     */
-    limparCEP(cep) {
-        return cep.replace(/[^\d]/g, '');
-    },
-
-    /**
-     * Remove todos os caracteres não numéricos de uma string telefone.
-     * 
-     * @function limparTelefone
-     * @param {string} telefone - String contendo o telefone (com parênteses, traços, etc.).
-     * @returns {string} Apenas os dígitos numéricos.
-     * 
-     * @example
-     * limparTelefone('(11) 98888-7777'); // '11988887777'
-     */
-    limparTelefone(telefone) {
-        return telefone.replace(/[^\d]/g, '');
     },
 
     /**

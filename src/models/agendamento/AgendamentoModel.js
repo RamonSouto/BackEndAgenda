@@ -11,7 +11,7 @@
  */
 const { montarUpdate, executar } = require('../../utils/sqlUtils');
 
-const CAMPOS_ATUALIZAVEIS = ['dta_agendamento', 'id_secretaria', 'dta_confirmacao', 'ind_status', 'des_observacoes_geral', 'des_observacoes_costureira'];
+const CAMPOS_ATUALIZAVEIS = ['dta_agendamento', 'id_secretaria', 'id_medico', 'dta_confirmacao', 'ind_status', 'des_observacoes_geral', 'des_observacoes_costureira'];
 
 /** Coluna de data preenchida em cada transição de status. */
 const COLUNA_DATA_STATUS = {
@@ -38,6 +38,7 @@ class AgendamentoModel {
         const valores = [];
 
         if (filtros.id_costureira) { condicoes.push('a.id_costureira = ?'); valores.push(filtros.id_costureira); }
+        if (filtros.id_medico) { condicoes.push('a.id_medico = ?'); valores.push(filtros.id_medico); }
         if (filtros.dta_inicio) { condicoes.push('a.dta_agendamento >= ?'); valores.push(`${filtros.dta_inicio} 00:00:00`); }
         if (filtros.dta_fim) { condicoes.push('a.dta_agendamento <= ?'); valores.push(`${filtros.dta_fim} 23:59:59`); }
         if (filtros.ind_status) { condicoes.push('a.ind_status = ?'); valores.push(filtros.ind_status); }
@@ -63,14 +64,15 @@ class AgendamentoModel {
     async criar(dados, connection = null) {
         const sql = `
             INSERT INTO tab_agendamento
-                (id_paciente, id_costureira, id_secretaria, dta_agendamento,
+                (id_paciente, id_costureira, id_secretaria, id_medico, dta_agendamento,
                  des_observacoes_geral, des_observacoes_costureira, ind_status, des_url_externa)
-            VALUES (?, ?, ?, ?, ?, ?, 'agendado', ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'agendado', ?)
         `;
         const resultado = await executar(sql, [
             dados.id_paciente,
             dados.id_costureira,
             dados.id_secretaria ?? null,
+            dados.id_medico ?? null,
             dados.dta_agendamento,
             dados.des_observacoes_geral ?? null,
             dados.des_observacoes_costureira ?? null,
@@ -94,11 +96,13 @@ class AgendamentoModel {
                    p.num_celular_1 AS num_celular_paciente,
                    c.nom_completo AS nom_costureira,
                    c.val_cor_hex AS val_cor_costureira,
-                   s.nom_completo AS nom_secretaria
+                   s.nom_completo AS nom_secretaria,
+                   m.nom_completo AS nom_medico
             FROM tab_agendamento a
             INNER JOIN tab_pessoas p ON (a.id_paciente = p.id)
             INNER JOIN tab_pessoas c ON (a.id_costureira = c.id)
             LEFT JOIN tab_pessoas s ON (a.id_secretaria = s.id)
+            LEFT JOIN tab_pessoas m ON (a.id_medico = m.id)
             WHERE a.id = ? AND a.deleted_at IS NULL
         `;
         const resultado = await executar(sql, [id], connection);
@@ -148,6 +152,7 @@ class AgendamentoModel {
                    a.des_url_externa,
                    a.id_paciente,
                    a.id_costureira,
+                   a.id_medico,
                    p.nom_completo AS nom_paciente,
                    c.nom_completo AS nom_costureira,
                    c.val_cor_hex AS val_cor_costureira

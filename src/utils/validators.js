@@ -471,6 +471,7 @@ const validators = {
         id_paciente: Joi.number().integer().required(),
         id_costureira: Joi.number().integer().required(),
         id_secretaria: Joi.number().integer().allow(null),
+        id_medico: Joi.number().integer().positive().allow(null),
         dta_agendamento: Joi.date().greater('now').required()
             .messages({ 'date.greater': 'A data do agendamento deve ser futura' }),
         des_observacoes_geral: Joi.string().max(2000).allow('', null),
@@ -537,6 +538,7 @@ const validators = {
             return value;
         }),
         id_costureira: Joi.number().integer().required(),
+        id_medico: Joi.number().integer().positive().allow(null),
         dta_agendamento: Joi.date().greater('now').required()
             .messages({ 'date.greater': 'A data do agendamento deve ser futura' }),
         des_observacoes_geral: Joi.string().max(1000).allow('', null),
@@ -570,13 +572,24 @@ const validators = {
     }),
 
     /**
-     * Schema de template de e-mail.
+     * Schema cadastro de template de e-mail.
      *
      * @type {Joi.ObjectSchema}
      */
     emailTemplateSchema: Joi.object({
         des_assunto: Joi.string().max(200).required(),
         des_corpo_html: Joi.string().max(100000).required(),
+        ind_ativo: Joi.boolean().default(true)
+    }),
+
+    /**
+     * Schema Atualização de template de e-mail.
+     *
+     * @type {Joi.ObjectSchema}
+     */
+    emailTemplateSchema: Joi.object({
+        des_assunto: Joi.string().max(200),
+        des_corpo_html: Joi.string().max(100000),
         ind_ativo: Joi.boolean().default(true)
     }),
 
@@ -617,6 +630,7 @@ const validators = {
      */
     agendamentoUpdateSchema: Joi.object({
         id_secretaria: Joi.number().integer().positive().allow(null),
+        id_medico: Joi.number().integer().positive().allow(null),
         dta_agendamento: Joi.date().greater('now')
             .messages({ 'date.greater': 'A data do agendamento deve ser futura' }),
         des_observacoes_geral: Joi.string().max(2000).allow('', null),
@@ -647,6 +661,7 @@ const validators = {
      */
     filtroAgendamentoSchema: Joi.object({
         id_costureira: Joi.number().integer().positive(),
+        id_medico: Joi.number().integer().positive(),
         dta_inicio: Joi.date().iso(),
         dta_fim: Joi.date().iso().min(Joi.ref('dta_inicio')),
         ind_status: Joi.string().valid('agendado', 'confirmado', 'concluido', 'cancelado', 'falta'),

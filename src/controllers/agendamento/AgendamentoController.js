@@ -237,7 +237,7 @@ class AgendamentoController {
      * @async
      *
      * @param {Object} req - Objeto de requisição.
-     * @param {Object} req.body - { num_cpf, id_costureira, dta_agendamento, des_observacoes_geral? }.
+     * @param {Object} req.body - { num_cpf, id_costureira, dta_agendamento, id_medico?, des_observacoes_geral? }.
      * @param {Object} res - Objeto de resposta.
      *
      * @returns {Promise<void>} - 201 com dados mínimos + UUID.

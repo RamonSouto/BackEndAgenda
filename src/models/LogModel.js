@@ -16,6 +16,43 @@ const database = require('../config/database');
  * @class LogModel
  */
 class LogModel {
+
+    /**
+     * Monta WHERE e valores dos filtros de listagem (reuso entre listar e contar).
+     *
+     * @method _montarFiltros
+     * @private
+     * @param {Object} filtros
+     * @returns {{where: string, valores: Array}}
+     */
+    _montarFiltros(filtros = {}) {
+        const condicoes = [];
+        const valores = [];
+
+        if (filtros.id_usuario) {
+            condicoes.push('l.id_usuario = ?');
+            valores.push(Number(filtros.id_usuario));
+        }
+        if (filtros.des_acao) {
+            condicoes.push('l.des_acao LIKE ?');
+            valores.push(`%${filtros.des_acao}%`);
+        }
+        if (filtros.des_tabela) {
+            condicoes.push('l.des_tabela LIKE ?');
+            valores.push(`%${filtros.des_tabela}%`);
+        }
+        if (filtros.data_inicio) {
+            condicoes.push('l.created_at >= ?');
+            valores.push(`${filtros.data_inicio} 00:00:00`);
+        }
+        if (filtros.data_fim) {
+            condicoes.push('l.created_at <= ?');
+            valores.push(`${filtros.data_fim} 23:59:59`);
+        }
+
+        return { where: condicoes.length ? condicoes.join(' AND ') : '1=1', valores, };
+    }
+
     /**
      * Insere um novo log na tabela `tab_log`.
      * 
@@ -94,7 +131,13 @@ class LogModel {
      * });
      */
     async listar(filtros = {}) {
-        let sql = `
+
+        const limite = Math.min(Math.max(Number.parseInt(filtros.limite, 10) || 20, 1), 100);
+        const pagina = Math.max(Number.parseInt(filtros.pagina, 10) || 1, 1);
+        const offset = (pagina - 1) * limite;
+        const { where, valores } = this._montarFiltros(filtros);
+
+        const sql = `
             SELECT l.*,
                 p.nom_completo as usuario_nome,
                 p.ind_administrador as usuario_administrador,
@@ -104,44 +147,12 @@ class LogModel {
                 p.ind_paciente as usuario_paciente
             FROM tab_log l
             LEFT JOIN tab_pessoas p ON l.id_usuario = p.id
-            WHERE 1=1
+            WHERE ${where}
+            ORDER BY l.created_at DESC
+            LIMIT ${limite} OFFSET ${offset}
         `;
 
-        const valores = [];
-
-        if (filtros.id_usuario !== undefined && filtros.id_usuario !== null) {
-            sql += ' AND l.id_usuario = ?';
-            valores.push(parseInt(filtros.id_usuario));
-        }
-
-        if (filtros.des_acao) {
-            sql += ' AND l.des_acao = ?';
-            valores.push(filtros.des_acao);
-        }
-
-        if (filtros.des_tabela) {
-            sql += ' AND l.des_tabela = ?';
-            valores.push(filtros.des_tabela);
-        }
-
-        if (filtros.data_inicio && filtros.data_fim) {
-            // Converte para string no formato aceito pelo MySQL
-            const inicio = new Date(filtros.data_inicio).toISOString().slice(0, 19).replace('T', ' ');
-            const fim = new Date(filtros.data_fim).toISOString().slice(0, 19).replace('T', ' ');
-            sql += ' AND l.created_at BETWEEN ? AND ?';
-            valores.push(inicio, fim);
-        }
-
-        sql += ' ORDER BY l.created_at DESC';
-
-        if (filtros.limite) {
-            const limite = parseInt(filtros.limite, 10);
-            if (!isNaN(limite) && limite > 0) {
-                sql += ' LIMIT ?';
-                valores.push(parseInt(limite));
-            }
-        }
-        console.log({ filtros })
+        // console.log({ filtros })
         return await database.query(sql, valores);
     }
 

@@ -170,4 +170,45 @@ router.post(
     EmailController.reprocessarOutbox
 );
 
+/**
+ * @route GET /api/sistema/empresa/:idEmpresa/email-templates/:evento
+ * @method GET
+ * @description Busca o template de um evento (inclui o corpo HTML).
+ * @access Privado – Apenas Administradores
+ * @returns {Object} 200 - Template.
+ * @returns {Object} 400 - Evento inválido.
+ * @returns {Object} 401 - Token inválido/ausente.
+ * @returns {Object} 403 - Papel não autorizado.
+ * @returns {Object} 404 - Template não encontrado.
+ *
+ * @example
+ * GET /api/sistema/empresa/1/email-templates/agendamento_cadastrado
+ */
+router.get(
+    '/empresa/:idEmpresa/email-templates/:evento',
+    validarIdMiddleware('idEmpresa'),
+    EmailController.obterTemplate
+);
+
+/**
+ * @route DELETE /api/sistema/empresa/:idEmpresa/email-templates/:evento
+ * @method DELETE
+ * @description Exclui o template do evento (exclusão física; o conteúdo fica na auditoria).
+ * @access Privado – Apenas Administradores
+ * @returns {Object} 200 - Template removido.
+ * @returns {Object} 400 - Evento inválido.
+ * @returns {Object} 401 - Token inválido/ausente.
+ * @returns {Object} 403 - Papel não autorizado.
+ * @returns {Object} 404 - Template não encontrado.
+ *
+ * @example
+ * DELETE /api/sistema/empresa/1/email-templates/agendamento_cancelado
+ */
+router.delete(
+    '/empresa/:idEmpresa/email-templates/:evento',
+    validarIdMiddleware('idEmpresa'),
+    EmailController.deletarTemplate
+);
+
+
 module.exports = router;
